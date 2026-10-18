@@ -25,12 +25,12 @@ All target views were captured in full fidelity using automated headless Chromiu
 
 | Screenshot File | Route | Viewport | Form Factor | File Size | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [`01_dashboard_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/01_dashboard_desktop.png) | `/` | 1440 × 900 | Desktop (1440p) | 243.5 KB | Main Dashboard default state with Protected Savings Stat Badge (`🛡️ 380 KWD Protected`), live SVG progress ring, Stripe Checkout deposit button, and Judges Demo Bar |
-| [`02_dashboard_modal_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/02_dashboard_modal_desktop.png) | `/` (Modal Open) | 1440 × 900 | Desktop (1440p) | 210.0 KB | Reality Check Emergency Break modal with Discipline Tax (5% fee) warning, excuse input, and instant WhatsApp Peer Share button |
-| [`03_keyholder_mobile.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/03_keyholder_mobile.png) | `/unlock/[token]` | 390 × 844 | Mobile (iPhone 14/15/16 Pro, 2x DPR) | 303.7 KB | Tokenized single-use Keyholder decision screen with applicant's exact written reason, Gemini AI reality check roast, and burn-on-click protection |
-| [`04_create_wizard_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/04_create_wizard_desktop.png) | `/create` | 1440 × 900 | Desktop (1440p) | 137.3 KB | Vault Creation Wizard with AI Allowance Pacing Engine preview and Keyholder configuration |
-| [`05_dashboard_mobile.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/05_dashboard_mobile.png) | `/` | 390 × 844 | Mobile (iPhone 14/15/16 Pro, 2x DPR) | 365.8 KB | Responsive mobile dashboard layout featuring stacked touch-friendly actions and protected savings counters |
-| [`06_create_wizard_mobile.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/06_create_wizard_mobile.png) | `/create` | 390 × 844 | Mobile (iPhone 14/15/16 Pro, 2x DPR) | 160.8 KB | Responsive mobile vault creation wizard with allowance day calibration |
+| [`01_dashboard_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/01_dashboard_desktop.png) | `/` | 1440 × 900 | Desktop (1440p) | 287.5 KB | Main Dashboard featuring 3D ambient progress ring glow (`drop-shadow(0 0 18px)`), golden-to-emerald gradient stroke, glowing interactive 3D padlock, and frosted glass cards |
+| [`02_dashboard_modal_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/02_dashboard_modal_desktop.png) | `/` (Modal Open) | 1440 × 900 | Desktop (1440p) | 217.3 KB | Reality Check Emergency Break modal with Discipline Tax (5% fee) warning, excuse input, and instant WhatsApp Peer Share button |
+| [`03_keyholder_mobile.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/03_keyholder_mobile.png) | `/unlock/[token]` | 390 × 844 | Mobile (iPhone 14/15/16 Pro, 2x DPR) | 288.2 KB | Isolated Keyholder Guest Layout with "TIJORI SECURITY CLEARANCE" header, pulsing 256-Bit Channel badge, applicant's excuse, and safe-area mobile padding |
+| [`04_create_wizard_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/04_create_wizard_desktop.png) | `/create` | 1440 × 900 | Desktop (1440p) | 132.9 KB | Creation Wizard with 4 Quick-Pick Goal Chips (Japan Trip, M3 Max, Sneakers, Car) and animated SVG 4-week allowance pacing chart |
+| [`05_dashboard_mobile.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/05_dashboard_mobile.png) | `/` | 390 × 844 | Mobile (iPhone 14/15/16 Pro, 2x DPR) | 422.8 KB | Responsive mobile dashboard featuring glowing 3D padlock, touch-friendly micro-pull controls, and frosted glass panels |
+| [`06_create_wizard_mobile.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/06_create_wizard_mobile.png) | `/create` | 390 × 844 | Mobile (iPhone 14/15/16 Pro, 2x DPR) | 143.8 KB | Mobile Creation Wizard featuring 1-click goal chips, allowance day calibration, and month-end deficit shield badge |
 
 ---
 
@@ -131,7 +131,39 @@ Evaluated against **WCAG 2.1 AA & AAA standards** for dark-mode interfaces:
 
 ---
 
-## 7. Automated Capture Script Reference
+## 7. Elite UI/UX Overhaul (Target: 9.8/10 FinTech Benchmark)
+
+### 1. Zero Watermark Presentation
+- Configured `devIndicators: false` in `next.config.mjs`.
+- Eliminates the dev badge and static indicator completely, ensuring unblemished screenshot captures and an authentic production feel.
+
+### 2. Isolated Guest Layout for Keyholder Gatekeeper
+- Route `/app/unlock/[token]/page.tsx` now strips away the global navigation navbar and links.
+- Replaced by a dedicated, secure **Keyholder Security Header**:
+  - **Left:** Clean Tijori Gold Shield badge with text `"TIJORI SECURITY CLEARANCE"`.
+  - **Right:** Pulsing green badge `"256-Bit Single-Use Channel"`.
+- Added `pb-24 sm:pb-12` bottom safe-area padding giving the mobile action buttons ample touch space.
+
+### 3. Gamified & Interactive Creation Wizard
+- **Quick-Pick Goal Chips:** Added 4 preset chips that auto-fill target amounts and cadences in 1 tap:
+  - 🇯🇵 Japan Summer Trip (600 KWD)
+  - 💻 M3 Max Studio (850 KWD)
+  - 👟 Sneaker Grail Vault (120 KWD)
+  - 🏎️ Car Downpayment (1,200 KWD)
+- **Visual AI Allowance Pacing Graph:** Interactive SVG mini-bar chart representing the 4-week allowance cycle:
+  - **Week 1:** High emerald gradient bar (40% surge) capturing post-allowance liquidity.
+  - **Weeks 2 & 3:** Steady amber gradient bars (25% each).
+  - **Week 4:** Low muted slate bar (10%) with badge: `"🛡️ Shielded against month-end deficit"`.
+
+### 4. 3D Depth & Ambient Progress Ring Polish
+- **Ambient Back-Glow:** Wrapped SVG ring in `drop-shadow(0 0 18px rgba(245, 158, 11, 0.38))` (or rose glow during emergency break).
+- **Golden-to-Emerald Gradient Stroke:** Replaced flat stroke with a multi-stop gradient (`#F59E0B` ➔ `#10B981` ➔ `#34D399`).
+- **Interactive Glowing 3D Padlock Icon:** Central padlock icon with status-reactive gradients (emerald for locked, rose for pending, gold for unlocked) with ambient depth halo.
+- **Card Aesthetics:** Refactored surfaces to frosted glass: `bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 hover:border-amber-500/30 transition-all duration-300 shadow-2xl`.
+
+---
+
+## 8. Automated Capture Script Reference
 
 The automated audit suite is executed via:
 ```bash

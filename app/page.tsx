@@ -407,7 +407,7 @@ export default function DashboardPage() {
         {/* Left Column: Hero Vault Card & GCC Pacing (7 Cols) */}
         <div className="lg:col-span-7 space-y-6">
           {/* HERO VAULT CARD */}
-          <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-800 relative overflow-hidden shadow-2xl">
+          <div className="glass-panel rounded-3xl p-6 sm:p-8 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 hover:border-amber-500/30 transition-all duration-300 shadow-2xl relative overflow-hidden">
             {/* Top Vault Info & Status Badge */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
               <div>
@@ -452,32 +452,55 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Central Progress Ring */}
+            {/* Central Progress Ring with 3D Depth & Ambient Back-Glow */}
             <div className="flex flex-col sm:flex-row items-center justify-around gap-6 py-4">
-              <div className="relative w-56 h-56 flex items-center justify-center shrink-0">
-                <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 220 220">
-                  {/* Background Circle */}
+              <div className="relative w-60 h-60 flex items-center justify-center shrink-0">
+                <svg
+                  className="w-full h-full -rotate-90 transform transition-all duration-700"
+                  viewBox="0 0 220 220"
+                  style={{
+                    filter:
+                      vault.status === "UNLOCK_PENDING"
+                        ? "drop-shadow(0 0 18px rgba(244, 63, 94, 0.45))"
+                        : "drop-shadow(0 0 18px rgba(245, 158, 11, 0.38))",
+                  }}
+                >
+                  <defs>
+                    {/* Sleek Golden to Emerald Gradient for Savings Momentum */}
+                    <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#F59E0B" />
+                      <stop offset="60%" stopColor="#10B981" />
+                      <stop offset="100%" stopColor="#34D399" />
+                    </linearGradient>
+
+                    {/* High-Alert Rose Gradient for Emergency Break */}
+                    <linearGradient id="dangerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#FB7185" />
+                      <stop offset="100%" stopColor="#E11D48" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Background Track Circle */}
                   <circle
                     cx="110"
                     cy="110"
                     r={radius}
                     stroke="#1E293B"
-                    strokeWidth="16"
+                    strokeWidth="15"
                     fill="transparent"
                   />
-                  {/* Animated Progress Circle */}
+
+                  {/* Animated Progress Circle with Gradient Stroke */}
                   <circle
                     cx="110"
                     cy="110"
                     r={radius}
                     stroke={
                       vault.status === "UNLOCK_PENDING"
-                        ? "#F43F5E"
-                        : vault.status === "UNLOCKED"
-                        ? "#34D399"
-                        : "#F59E0B"
+                        ? "url(#dangerGrad)"
+                        : "url(#progressGrad)"
                     }
-                    strokeWidth="16"
+                    strokeWidth="15"
                     strokeDasharray={circumference}
                     strokeDashoffset={strokeDashoffset}
                     strokeLinecap="round"
@@ -486,15 +509,45 @@ export default function DashboardPage() {
                   />
                 </svg>
 
-                {/* Inner Ring Text */}
+                {/* Inner Ring Text with Interactive Glowing 3D Padlock Icon */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <div className="relative group cursor-pointer mb-1">
+                    <div
+                      className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 shadow-lg ${
+                        vault.status === "LOCKED"
+                          ? "bg-gradient-to-br from-emerald-400 to-emerald-600 text-slate-950 shadow-emerald-500/30 group-hover:shadow-emerald-500/60"
+                          : vault.status === "UNLOCK_PENDING"
+                          ? "bg-gradient-to-br from-rose-400 to-rose-600 text-white shadow-rose-500/40 animate-bounce"
+                          : "bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 shadow-amber-500/30"
+                      }`}
+                    >
+                      {vault.status === "LOCKED" ? (
+                        <Lock className="w-4 h-4 stroke-[2.5] transition-transform duration-300 group-hover:-rotate-12" />
+                      ) : vault.status === "UNLOCK_PENDING" ? (
+                        <AlertTriangle className="w-4 h-4 stroke-[2.5]" />
+                      ) : (
+                        <Unlock className="w-4 h-4 stroke-[2.5]" />
+                      )}
+                    </div>
+                    {/* Ambient 3D Depth Back-Glow */}
+                    <div
+                      className={`absolute inset-0 rounded-2xl blur-md opacity-60 transition-opacity duration-300 group-hover:opacity-100 -z-10 ${
+                        vault.status === "LOCKED"
+                          ? "bg-emerald-400"
+                          : vault.status === "UNLOCK_PENDING"
+                          ? "bg-rose-500"
+                          : "bg-amber-400"
+                      }`}
+                    />
+                  </div>
+
                   <span className="text-3xl font-extrabold text-white font-mono tracking-tight">
                     {percentFunded}%
                   </span>
-                  <span className="text-[11px] font-mono uppercase text-slate-400 mt-0.5">
-                    Funded
+                  <span className="text-[10px] font-mono uppercase text-slate-400 mt-0.5 tracking-wider">
+                    {vault.status === "LOCKED" ? "Vault Locked" : vault.status}
                   </span>
-                  <div className="mt-2 text-xs font-mono font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                  <div className="mt-1.5 text-xs font-mono font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/25 shadow-sm">
                     {formatKWD(current)} KWD
                   </div>
                 </div>
@@ -582,7 +635,7 @@ export default function DashboardPage() {
           </div>
 
           {/* GCC ALLOWANCE PACING TIMELINE */}
-          <div className="glass-panel rounded-3xl p-6 border border-slate-800">
+          <div className="glass-panel rounded-3xl p-6 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 hover:border-amber-500/30 transition-all duration-300 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Flame className="w-4 h-4 text-amber-400" />
@@ -629,7 +682,7 @@ export default function DashboardPage() {
 
         {/* Right Column: Ledger Sidebar & Activity Feed (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="glass-panel rounded-3xl p-6 border border-slate-800 flex flex-col h-full min-h-[500px]">
+          <div className="glass-panel rounded-3xl p-6 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 hover:border-amber-500/30 transition-all duration-300 shadow-2xl flex flex-col h-full min-h-[500px]">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-400" />

@@ -184,7 +184,7 @@ async function runAudit() {
       viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
       description: "Creation Wizard - High-tech setup form with AI Pacing Preview & Keyholder inputs",
       action: async (page) => {
-        await page.waitForSelector("form", { timeout: 10000 });
+        await page.waitForSelector("form", { timeout: 20000 });
         await new Promise((r) => setTimeout(r, 1000));
       },
     },
@@ -202,7 +202,7 @@ async function runAudit() {
       action: async (page) => {
         await page.waitForFunction(
           () => !document.body.innerText.includes("Loading Tijori"),
-          { timeout: 15000 }
+          { timeout: 20000 }
         );
         await new Promise((r) => setTimeout(r, 1200));
       },
@@ -219,7 +219,7 @@ async function runAudit() {
       },
       description: "Creation Wizard - Mobile Form Factor with allowance day inputs",
       action: async (page) => {
-        await page.waitForSelector("form", { timeout: 10000 });
+        await page.waitForSelector("form", { timeout: 20000 });
         await new Promise((r) => setTimeout(r, 1000));
       },
     },
@@ -230,7 +230,7 @@ async function runAudit() {
     const page = await browser.newPage();
     try {
       await page.setViewport(item.viewport);
-      await page.goto(item.url, { waitUntil: "networkidle2", timeout: 25000 });
+      await page.goto(item.url, { waitUntil: "networkidle2", timeout: 40000 });
 
       if (item.action) {
         await item.action(page);

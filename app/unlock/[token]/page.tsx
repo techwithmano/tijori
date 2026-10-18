@@ -164,24 +164,24 @@ export default function KeyholderTokenUnlockPage({
     vault.unlockReason || vault.breakExcuse || "No excuse provided. Just feeling the urge to spend.";
 
   return (
-    <div className="max-w-md mx-auto py-4 px-2 sm:px-0">
+    <div className="max-w-md mx-auto pt-2 pb-24 sm:pb-12 px-3 sm:px-0">
       {/* Protocol Badge Header */}
       <div className="text-center mb-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono uppercase tracking-wider mb-2">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono uppercase tracking-wider mb-2.5">
           <ShieldAlert className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
           <span>Tokenized Keyholder Protocol</span>
         </div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">
+        <h1 className="text-2xl font-extrabold text-white tracking-tight">
           Keyholder Gatekeeper Decision
         </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Salam, <strong className="text-slate-200">{vault.keyholder.name}</strong> ({vault.keyholder.relationship}).
-          Your friend chose you to hold the key to their savings discipline.
+        <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+          Salam, <strong className="text-amber-300">{vault.keyholder.name}</strong> ({vault.keyholder.relationship}).
+          Your friend chose you as the sole guardian of their savings discipline.
         </p>
       </div>
 
       {/* Main Container */}
-      <div className="glass-panel rounded-3xl p-6 border border-slate-800 shadow-2xl relative overflow-hidden">
+      <div className="glass-panel rounded-3xl p-6 border border-slate-800/80 shadow-2xl relative overflow-hidden bg-slate-900/60 backdrop-blur-xl">
         {/* Status Indicator Bar */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
@@ -211,7 +211,7 @@ export default function KeyholderTokenUnlockPage({
         </div>
 
         {/* Goal & Balance Card */}
-        <div className="my-5 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+        <div className="my-5 p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex items-center justify-between">
           <div>
             <div className="text-[10px] uppercase font-mono text-slate-400">Target Savings Goal</div>
             <div className="text-base font-bold text-white mt-0.5">{vault.title}</div>
@@ -234,16 +234,16 @@ export default function KeyholderTokenUnlockPage({
         <div className="mb-4">
           <div className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1.5">
             <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
-            <span>User&apos;s Exact Written Reason:</span>
+            <span>Applicant&apos;s Stated Excuse:</span>
           </div>
-          <div className="p-4 rounded-2xl bg-slate-950/80 border border-amber-500/20 text-xs italic text-slate-100 leading-relaxed font-sans shadow-inner">
+          <div className="p-4 rounded-2xl bg-slate-950/90 border border-amber-500/20 text-xs italic text-slate-100 leading-relaxed font-sans shadow-inner">
             &ldquo;{writtenReason}&rdquo;
           </div>
         </div>
 
         {/* Gemini AI Reality Check Callout */}
         {vault.realityCheck && (
-          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-950 border border-amber-500/30">
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-900/90 to-slate-950 border border-amber-500/30">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400 mb-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>Tijori AI Behavioral Reality Check:</span>
@@ -270,7 +270,7 @@ export default function KeyholderTokenUnlockPage({
 
         {/* Decision Action Buttons */}
         {!actionDone ? (
-          <div className="space-y-3">
+          <div className="space-y-3 pt-2">
             <button
               onClick={() => handleDecision("DENY")}
               disabled={processingAction !== null}
@@ -286,13 +286,13 @@ export default function KeyholderTokenUnlockPage({
               )}
             </button>
             <p className="text-[11px] text-center text-slate-400">
-              Blocks early withdrawal, preserves the savings habit, and burns this single-use link.
+              Blocks early withdrawal, increments protected savings, and permanently burns this link.
             </p>
 
             <button
               onClick={() => handleDecision("APPROVE")}
               disabled={processingAction !== null}
-              className="tactile-btn w-full py-3 px-4 rounded-2xl bg-slate-900/60 hover:bg-rose-950/40 text-rose-400 hover:text-rose-300 border border-rose-500/30 hover:border-rose-500/60 font-semibold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-4"
+              className="tactile-btn w-full py-3.5 px-4 rounded-2xl bg-slate-900/80 hover:bg-rose-950/50 text-rose-400 hover:text-rose-300 border border-rose-500/30 hover:border-rose-500/60 font-semibold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-4 mb-2"
             >
               {processingAction === "APPROVE" ? (
                 <div className="w-4 h-4 border-2 border-rose-400/30 border-t-rose-400 rounded-full animate-spin" />
@@ -307,27 +307,16 @@ export default function KeyholderTokenUnlockPage({
         ) : (
           <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 text-center">
             <div className="text-xs text-slate-300 font-medium">
-              Decision executed. This token has been invalidated.
+              Decision executed. This single-use security token has been burned.
             </div>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 mt-3 font-semibold"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Tijori Home</span>
-            </Link>
           </div>
         )}
       </div>
 
       <div className="text-center mt-6">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Switch to Main Owner Dashboard</span>
-        </Link>
+        <p className="text-[11px] text-slate-500 font-mono">
+          Tijori Security Clearance Protocol &bull; Single-Use Token Invalidation Enabled
+        </p>
       </div>
     </div>
   );

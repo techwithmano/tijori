@@ -37,29 +37,46 @@ body {
   background: #334155;
 }
 
-/* Glassmorphism helpers with high-depth backdrop blur */
+/* Glassmorphism helpers with high-depth backdrop blur and 3D polish */
 .glass-panel {
-  background: rgba(17, 24, 39, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(30, 41, 59, 0.85);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(30, 41, 59, 0.8);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.ring-glow {
+  filter: drop-shadow(0 0 18px rgba(245, 158, 11, 0.38));
+}
+
+.ring-glow-danger {
+  filter: drop-shadow(0 0 18px rgba(244, 63, 94, 0.42));
+}
+
+.ring-glow-success {
+  filter: drop-shadow(0 0 18px rgba(16, 185, 129, 0.42));
 }
 
 .glass-panel-gold {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(17, 24, 39, 0.88) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  box-shadow: 0 10px 35px -10px rgba(245, 158, 11, 0.15);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 20px 45px -10px rgba(245, 158, 11, 0.2);
 }
 
 .glass-panel-emerald {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(17, 24, 39, 0.88) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  box-shadow: 0 10px 35px -10px rgba(16, 185, 129, 0.15);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 20px 45px -10px rgba(16, 185, 129, 0.2);
 }
 
 .glass-panel-danger {
