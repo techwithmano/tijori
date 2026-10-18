@@ -1,0 +1,125 @@
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/db";
+import { Vault } from "@/models/Vault";
+
+export async function GET() {
+  try {
+    await connectToDatabase();
+
+    // Find the most recent active or created vault
+    let vault = await Vault.findOne().sort({ createdAt: -1 });
+
+    // Auto-seed default demo vault if none exists
+    if (!vault) {
+      const now = Date.now();
+      vault = await Vault.create({
+        title: "Japan Summer Trip 🇯🇵",
+        targetAmount: 500,
+        currentBalance: 125,
+        pullAmount: 25,
+        cadence: "weekly",
+        allowanceDay: 25,
+        status: "LOCKED",
+        keyholder: {
+          name: "Fahad Al-Mutawa",
+          phone: "+965 9988 7766",
+          relationship: "Best Friend / Diwaniya Bro",
+        },
+        targetDate: new Date(now + 90 * 24 * 60 * 60 * 1000), // 3 months out
+        transactions: [
+          {
+            amount: 50,
+            type: "SIMULATED_PULL",
+            status: "COMPLETED",
+            createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+            note: "Auto-pull post-salary surge ⚡",
+          },
+          {
+            amount: 50,
+            type: "SCHEDULED_PULL",
+            status: "COMPLETED",
+            createdAt: new Date(now - 7 * 24 * 60 * 60 * 1000),
+            note: "Weekly disciplined micro-pull",
+          },
+          {
+            amount: 25,
+            type: "SCHEDULED_PULL",
+            status: "COMPLETED",
+            createdAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
+            note: "Initial vault kickstart",
+          },
+        ],
+      });
+      console.log("Seeded default demo vault:", vault._id);
+    }
+
+    return NextResponse.json({ success: true, vault });
+  } catch (error: any) {
+    console.error("GET /api/vault error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to fetch vault" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    await connectToDatabase();
+    const body = await req.json();
+
+    const {
+      title,
+      targetAmount,
+      pullAmount,
+      cadence = "weekly",
+      allowanceDay = 25,
+      targetDate,
+      keyholder,
+    } = body;
+
+    if (!title || !targetAmount || !pullAmount || !targetDate || !keyholder?.name || !keyholder?.phone) {
+      return NextResponse.json(
+        { success: false, error: "Missing required vault parameters" },
+        { status: 400 }
+      );
+    }
+
+    const newVault = await Vault.create({
+      title,
+      targetAmount: Number(targetAmount),
+      currentBalance: 0,
+      pullAmount: Number(pullAmount),
+      cadence,
+      allowanceDay: Number(allowanceDay),
+      status: "LOCKED",
+      targetDate: new Date(targetDate),
+      keyholder: {
+        name: keyholder.name,
+        phone: keyholder.phone,
+        relationship: keyholder.relationship || "Guardian",
+      },
+      transactions: [
+        {
+          amount: Number(pullAmount),
+          type: "SCHEDULED_PULL",
+          status: "COMPLETED",
+          createdAt: new Date(),
+          note: "Genesis deposit - Welcome to Tijori",
+        },
+      ],
+    });
+
+    // Also update current balance to initial deposit
+    newVault.currentBalance = Number(pullAmount);
+    await newVault.save();
+
+    return NextResponse.json({ success: true, vault: newVault }, { status: 201 });
+  } catch (error: any) {
+    console.error("POST /api/vault error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to create vault" },
+      { status: 500 }
+    );
+  }
+}
