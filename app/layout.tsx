@@ -17,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-tijori-bg text-slate-100 min-h-screen flex flex-col selection:bg-amber-500/30 selection:text-amber-200">
+    <html lang="en">
+      <body className="bg-tijori-bg text-tijori-primary min-h-screen flex flex-col selection:bg-amber-500/20 selection:text-amber-900">
         {/* Ambient Top Glow */}
         <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-64 bg-gradient-to-b from-amber-500/10 via-emerald-500/5 to-transparent blur-3xl pointer-events-none -z-10" />
 
@@ -26,18 +26,18 @@ export default function RootLayout({
         <Header />
 
         {/* Main Content Area */}
-        <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
+        <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {children}
         </main>
 
         {/* Minimal Footer */}
-        <footer className="border-t border-tijori-border/60 py-6 text-center text-xs text-slate-500">
-          <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500 bg-white/50">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Tijori (تِجوري) &bull; Built with Next.js, Stripe, Mongoose & Gemini 2.5 Flash</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-slate-600 font-medium">Tijori (تِجوري) &bull; Built with Next.js, Stripe, Mongoose & Gemini 2.5 Flash</span>
             </div>
-            <div className="font-mono text-[11px] text-slate-400">
+            <div className="font-mono text-[11px] text-slate-500">
               Currency: KWD (Kuwaiti Dinar) &bull; GCC Banking Friction Layer
             </div>
           </div>

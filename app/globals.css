@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --background: #0B0F19;
-  --foreground: #F8FAFC;
-  --gold-glow: rgba(245, 158, 11, 0.25);
-  --emerald-glow: rgba(16, 185, 129, 0.25);
-  --rose-glow: rgba(244, 63, 94, 0.25);
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --gold-glow: rgba(217, 119, 6, 0.15);
+  --emerald-glow: rgba(5, 150, 105, 0.15);
+  --rose-glow: rgba(225, 29, 72, 0.15);
 }
 
 body {
@@ -25,74 +25,67 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B0F19;
+  background: #F8FAFC;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
+  background: #CBD5E1;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #94A3B8;
 }
 
-/* Glassmorphism helpers with high-depth backdrop blur and 3D polish */
+/* Glassmorphism & Card helpers with Calm Trust light depth */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(30, 41, 59, 0.8);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(226, 232, 240, 0.8);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-panel:hover {
-  border-color: rgba(245, 158, 11, 0.3);
+  border-color: rgba(217, 119, 6, 0.35);
+  box-shadow: 0 14px 35px -5px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(217, 119, 6, 0.3);
 }
 
 .ring-glow {
-  filter: drop-shadow(0 0 18px rgba(245, 158, 11, 0.38));
+  filter: drop-shadow(0 4px 14px rgba(217, 119, 6, 0.2));
 }
 
 .ring-glow-danger {
-  filter: drop-shadow(0 0 18px rgba(244, 63, 94, 0.42));
+  filter: drop-shadow(0 4px 14px rgba(225, 29, 72, 0.2));
 }
 
 .ring-glow-success {
-  filter: drop-shadow(0 0 18px rgba(16, 185, 129, 0.42));
+  filter: drop-shadow(0 4px 14px rgba(5, 150, 105, 0.2));
 }
 
 .glass-panel-gold {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  box-shadow: 0 20px 45px -10px rgba(245, 158, 11, 0.2);
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.08);
 }
 
 .glass-panel-emerald {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  box-shadow: 0 20px 45px -10px rgba(16, 185, 129, 0.2);
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.08);
 }
 
 .glass-panel-danger {
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, rgba(17, 24, 39, 0.92) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(244, 63, 94, 0.4);
-  box-shadow: 0 15px 40px -10px rgba(244, 63, 94, 0.25);
+  background: #FFF1F2;
+  border: 1px solid #FECDD3;
+  box-shadow: 0 10px 25px -5px rgba(225, 29, 72, 0.08);
 }
 
-/* Subtle background grid pattern */
+/* Subtle background grid pattern for light mode */
 .bg-grid-pattern {
   background-size: 32px 32px;
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(to right, rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
 }
 
 /* Smooth spring animations */
