@@ -6,25 +6,19 @@ import Link from "next/link";
 import {
   Lock,
   ArrowLeft,
-  Sparkles,
   Shield,
   Calendar,
   Coins,
-  User,
-  Phone,
-  HeartHandshake,
-  CheckCircle2,
-  Clock,
+  Sparkles,
   TrendingUp,
 } from "lucide-react";
-import { PacingItem } from "@/app/api/ai/pacing/route";
 
 export default function CreateVaultPage() {
   const router = useRouter();
 
-  const [title, setTitle] = useState("Trip to Japan 🇯🇵");
-  const [targetAmount, setTargetAmount] = useState(500);
-  const [pullAmount, setPullAmount] = useState(25);
+  const [title, setTitle] = useState("");
+  const [targetAmount, setTargetAmount] = useState<number | "">(500);
+  const [pullAmount, setPullAmount] = useState<number | "">(25);
   const [cadence, setCadence] = useState<"daily" | "weekly" | "biweekly" | "monthly">("weekly");
   const [allowanceDay, setAllowanceDay] = useState(25);
   const [targetDate, setTargetDate] = useState(() => {
@@ -33,44 +27,40 @@ export default function CreateVaultPage() {
     return d.toISOString().split("T")[0];
   });
 
-  const [keyholderName, setKeyholderName] = useState("Fahad Al-Mutawa");
-  const [keyholderPhone, setKeyholderPhone] = useState("+965 9988 7766");
-  const [keyholderRelationship, setKeyholderRelationship] = useState("Best Friend / Diwaniya Bro");
+  const [keyholderName, setKeyholderName] = useState("");
+  const [keyholderPhone, setKeyholderPhone] = useState("");
+  const [keyholderRelationship, setKeyholderRelationship] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pacingSchedule, setPacingSchedule] = useState<PacingItem[] | null>(null);
-  const [loadingPacing, setLoadingPacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPacingPreview = async () => {
-    try {
-      setLoadingPacing(true);
-      const res = await fetch("/api/ai/pacing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetAmount,
-          currentBalance: 0,
-          pullAmount,
-          allowanceDay,
-          cadence,
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.schedule) {
-        setPacingSchedule(data.schedule);
-      }
-    } catch (err: any) {
-      console.error("Failed to fetch pacing preview", err);
-    } finally {
-      setLoadingPacing(false);
-    }
-  };
+  // Dynamic Mathematical Savings Projection
+  const numTarget = typeof targetAmount === "number" ? targetAmount : 0;
+  const numPull = typeof pullAmount === "number" ? pullAmount : 0;
+  const totalPullsNeeded = numPull > 0 ? Math.ceil(numTarget / numPull) : 0;
+
+  // Smart 4-Week Cycle Distribution
+  const week1Pull = Math.round(numPull * 1.5);
+  const week2Pull = numPull;
+  const week3Pull = numPull;
+  const week4Pull = Math.max(5, Math.round(numPull * 0.4));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+
+    if (!title.trim()) {
+      setError("Please enter a goal title for your vault");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!keyholderName.trim() || !keyholderPhone.trim()) {
+      setError("Please designate your Keyholder name and phone number");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/vault", {
@@ -78,22 +68,22 @@ export default function CreateVaultPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
-          targetAmount: Number(targetAmount),
-          pullAmount: Number(pullAmount),
+          targetAmount: Number(targetAmount) || 500,
+          pullAmount: Number(pullAmount) || 25,
           cadence,
-          allowanceDay: Number(allowanceDay),
+          allowanceDay: Number(allowanceDay) || 25,
           targetDate,
           keyholder: {
             name: keyholderName,
             phone: keyholderPhone,
-            relationship: keyholderRelationship,
+            relationship: keyholderRelationship || "Keyholder Guardian",
           },
         }),
       });
 
       const data = await res.json();
       if (data.success) {
-        router.push("/");
+        router.push("/dashboard");
       } else {
         setError(data.error || "Failed to create vault");
       }
@@ -112,10 +102,10 @@ export default function CreateVaultPage() {
   ];
 
   return (
-    <div className="max-w-2xl mx-auto py-6">
+    <div className="max-w-2xl mx-auto py-6 pb-16">
       <div className="mb-6">
         <Link
-          href="/"
+          href="/dashboard"
           className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 transition-colors mb-3"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -136,12 +126,12 @@ export default function CreateVaultPage() {
         </div>
       </div>
 
-      {/* QUICK-PICK GOAL CHIPS */}
+      {/* QUICK-PICK GOAL CHIPS (OPTIONAL INSPIRATION) */}
       <div className="mb-6 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-card">
         <div className="flex items-center justify-between mb-2.5">
           <label className="text-xs font-semibold uppercase tracking-wider text-amber-800 font-mono flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-            <span>Quick-Pick Goal Chips</span>
+            <span>Quick-Pick Inspiration</span>
           </label>
           <span className="text-[10px] text-slate-500 font-mono font-medium">1-Click Auto-Fill</span>
         </div>
@@ -158,16 +148,16 @@ export default function CreateVaultPage() {
                   setPullAmount(preset.pull);
                   setCadence(preset.cadence);
                 }}
-                className={`tactile-btn p-3 rounded-xl border text-left text-xs transition-all ${
+                className={`p-2.5 rounded-xl border text-left transition-all text-xs flex flex-col justify-between min-h-[58px] ${
                   isSelected
-                    ? "bg-amber-50 border-amber-500 text-amber-950 shadow-xs ring-1 ring-amber-500/50"
-                    : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700"
+                    ? "bg-amber-50 border-amber-300 text-amber-950 shadow-xs"
+                    : "bg-slate-50 hover:bg-slate-100 border-slate-200/90 text-slate-700"
                 }`}
               >
-                <div className="font-semibold truncate text-[11px] sm:text-xs">{preset.label}</div>
-                <div className="text-[11px] font-mono text-amber-700 mt-1 font-bold">
-                  {preset.target} KWD
-                </div>
+                <span className="font-semibold truncate">{preset.label}</span>
+                <span className="text-[10px] font-mono text-slate-500 mt-0.5">
+                  {preset.target} KWD &bull; {preset.pull}/wk
+                </span>
               </button>
             );
           })}
@@ -175,183 +165,169 @@ export default function CreateVaultPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Step 1: Goal Details */}
+        {/* Step 1: Vault Basics */}
         <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white shadow-card space-y-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-3">
             <Coins className="w-4 h-4 text-amber-600" />
-            <span>1. Savings Target & Micro-Pull</span>
+            <span>1. Vault Target & Recurrence</span>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              Savings Goal Name
+            </label>
+            <input
+              type="text"
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Japan Summer Trip, New Laptop, Emergency Fund"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                Goal Name / Dream Purchase
-              </label>
-              <input
-                type="text"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Trip to Japan 🇯🇵, New MacBook M3"
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
-              />
-            </div>
-
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                Total Target Goal (KWD)
+                Target Amount (KWD)
               </label>
-              <input
-                type="number"
-                min="10"
-                required
-                value={targetAmount}
-                onChange={(e) => setTargetAmount(Number(e.target.value))}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors font-mono"
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  min="10"
+                  max="10000"
+                  required
+                  value={targetAmount}
+                  onChange={(e) =>
+                    setTargetAmount(e.target.value === "" ? "" : Number(e.target.value))
+                  }
+                  placeholder="500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors font-mono"
+                />
+                <span className="absolute right-3.5 top-2.5 text-xs text-slate-500 font-mono">
+                  KWD
+                </span>
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
                 Micro-Pull Amount (KWD)
               </label>
-              <input
-                type="number"
-                min="1"
-                required
-                value={pullAmount}
-                onChange={(e) => setPullAmount(Number(e.target.value))}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors font-mono"
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  min="1"
+                  max="500"
+                  required
+                  value={pullAmount}
+                  onChange={(e) =>
+                    setPullAmount(e.target.value === "" ? "" : Number(e.target.value))
+                  }
+                  placeholder="25"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors font-mono"
+                />
+                <span className="absolute right-3.5 top-2.5 text-xs text-slate-500 font-mono">
+                  KWD
+                </span>
+              </div>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                Pull Cadence
+                Recurrence Cadence
               </label>
               <select
                 value={cadence}
                 onChange={(e: any) => setCadence(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
               >
-                <option value="daily">Daily Micro-Drip</option>
-                <option value="weekly">Weekly Automated</option>
+                <option value="daily">Daily Micro-Pull</option>
+                <option value="weekly">Weekly Pull (Recommended)</option>
                 <option value="biweekly">Bi-Weekly</option>
-                <option value="monthly">Monthly Allocation</option>
+                <option value="monthly">Monthly Cycle</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                Monthly Allowance / Salary Day
+                GCC Salary / I&apos;ana Day
               </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="1"
-                  max="31"
-                  required
-                  value={allowanceDay}
-                  onChange={(e) => setAllowanceDay(Number(e.target.value))}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors font-mono"
-                />
-                <span className="absolute right-3.5 top-2.5 text-xs text-slate-500 font-mono">
-                  th of month
-                </span>
-              </div>
+              <input
+                type="number"
+                min="1"
+                max="31"
+                required
+                value={allowanceDay}
+                onChange={(e) => setAllowanceDay(Number(e.target.value))}
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors font-mono"
+              />
             </div>
 
-            <div className="sm:col-span-2">
+            <div>
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                Target Lock Expiry Date
+                Lock Release Target Date
               </label>
               <input
                 type="date"
                 required
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors font-mono"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors font-mono"
               />
             </div>
           </div>
         </div>
 
-        {/* VISUAL AI PACING GRAPH WIDGET */}
-        <div className="rounded-2xl p-5 border border-amber-200/90 bg-amber-50/40 shadow-card">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600" />
-              <span className="text-sm font-semibold text-amber-950">
-                AI Allowance Pacing Engine
-              </span>
+        {/* Dynamic Mathematical Pacing Preview */}
+        <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white shadow-card space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <TrendingUp className="w-4 h-4 text-emerald-600" />
+              <span>Mathematical Allowance Pacing Projection</span>
             </div>
-            <button
-              type="button"
-              onClick={fetchPacingPreview}
-              disabled={loadingPacing}
-              className="tactile-btn text-xs px-3.5 py-2 rounded-xl bg-white hover:bg-amber-50 border border-amber-300 text-amber-900 font-semibold transition-all flex items-center gap-1.5 shadow-xs"
-            >
-              {loadingPacing ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-amber-700/30 border-t-amber-700 rounded-full animate-spin" />
-                  <span>Analyzing Cycle...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Generate AI Pacing Preview ✨</span>
-                </>
-              )}
-            </button>
+            <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200 font-semibold">
+              {totalPullsNeeded} Micro-Pulls Required
+            </span>
           </div>
-          <p className="text-xs text-slate-600 leading-relaxed mb-4">
-            Tijori analyzes your day-{allowanceDay} allowance inflow and automatically ramps up micro-pulls when cashflow peaks, tapering down during lean days to protect your monthly budget.
+
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Based on your monthly salary day ({allowanceDay}th), micro-pulls automatically surge when you have liquidity, then taper down during lean days:
           </p>
 
-          {/* SLEEK ANIMATED SVG MINI-BAR CHART */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/90 mb-4 shadow-xs">
-            <div className="text-[11px] font-mono uppercase text-slate-500 mb-2 flex items-center justify-between font-semibold">
-              <span>Dynamic 4-Week Cashflow Pacing</span>
-              <span className="text-emerald-700">Day {allowanceDay} Synchronized</span>
-            </div>
-
-            <div className="w-full h-44 relative flex items-center justify-center">
-              <svg className="w-full h-full" viewBox="0 0 380 140">
+          {/* SVG Pacing Bar Chart */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="w-full max-w-md mx-auto">
+              <svg
+                viewBox="0 0 380 145"
+                className="w-full h-auto overflow-visible select-none"
+                style={{ maxHeight: "160px" }}
+              >
                 <defs>
-                  {/* Emerald Gradient for Week 1 Surge */}
-                  <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <linearGradient id="surgeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#10B981" />
                     <stop offset="100%" stopColor="#059669" />
                   </linearGradient>
-                  {/* Amber Gradient for Weeks 2 & 3 Steady */}
                   <linearGradient id="amberGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#F59E0B" />
                     <stop offset="100%" stopColor="#D97706" />
                   </linearGradient>
-                  {/* Slate Gradient for Week 4 Lean Days */}
                   <linearGradient id="slateGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#94A3B8" />
                     <stop offset="100%" stopColor="#64748B" />
                   </linearGradient>
                 </defs>
 
-                {/* Horizontal Baseline */}
-                <line x1="20" y1="108" x2="360" y2="108" stroke="#E2E8F0" strokeWidth="2" strokeDasharray="4 4" />
+                {/* Base guideline */}
+                <line x1="20" y1="108" x2="360" y2="108" stroke="#CBD5E1" strokeWidth="1" strokeDasharray="3 3" />
 
-                {/* BAR 1: Week 1 (Post-Allowance Surge - 40%) */}
-                <g className="cursor-pointer group">
-                  <rect
-                    x="35"
-                    y="22"
-                    width="54"
-                    height="86"
-                    rx="8"
-                    fill="url(#emeraldGrad)"
-                    className="transition-all duration-500 group-hover:brightness-105"
-                    style={{ filter: "drop-shadow(0 4px 10px rgba(5, 150, 105, 0.2))" }}
-                  />
+                {/* BAR 1: Week 1 */}
+                <g>
+                  <rect x="35" y="24" width="54" height="84" rx="8" fill="url(#surgeGrad)" />
                   <text x="62" y="16" textAnchor="middle" fill="#059669" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    40%
+                    +{week1Pull} KWD
                   </text>
                   <text x="62" y="122" textAnchor="middle" fill="#0F172A" fontSize="10" fontWeight="bold">
                     Week 1
@@ -361,20 +337,11 @@ export default function CreateVaultPage() {
                   </text>
                 </g>
 
-                {/* BAR 2: Week 2 (Moderate - 25%) */}
-                <g className="cursor-pointer group">
-                  <rect
-                    x="120"
-                    y="52"
-                    width="54"
-                    height="56"
-                    rx="8"
-                    fill="url(#amberGrad)"
-                    className="transition-all duration-500 group-hover:brightness-105"
-                    style={{ filter: "drop-shadow(0 4px 8px rgba(217, 119, 6, 0.2))" }}
-                  />
+                {/* BAR 2: Week 2 */}
+                <g>
+                  <rect x="120" y="52" width="54" height="56" rx="8" fill="url(#amberGrad)" />
                   <text x="147" y="46" textAnchor="middle" fill="#D97706" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    25%
+                    +{week2Pull} KWD
                   </text>
                   <text x="147" y="122" textAnchor="middle" fill="#334155" fontSize="10" fontWeight="bold">
                     Week 2
@@ -384,20 +351,11 @@ export default function CreateVaultPage() {
                   </text>
                 </g>
 
-                {/* BAR 3: Week 3 (Moderate - 25%) */}
-                <g className="cursor-pointer group">
-                  <rect
-                    x="205"
-                    y="52"
-                    width="54"
-                    height="56"
-                    rx="8"
-                    fill="url(#amberGrad)"
-                    className="transition-all duration-500 group-hover:brightness-105"
-                    style={{ filter: "drop-shadow(0 4px 8px rgba(217, 119, 6, 0.2))" }}
-                  />
+                {/* BAR 3: Week 3 */}
+                <g>
+                  <rect x="205" y="52" width="54" height="56" rx="8" fill="url(#amberGrad)" />
                   <text x="232" y="46" textAnchor="middle" fill="#D97706" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    25%
+                    +{week3Pull} KWD
                   </text>
                   <text x="232" y="122" textAnchor="middle" fill="#334155" fontSize="10" fontWeight="bold">
                     Week 3
@@ -407,19 +365,11 @@ export default function CreateVaultPage() {
                   </text>
                 </g>
 
-                {/* BAR 4: Week 4 (Lean Days - 10%) */}
-                <g className="cursor-pointer group">
-                  <rect
-                    x="290"
-                    y="82"
-                    width="54"
-                    height="26"
-                    rx="8"
-                    fill="url(#slateGrad)"
-                    className="transition-all duration-500 group-hover:brightness-105"
-                  />
+                {/* BAR 4: Week 4 */}
+                <g>
+                  <rect x="290" y="82" width="54" height="26" rx="8" fill="url(#slateGrad)" />
                   <text x="317" y="76" textAnchor="middle" fill="#64748B" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    10%
+                    +{week4Pull} KWD
                   </text>
                   <text x="317" y="122" textAnchor="middle" fill="#64748B" fontSize="10" fontWeight="bold">
                     Week 4
@@ -431,36 +381,12 @@ export default function CreateVaultPage() {
               </svg>
             </div>
 
-            {/* Week 4 Deficit Shield Badge */}
             <div className="mt-3 text-center">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-emerald-800 text-xs font-mono font-medium shadow-xs">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-emerald-800 text-xs font-mono font-medium shadow-xs">
                 🛡️ Shielded against month-end deficit
               </span>
             </div>
           </div>
-
-          {/* RATIONALE CARDS */}
-          {pacingSchedule && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-amber-200">
-              {pacingSchedule.map((item) => (
-                <div
-                  key={item.week}
-                  className="p-3 rounded-xl bg-white border border-slate-200 text-xs shadow-xs"
-                >
-                  <div className="flex items-center justify-between font-mono mb-1">
-                    <span className="text-slate-500 font-semibold">Week {item.week}</span>
-                    <span className="font-bold text-amber-700 font-mono">
-                      +{item.amount} KWD
-                    </span>
-                  </div>
-                  <div className="font-semibold text-slate-900">{item.label}</div>
-                  <div className="text-[11px] text-slate-600 mt-1 leading-snug">
-                    {item.rationale}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Step 2: Keyholder Protocol Setup */}
@@ -470,7 +396,7 @@ export default function CreateVaultPage() {
             <span>2. Designate Keyholder Guardian (Peer Friction)</span>
           </div>
 
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-slate-600 leading-relaxed">
             A trusted friend, sibling, or parent who holds the digital key to approve or deny early withdrawals.
           </p>
 
@@ -479,32 +405,28 @@ export default function CreateVaultPage() {
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
                 Friend&apos;s Full Name
               </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  value={keyholderName}
-                  onChange={(e) => setKeyholderName(e.target.value)}
-                  placeholder="e.g. Fahad Al-Mutawa"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
-                />
-              </div>
+              <input
+                type="text"
+                required
+                value={keyholderName}
+                onChange={(e) => setKeyholderName(e.target.value)}
+                placeholder="e.g. Khalid Al-Sabah"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
+              />
             </div>
 
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
                 Phone Number (WhatsApp)
               </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  value={keyholderPhone}
-                  onChange={(e) => setKeyholderPhone(e.target.value)}
-                  placeholder="+965 9988 7766"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors font-mono"
-                />
-              </div>
+              <input
+                type="text"
+                required
+                value={keyholderPhone}
+                onChange={(e) => setKeyholderPhone(e.target.value)}
+                placeholder="e.g. +965 9911 2233"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors font-mono"
+              />
             </div>
 
             <div>

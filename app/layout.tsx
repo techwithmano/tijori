@@ -34,8 +34,8 @@ export default function RootLayout({
         <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500 bg-white/50">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span className="text-slate-600 font-medium">Tijori (تِجوري) &bull; Built with Next.js, Stripe, Mongoose & Gemini 2.5 Flash</span>
+              <Shield className="w-3.5 h-3.5 text-amber-600" />
+              <span className="text-slate-600 font-medium">Tijori (تِجوري) &bull; Behavioral Anti-Impulse Micro-Savings Protocol</span>
             </div>
             <div className="font-mono text-[11px] text-slate-500">
               Currency: KWD (Kuwaiti Dinar) &bull; GCC Banking Friction Layer

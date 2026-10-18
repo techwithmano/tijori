@@ -49,9 +49,7 @@ async function fetchLatestVaultAndToken() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "REQUEST",
-            reason: "There's a limited drop sneaker sale at 360 Mall and it ends tonight...",
-            realityCheck:
-              "Breaking your savings for sneakers is peak lack of discipline—another pair of Jordans won't fix your lifestyle. Your Keyholder will laugh you out of the diwaniya.",
+            reason: "Flash sneaker drop at 360 Mall and it ends tonight 👟",
           }),
         });
         const unlockData = await unlockRes.json();
@@ -98,25 +96,50 @@ async function runAudit() {
 
   const targets = [
     {
-      name: "01_dashboard_desktop.png",
+      name: "01_landing_desktop.png",
       url: `${BASE_URL}/`,
       viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Main Dashboard - Default state with protected savings stat badge, SVG ring & Stripe deposit buttons",
+      description: "Interactive Landing Page - Hero with Dual CTAs, Savings Simulator & Keyholder Protocol Walkthrough",
       action: async (page) => {
-        await page.waitForFunction(
-          () => !document.body.innerText.includes("Loading Tijori"),
-          { timeout: 15000 }
-        );
+        await page.waitForSelector("#simulator", { timeout: 15000 }).catch(() => {});
         await new Promise((r) => setTimeout(r, 1200));
       },
     },
     {
-      name: "02_dashboard_modal_desktop.png",
+      name: "02_landing_mobile.png",
       url: `${BASE_URL}/`,
-      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Main Dashboard - Reality Check Emergency Break modal with Discipline Tax warning & WhatsApp share",
+      viewport: {
+        width: 390,
+        height: 844,
+        isMobile: true,
+        hasTouch: true,
+        deviceScaleFactor: 2,
+      },
+      description: "Landing Page Mobile - Responsive Hero & Interactive Sliders on iPhone Viewport",
       action: async (page) => {
-        // Reset to LOCKED state before capturing modal so input form is visible
+        await page.waitForSelector("#simulator", { timeout: 15000 }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 1200));
+      },
+    },
+    {
+      name: "03_dashboard_desktop.png",
+      url: `${BASE_URL}/dashboard`,
+      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
+      description: "Clean Vault Dashboard - Hero Vault Card, SVG Progress Ring, Action Bar & Savings Ledger",
+      action: async (page) => {
+        await page.waitForFunction(
+          () => !document.body.innerText.includes("Loading Tijori"),
+          { timeout: 30000 }
+        );
+        await new Promise((r) => setTimeout(r, 1500));
+      },
+    },
+    {
+      name: "04_dashboard_modal_desktop.png",
+      url: `${BASE_URL}/dashboard?modal=true`,
+      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
+      description: "Emergency Break Modal - Pure Social Friction with 5% Discipline Tax Warning & WhatsApp Share",
+      action: async (page) => {
         try {
           await fetch(`${BASE_URL}/api/vault/${vaultId}/unlock`, {
             method: "POST",
@@ -125,21 +148,21 @@ async function runAudit() {
           });
         } catch (e) {}
 
-        await page.goto(`${BASE_URL}/?modal=true`, { waitUntil: "networkidle2" });
+        await page.goto(`${BASE_URL}/dashboard?modal=true`, { waitUntil: "networkidle2" });
         await page.waitForFunction(
           () => !document.body.innerText.includes("Loading Tijori"),
-          { timeout: 15000 }
+          { timeout: 30000 }
         );
         const btn = await page.$("#request-break-btn");
         if (btn) {
           await btn.click().catch(() => {});
         }
-        await page.waitForSelector("textarea", { timeout: 6000 }).catch(() => {});
-        await new Promise((r) => setTimeout(r, 1200));
+        await page.waitForSelector("textarea", { timeout: 10000 }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 1500));
       },
     },
     {
-      name: "03_keyholder_mobile.png",
+      name: "05_keyholder_mobile.png",
       url: `${BASE_URL}/unlock/${token}`,
       viewport: {
         width: 390,
@@ -148,9 +171,8 @@ async function runAudit() {
         hasTouch: true,
         deviceScaleFactor: 2,
       },
-      description: "Keyholder Mobile View - Tokenized single-use decision screen with exact written reason & protect CTA",
+      description: "Keyholder Mobile View - Isolated 256-Bit Single-Use Channel with applicant's written reason and Deny/Approve CTAs",
       action: async (page) => {
-        // Re-generate token if burned
         let activeToken = token;
         try {
           const checkRes = await fetch(`${BASE_URL}/api/unlock/${token}`);
@@ -160,9 +182,7 @@ async function runAudit() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 action: "REQUEST",
-                reason: "There's a limited drop sneaker sale at 360 Mall and it ends tonight...",
-                realityCheck:
-                  "Breaking your savings for sneakers is peak lack of discipline—another pair of Jordans won't fix your lifestyle. Your Keyholder will laugh you out of the diwaniya.",
+                reason: "Flash sneaker drop at 360 Mall and it ends tonight 👟",
               }),
             });
             const reqData = await reqRes.json();
@@ -173,24 +193,24 @@ async function runAudit() {
 
         await page.waitForFunction(
           () => !document.body.innerText.includes("Verifying Single-Use"),
-          { timeout: 15000 }
+          { timeout: 30000 }
         );
+        await new Promise((r) => setTimeout(r, 1500));
+      },
+    },
+    {
+      name: "06_create_wizard_desktop.png",
+      url: `${BASE_URL}/create`,
+      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
+      description: "Creation Wizard - Clean inputs, Quick-Pick inspiration chips & Mathematical Pacing chart",
+      action: async (page) => {
+        await page.waitForSelector("form", { timeout: 30000 });
         await new Promise((r) => setTimeout(r, 1200));
       },
     },
     {
-      name: "04_create_wizard_desktop.png",
-      url: `${BASE_URL}/create`,
-      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Creation Wizard - High-tech setup form with AI Pacing Preview & Keyholder inputs",
-      action: async (page) => {
-        await page.waitForSelector("form", { timeout: 20000 });
-        await new Promise((r) => setTimeout(r, 1000));
-      },
-    },
-    {
-      name: "05_dashboard_mobile.png",
-      url: `${BASE_URL}/`,
+      name: "07_dashboard_mobile.png",
+      url: `${BASE_URL}/dashboard`,
       viewport: {
         width: 390,
         height: 844,
@@ -198,29 +218,13 @@ async function runAudit() {
         hasTouch: true,
         deviceScaleFactor: 2,
       },
-      description: "Main Dashboard - Responsive Mobile View with touch-friendly micro-pull controls",
+      description: "Vault Dashboard Mobile - Responsive single-column layout with min 48px touch targets",
       action: async (page) => {
         await page.waitForFunction(
           () => !document.body.innerText.includes("Loading Tijori"),
-          { timeout: 20000 }
+          { timeout: 30000 }
         );
-        await new Promise((r) => setTimeout(r, 1200));
-      },
-    },
-    {
-      name: "06_create_wizard_mobile.png",
-      url: `${BASE_URL}/create`,
-      viewport: {
-        width: 390,
-        height: 844,
-        isMobile: true,
-        hasTouch: true,
-        deviceScaleFactor: 2,
-      },
-      description: "Creation Wizard - Mobile Form Factor with allowance day inputs",
-      action: async (page) => {
-        await page.waitForSelector("form", { timeout: 20000 });
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 1500));
       },
     },
   ];

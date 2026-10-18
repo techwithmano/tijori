@@ -9,7 +9,6 @@ import {
   Lock,
   Unlock,
   AlertTriangle,
-  Sparkles,
   ArrowLeft,
   CheckCircle2,
   XCircle,
@@ -241,18 +240,6 @@ export default function KeyholderTokenUnlockPage({
           </div>
         </div>
 
-        {/* Gemini AI Reality Check Callout */}
-        {vault.realityCheck && (
-          <div className="mb-6 p-4 rounded-2xl bg-amber-50/70 border border-amber-200">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-800 mb-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              <span>Tijori AI Behavioral Reality Check:</span>
-            </div>
-            <p className="text-xs text-amber-950 leading-relaxed">
-              {vault.realityCheck}
-            </p>
-          </div>
-        )}
 
         {/* Action Message Feedback */}
         {actionMessage && (
