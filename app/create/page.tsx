@@ -45,6 +45,39 @@ export default function CreateVaultPage() {
   const week3Pull = numPull;
   const week4Pull = Math.max(5, Math.round(numPull * 0.4));
 
+  // Interactive AI Allowance Pacing Preview
+  const [aiSchedule, setAiSchedule] = useState<{
+    week: number;
+    label: string;
+    amount: number;
+    phase: string;
+    rationale: string;
+  }[] | null>(null);
+  const [loadingAiPacing, setLoadingAiPacing] = useState(false);
+
+  const fetchAiPacing = async () => {
+    try {
+      setLoadingAiPacing(true);
+      const res = await fetch("/api/ai/pacing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetAmount: Number(targetAmount) || 500,
+          pullAmount: Number(pullAmount) || 25,
+          allowanceDay: Number(allowanceDay) || 25,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.schedule) {
+        setAiSchedule(data.schedule);
+      }
+    } catch (err) {
+      console.warn("AI pacing fetch error:", err);
+    } finally {
+      setLoadingAiPacing(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -83,7 +116,7 @@ export default function CreateVaultPage() {
 
       const data = await res.json();
       if (data.success) {
-        router.push("/dashboard");
+        router.push("/");
       } else {
         setError(data.error || "Failed to create vault");
       }
@@ -105,7 +138,7 @@ export default function CreateVaultPage() {
     <div className="max-w-2xl mx-auto py-6 pb-16">
       <div className="mb-6">
         <Link
-          href="/dashboard"
+          href="/"
           className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 transition-colors mb-3"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -281,113 +314,153 @@ export default function CreateVaultPage() {
           </div>
         </div>
 
-        {/* Dynamic Mathematical Pacing Preview */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white shadow-card space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
-              <span>Mathematical Allowance Pacing Projection</span>
+        {/* Dynamic Interactive AI Pacing Preview */}
+        {(() => {
+          const currentWeek1 = aiSchedule ? aiSchedule[0]?.amount : week1Pull;
+          const currentWeek2 = aiSchedule ? aiSchedule[1]?.amount : week2Pull;
+          const currentWeek3 = aiSchedule ? aiSchedule[2]?.amount : week3Pull;
+          const currentWeek4 = aiSchedule ? aiSchedule[3]?.amount : week4Pull;
+
+          const maxPullVal = Math.max(currentWeek1, currentWeek2, currentWeek3, currentWeek4, 1);
+          const getBarH = (amt: number) => Math.max(20, Math.min(84, Math.round((amt / maxPullVal) * 84)));
+
+          const h1 = getBarH(currentWeek1);
+          const h2 = getBarH(currentWeek2);
+          const h3 = getBarH(currentWeek3);
+          const h4 = getBarH(currentWeek4);
+
+          return (
+            <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white shadow-card space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                  <span>Interactive AI Allowance Pacing Preview</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={fetchAiPacing}
+                    disabled={loadingAiPacing}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[11px] font-semibold transition-all disabled:opacity-50"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-600" />
+                    <span>{loadingAiPacing ? "Calibrating..." : "AI Calibrate"}</span>
+                  </button>
+                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200 font-semibold">
+                    {totalPullsNeeded} Pulls
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Based on your monthly salary day ({allowanceDay}th), micro-pulls automatically surge when you have liquidity, then taper down during lean days:
+              </p>
+
+              {/* SVG Pacing Bar Chart */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="w-full max-w-md mx-auto">
+                  <svg
+                    viewBox="0 0 380 145"
+                    className="w-full h-auto overflow-visible select-none"
+                    style={{ maxHeight: "160px" }}
+                  >
+                    <defs>
+                      <linearGradient id="surgeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#10B981" />
+                        <stop offset="100%" stopColor="#059669" />
+                      </linearGradient>
+                      <linearGradient id="amberGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#F59E0B" />
+                        <stop offset="100%" stopColor="#D97706" />
+                      </linearGradient>
+                      <linearGradient id="slateGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#94A3B8" />
+                        <stop offset="100%" stopColor="#64748B" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Base guideline */}
+                    <line x1="20" y1="108" x2="360" y2="108" stroke="#CBD5E1" strokeWidth="1" strokeDasharray="3 3" />
+
+                    {/* BAR 1: Week 1 */}
+                    <g>
+                      <rect x="35" y={108 - h1} width="54" height={h1} rx="8" fill="url(#surgeGrad)" />
+                      <text x="62" y={108 - h1 - 6} textAnchor="middle" fill="#059669" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                        +{currentWeek1} KWD
+                      </text>
+                      <text x="62" y="122" textAnchor="middle" fill="#0F172A" fontSize="10" fontWeight="bold">
+                        Week 1
+                      </text>
+                      <text x="62" y="134" textAnchor="middle" fill="#059669" fontSize="9" fontFamily="monospace" fontWeight="bold">
+                        Surge 🚀
+                      </text>
+                    </g>
+
+                    {/* BAR 2: Week 2 */}
+                    <g>
+                      <rect x="120" y={108 - h2} width="54" height={h2} rx="8" fill="url(#amberGrad)" />
+                      <text x="147" y={108 - h2 - 6} textAnchor="middle" fill="#D97706" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                        +{currentWeek2} KWD
+                      </text>
+                      <text x="147" y="122" textAnchor="middle" fill="#334155" fontSize="10" fontWeight="bold">
+                        Week 2
+                      </text>
+                      <text x="147" y="134" textAnchor="middle" fill="#D97706" fontSize="9" fontFamily="monospace">
+                        Steady ⚡
+                      </text>
+                    </g>
+
+                    {/* BAR 3: Week 3 */}
+                    <g>
+                      <rect x="205" y={108 - h3} width="54" height={h3} rx="8" fill="url(#amberGrad)" />
+                      <text x="232" y={108 - h3 - 6} textAnchor="middle" fill="#D97706" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                        +{currentWeek3} KWD
+                      </text>
+                      <text x="232" y="122" textAnchor="middle" fill="#334155" fontSize="10" fontWeight="bold">
+                        Week 3
+                      </text>
+                      <text x="232" y="134" textAnchor="middle" fill="#D97706" fontSize="9" fontFamily="monospace">
+                        Steady 🛡️
+                      </text>
+                    </g>
+
+                    {/* BAR 4: Week 4 */}
+                    <g>
+                      <rect x="290" y={108 - h4} width="54" height={h4} rx="8" fill="url(#slateGrad)" />
+                      <text x="317" y={108 - h4 - 6} textAnchor="middle" fill="#64748B" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                        +{currentWeek4} KWD
+                      </text>
+                      <text x="317" y="122" textAnchor="middle" fill="#64748B" fontSize="10" fontWeight="bold">
+                        Week 4
+                      </text>
+                      <text x="317" y="134" textAnchor="middle" fill="#64748B" fontSize="9" fontFamily="monospace">
+                        Lean 🌱
+                      </text>
+                    </g>
+                  </svg>
+                </div>
+
+                {aiSchedule && (
+                  <div className="mt-3 p-3 rounded-lg bg-white border border-amber-200 text-[11px] text-slate-700 space-y-1">
+                    <div className="font-bold text-amber-800 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-600" />
+                      <span>Gemini AI 4-Week Cashflow Rationale:</span>
+                    </div>
+                    <p className="italic text-slate-600 leading-relaxed">
+                      &ldquo;{aiSchedule[0]?.rationale}&rdquo;
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-3 text-center">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-emerald-800 text-xs font-mono font-medium shadow-xs">
+                    🛡️ Shielded against month-end deficit
+                  </span>
+                </div>
+              </div>
             </div>
-            <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200 font-semibold">
-              {totalPullsNeeded} Micro-Pulls Required
-            </span>
-          </div>
-
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Based on your monthly salary day ({allowanceDay}th), micro-pulls automatically surge when you have liquidity, then taper down during lean days:
-          </p>
-
-          {/* SVG Pacing Bar Chart */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="w-full max-w-md mx-auto">
-              <svg
-                viewBox="0 0 380 145"
-                className="w-full h-auto overflow-visible select-none"
-                style={{ maxHeight: "160px" }}
-              >
-                <defs>
-                  <linearGradient id="surgeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#10B981" />
-                    <stop offset="100%" stopColor="#059669" />
-                  </linearGradient>
-                  <linearGradient id="amberGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#F59E0B" />
-                    <stop offset="100%" stopColor="#D97706" />
-                  </linearGradient>
-                  <linearGradient id="slateGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#94A3B8" />
-                    <stop offset="100%" stopColor="#64748B" />
-                  </linearGradient>
-                </defs>
-
-                {/* Base guideline */}
-                <line x1="20" y1="108" x2="360" y2="108" stroke="#CBD5E1" strokeWidth="1" strokeDasharray="3 3" />
-
-                {/* BAR 1: Week 1 */}
-                <g>
-                  <rect x="35" y="24" width="54" height="84" rx="8" fill="url(#surgeGrad)" />
-                  <text x="62" y="16" textAnchor="middle" fill="#059669" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    +{week1Pull} KWD
-                  </text>
-                  <text x="62" y="122" textAnchor="middle" fill="#0F172A" fontSize="10" fontWeight="bold">
-                    Week 1
-                  </text>
-                  <text x="62" y="134" textAnchor="middle" fill="#059669" fontSize="9" fontFamily="monospace" fontWeight="bold">
-                    Surge 🚀
-                  </text>
-                </g>
-
-                {/* BAR 2: Week 2 */}
-                <g>
-                  <rect x="120" y="52" width="54" height="56" rx="8" fill="url(#amberGrad)" />
-                  <text x="147" y="46" textAnchor="middle" fill="#D97706" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    +{week2Pull} KWD
-                  </text>
-                  <text x="147" y="122" textAnchor="middle" fill="#334155" fontSize="10" fontWeight="bold">
-                    Week 2
-                  </text>
-                  <text x="147" y="134" textAnchor="middle" fill="#D97706" fontSize="9" fontFamily="monospace">
-                    Steady ⚡
-                  </text>
-                </g>
-
-                {/* BAR 3: Week 3 */}
-                <g>
-                  <rect x="205" y="52" width="54" height="56" rx="8" fill="url(#amberGrad)" />
-                  <text x="232" y="46" textAnchor="middle" fill="#D97706" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    +{week3Pull} KWD
-                  </text>
-                  <text x="232" y="122" textAnchor="middle" fill="#334155" fontSize="10" fontWeight="bold">
-                    Week 3
-                  </text>
-                  <text x="232" y="134" textAnchor="middle" fill="#D97706" fontSize="9" fontFamily="monospace">
-                    Steady 🛡️
-                  </text>
-                </g>
-
-                {/* BAR 4: Week 4 */}
-                <g>
-                  <rect x="290" y="82" width="54" height="26" rx="8" fill="url(#slateGrad)" />
-                  <text x="317" y="76" textAnchor="middle" fill="#64748B" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    +{week4Pull} KWD
-                  </text>
-                  <text x="317" y="122" textAnchor="middle" fill="#64748B" fontSize="10" fontWeight="bold">
-                    Week 4
-                  </text>
-                  <text x="317" y="134" textAnchor="middle" fill="#64748B" fontSize="9" fontFamily="monospace">
-                    Lean 🌱
-                  </text>
-                </g>
-              </svg>
-            </div>
-
-            <div className="mt-3 text-center">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-emerald-800 text-xs font-mono font-medium shadow-xs">
-                🛡️ Shielded against month-end deficit
-              </span>
-            </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Step 2: Keyholder Protocol Setup */}
         <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white shadow-card space-y-4">

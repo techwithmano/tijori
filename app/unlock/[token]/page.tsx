@@ -16,6 +16,7 @@ import {
   Coins,
   Shield,
   Clock,
+  Sparkles,
 } from "lucide-react";
 import { formatKWD } from "@/lib/utils";
 
@@ -240,6 +241,18 @@ export default function KeyholderTokenUnlockPage({
           </div>
         </div>
 
+        {/* AI Reality Check Roast Card */}
+        {vault.realityCheck && (
+          <div className="mb-5 p-4 rounded-2xl bg-rose-50/80 border border-rose-200 shadow-xs">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 mb-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-rose-600" />
+              <span>Tijori AI Reality Check Roast 🔥</span>
+            </div>
+            <p className="text-xs text-rose-950 font-medium leading-relaxed">
+              {vault.realityCheck}
+            </p>
+          </div>
+        )}
 
         {/* Action Message Feedback */}
         {actionMessage && (
@@ -279,7 +292,7 @@ export default function KeyholderTokenUnlockPage({
             <button
               onClick={() => handleDecision("APPROVE")}
               disabled={processingAction !== null}
-              className="tactile-btn w-full py-3.5 px-4 rounded-2xl bg-slate-100 hover:bg-rose-50 text-rose-700 hover:text-rose-800 border border-slate-200 hover:border-rose-200 font-semibold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-4 mb-2"
+              className="tactile-btn w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-rose-50 text-rose-700 hover:text-rose-800 border-2 border-slate-300 hover:border-rose-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-4 mb-2"
             >
               {processingAction === "APPROVE" ? (
                 <div className="w-4 h-4 border-2 border-rose-600/30 border-t-rose-600 rounded-full animate-spin" />

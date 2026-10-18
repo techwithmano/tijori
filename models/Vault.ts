@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface ITransaction {
   _id?: string;
   amount: number;
-  type: "SCHEDULED_PULL" | "SIMULATED_PULL" | "WITHDRAWAL";
+  type: "SCHEDULED_PULL" | "SIMULATED_PULL" | "STRIPE_DEPOSIT" | "WITHDRAWAL";
   status: string;
   createdAt: Date;
   note?: string;
@@ -16,6 +16,7 @@ export interface IKeyholder {
 }
 
 export interface IVault extends Document {
+  userId?: mongoose.Types.ObjectId;
   title: string;
   targetAmount: number;
   currentBalance: number;
@@ -43,7 +44,7 @@ const TransactionSchema = new Schema<ITransaction>(
     },
     type: {
       type: String,
-      enum: ["SCHEDULED_PULL", "SIMULATED_PULL", "WITHDRAWAL"],
+      enum: ["SCHEDULED_PULL", "SIMULATED_PULL", "STRIPE_DEPOSIT", "WITHDRAWAL"],
       required: true,
     },
     status: {
@@ -86,6 +87,11 @@ const KeyholderSchema = new Schema<IKeyholder>(
 
 const VaultSchema = new Schema<IVault>(
   {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+    },
     title: {
       type: String,
       required: true,
@@ -161,7 +167,6 @@ const VaultSchema = new Schema<IVault>(
   }
 );
 
-// Prevent mongoose model overwrite error during Next.js hot reloads
 export const Vault: Model<IVault> =
   mongoose.models.Vault || mongoose.model<IVault>("Vault", VaultSchema);
 

@@ -1,18 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { Vault } from "@/models/Vault";
+import { getCurrentUser } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
+    const session = await getCurrentUser(req);
 
-    // Find the most recent active or created vault
-    let vault = await Vault.findOne().sort({ createdAt: -1 });
+    let query: any = {};
+    if (session?.userId) {
+      query = { userId: session.userId };
+    }
 
-    // Auto-seed default demo vault if none exists
+    // Find the most recent active or created vault for this user (or global latest fallback)
+    let vault = await Vault.findOne(query).sort({ createdAt: -1 });
+
+    // Fallback to any recent vault if user has none yet
+    if (!vault && session?.userId) {
+      vault = await Vault.findOne().sort({ createdAt: -1 });
+    }
+
+    // Auto-seed default demo vault if none exists in the database
     if (!vault) {
       const now = Date.now();
       vault = await Vault.create({
+        userId: session?.userId || undefined,
         title: "Japan Summer Trip 🇯🇵",
         targetAmount: 500,
         currentBalance: 125,
@@ -20,6 +33,7 @@ export async function GET() {
         cadence: "weekly",
         allowanceDay: 25,
         status: "LOCKED",
+        totalProtected: 50,
         keyholder: {
           name: "Fahad Al-Mutawa",
           phone: "+965 9988 7766",
@@ -46,7 +60,7 @@ export async function GET() {
             type: "SCHEDULED_PULL",
             status: "COMPLETED",
             createdAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
-            note: "Initial vault kickstart",
+            note: "Genesis deposit - Welcome to Tijori",
           },
         ],
       });
@@ -66,6 +80,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
+    const session = await getCurrentUser(req);
     const body = await req.json();
 
     const {
@@ -86,6 +101,7 @@ export async function POST(req: NextRequest) {
     }
 
     const newVault = await Vault.create({
+      userId: session?.userId || undefined,
       title,
       targetAmount: Number(targetAmount),
       currentBalance: 0,

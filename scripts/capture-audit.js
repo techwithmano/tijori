@@ -96,17 +96,17 @@ async function runAudit() {
 
   const targets = [
     {
-      name: "01_landing_desktop.png",
+      name: "01_dashboard_desktop.png",
       url: `${BASE_URL}/`,
       viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Interactive Landing Page - Hero with Dual CTAs, Savings Simulator & Keyholder Protocol Walkthrough",
+      description: "Main Vault Dashboard Desktop (1440px) - Judges Demo Bar, Progress Ring, Allowance Timeline & Savings Ledger",
       action: async (page) => {
-        await page.waitForSelector("#simulator", { timeout: 15000 }).catch(() => {});
+        await page.waitForSelector("#simulate-pull-btn", { timeout: 15000 }).catch(() => {});
         await new Promise((r) => setTimeout(r, 1200));
       },
     },
     {
-      name: "02_landing_mobile.png",
+      name: "02_dashboard_mobile.png",
       url: `${BASE_URL}/`,
       viewport: {
         width: 390,
@@ -115,54 +115,29 @@ async function runAudit() {
         hasTouch: true,
         deviceScaleFactor: 2,
       },
-      description: "Landing Page Mobile - Responsive Hero & Interactive Sliders on iPhone Viewport",
+      description: "Main Vault Dashboard Mobile (iPhone 390x844) - Fully Fluid Calm Trust Layout with 48px+ Touch Targets",
       action: async (page) => {
-        await page.waitForSelector("#simulator", { timeout: 15000 }).catch(() => {});
+        await page.waitForSelector("#simulate-pull-btn", { timeout: 15000 }).catch(() => {});
         await new Promise((r) => setTimeout(r, 1200));
       },
     },
     {
-      name: "03_dashboard_desktop.png",
-      url: `${BASE_URL}/dashboard`,
-      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Clean Vault Dashboard - Hero Vault Card, SVG Progress Ring, Action Bar & Savings Ledger",
-      action: async (page) => {
-        await page.waitForFunction(
-          () => !document.body.innerText.includes("Loading Tijori"),
-          { timeout: 30000 }
-        );
-        await new Promise((r) => setTimeout(r, 1500));
-      },
-    },
-    {
-      name: "04_dashboard_modal_desktop.png",
-      url: `${BASE_URL}/dashboard?modal=true`,
+      name: "03_emergency_break_modal.png",
+      url: `${BASE_URL}/?modal=true`,
       viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
       description: "Emergency Break Modal - Pure Social Friction with 5% Discipline Tax Warning & WhatsApp Share",
       action: async (page) => {
-        try {
-          await fetch(`${BASE_URL}/api/vault/${vaultId}/unlock`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "LOCK" }),
-          });
-        } catch (e) {}
-
-        await page.goto(`${BASE_URL}/dashboard?modal=true`, { waitUntil: "networkidle2" });
-        await page.waitForFunction(
-          () => !document.body.innerText.includes("Loading Tijori"),
-          { timeout: 30000 }
-        );
+        await page.waitForSelector("#request-break-btn", { timeout: 15000 }).catch(() => {});
         const btn = await page.$("#request-break-btn");
         if (btn) {
           await btn.click().catch(() => {});
         }
         await page.waitForSelector("textarea", { timeout: 10000 }).catch(() => {});
-        await new Promise((r) => setTimeout(r, 1500));
+        await new Promise((r) => setTimeout(r, 1200));
       },
     },
     {
-      name: "05_keyholder_mobile.png",
+      name: "04_keyholder_clearance_mobile.png",
       url: `${BASE_URL}/unlock/${token}`,
       viewport: {
         width: 390,
@@ -171,7 +146,7 @@ async function runAudit() {
         hasTouch: true,
         deviceScaleFactor: 2,
       },
-      description: "Keyholder Mobile View - Isolated 256-Bit Single-Use Channel with applicant's written reason and Deny/Approve CTAs",
+      description: "Keyholder Decision Screen Mobile (390x844) - 256-Bit Channel, Stated Excuse, AI Reality Check Roast, Deny & Approve CTAs",
       action: async (page) => {
         let activeToken = token;
         try {
@@ -191,26 +166,22 @@ async function runAudit() {
           }
         } catch (e) {}
 
-        await page.waitForFunction(
-          () => !document.body.innerText.includes("Verifying Single-Use"),
-          { timeout: 30000 }
-        );
         await new Promise((r) => setTimeout(r, 1500));
       },
     },
     {
-      name: "06_create_wizard_desktop.png",
+      name: "05_create_wizard_desktop.png",
       url: `${BASE_URL}/create`,
       viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Creation Wizard - Clean inputs, Quick-Pick inspiration chips & Mathematical Pacing chart",
+      description: "Creation Wizard Desktop (1440px) - Clean Inputs, Quick-Pick Goal Chips & Interactive AI Allowance Pacing Preview",
       action: async (page) => {
-        await page.waitForSelector("form", { timeout: 30000 });
+        await page.waitForSelector("form", { timeout: 15000 }).catch(() => {});
         await new Promise((r) => setTimeout(r, 1200));
       },
     },
     {
-      name: "07_dashboard_mobile.png",
-      url: `${BASE_URL}/dashboard`,
+      name: "06_create_wizard_mobile.png",
+      url: `${BASE_URL}/create`,
       viewport: {
         width: 390,
         height: 844,
@@ -218,13 +189,36 @@ async function runAudit() {
         hasTouch: true,
         deviceScaleFactor: 2,
       },
-      description: "Vault Dashboard Mobile - Responsive single-column layout with min 48px touch targets",
+      description: "Creation Wizard Mobile (390x844) - Responsive Touch-Friendly Pacing & Keyholder Appointing",
       action: async (page) => {
-        await page.waitForFunction(
-          () => !document.body.innerText.includes("Loading Tijori"),
-          { timeout: 30000 }
-        );
-        await new Promise((r) => setTimeout(r, 1500));
+        await page.waitForSelector("form", { timeout: 15000 }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 1200));
+      },
+    },
+    {
+      name: "07_auth_login_desktop.png",
+      url: `${BASE_URL}/login`,
+      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
+      description: "Authentication Screen Desktop (1440px) - Calm Trust Porcelain Card with 1-Click Judge Credentials Auto-Fill",
+      action: async (page) => {
+        await page.waitForSelector("form", { timeout: 15000 }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 1000));
+      },
+    },
+    {
+      name: "08_auth_login_mobile.png",
+      url: `${BASE_URL}/login`,
+      viewport: {
+        width: 390,
+        height: 844,
+        isMobile: true,
+        hasTouch: true,
+        deviceScaleFactor: 2,
+      },
+      description: "Authentication Screen Mobile (390x844) - Clean Mobile-Optimized Sign In & Demo Auto-Fill",
+      action: async (page) => {
+        await page.waitForSelector("form", { timeout: 15000 }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 1000));
       },
     },
   ];
@@ -234,7 +228,7 @@ async function runAudit() {
     const page = await browser.newPage();
     try {
       await page.setViewport(item.viewport);
-      await page.goto(item.url, { waitUntil: "networkidle2", timeout: 40000 });
+      await page.goto(item.url, { waitUntil: "networkidle2", timeout: 35000 });
 
       if (item.action) {
         await item.action(page);
@@ -249,9 +243,9 @@ async function runAudit() {
       console.log(`  ✓ Saved: ${filePath} (${sizeKB} KB)`);
       screenshotsLog.push({
         name: item.name,
-        route: item.url.replace(BASE_URL, ""),
+        route: item.url.replace(BASE_URL, "") || "/",
         viewport: `${item.viewport.width}x${item.viewport.height}`,
-        device: item.viewport.isMobile ? "Mobile (iPhone 14/15/16 Pro)" : "Desktop (1440p)",
+        device: item.viewport.isMobile ? "Mobile (iPhone 390x844)" : "Desktop (1440x900)",
         size: `${sizeKB} KB`,
         description: item.description,
       });
