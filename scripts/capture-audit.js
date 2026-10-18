@@ -1,7 +1,7 @@
 /**
  * scripts/capture-audit.js
- * Automated Visual Audit & Screenshot Capture Workflow for Tijori (تِجوري)
- * Uses puppeteer-core connected to the native system Chromium / Edge browser.
+ * Automated Desktop-Only Visual Audit & Screenshot Capture Workflow for Tijori (تِجوري)
+ * Resolution: 1440x900 (Desktop Viewport)
  */
 
 const fs = require("fs");
@@ -34,7 +34,7 @@ function findBrowserExecutable() {
   return process.env.PUPPETEER_EXECUTABLE_PATH || candidates[0];
 }
 
-async function fetchLatestVaultAndToken() {
+async function fetchOrCreateActiveVaultAndToken() {
   try {
     const res = await fetch(`${BASE_URL}/api/vault`);
     const data = await res.json();
@@ -66,7 +66,7 @@ async function fetchLatestVaultAndToken() {
 
 async function runAudit() {
   console.log("=================================================");
-  console.log("   TIJORI (تِجوري) - AUTOMATED UI AUDIT CAPTURE  ");
+  console.log("   TIJORI (تِجوري) - DESKTOP AUDIT CAPTURE (1440x900)  ");
   console.log("=================================================");
 
   if (!fs.existsSync(SCREENSHOTS_DIR)) {
@@ -77,7 +77,7 @@ async function runAudit() {
   const browserPath = findBrowserExecutable();
   console.log(`Using Browser executable: ${browserPath}`);
 
-  const { vaultId, token } = await fetchLatestVaultAndToken();
+  const { vaultId, token } = await fetchOrCreateActiveVaultAndToken();
   console.log(`Active Vault ID: ${vaultId} | Active Single-Use Token: ${token}`);
 
   const browser = await puppeteer.launch({
@@ -99,33 +99,17 @@ async function runAudit() {
       name: "01_dashboard_desktop.png",
       url: `${BASE_URL}/`,
       viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Main Vault Dashboard Desktop (1440px) - Judges Demo Bar, Progress Ring, Allowance Timeline & Savings Ledger",
+      description: "Main Vault Dashboard Desktop (1440x900) - Judges Demo Bar, Progress Ring, Allowance Timeline & Savings Ledger",
       action: async (page) => {
         await page.waitForSelector("#simulate-pull-btn", { timeout: 15000 }).catch(() => {});
-        await new Promise((r) => setTimeout(r, 1200));
+        await new Promise((r) => setTimeout(r, 1500));
       },
     },
     {
-      name: "02_dashboard_mobile.png",
-      url: `${BASE_URL}/`,
-      viewport: {
-        width: 390,
-        height: 844,
-        isMobile: true,
-        hasTouch: true,
-        deviceScaleFactor: 2,
-      },
-      description: "Main Vault Dashboard Mobile (iPhone 390x844) - Fully Fluid Calm Trust Layout with 48px+ Touch Targets",
-      action: async (page) => {
-        await page.waitForSelector("#simulate-pull-btn", { timeout: 15000 }).catch(() => {});
-        await new Promise((r) => setTimeout(r, 1200));
-      },
-    },
-    {
-      name: "03_emergency_break_modal.png",
+      name: "02_emergency_break_modal_desktop.png",
       url: `${BASE_URL}/?modal=true`,
       viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Emergency Break Modal - Pure Social Friction with 5% Discipline Tax Warning & WhatsApp Share",
+      description: "Emergency Break Modal Desktop (1440x900) - Social Friction, 5% Discipline Tax Warning, Excuse & WhatsApp Share",
       action: async (page) => {
         await page.waitForSelector("#request-break-btn", { timeout: 15000 }).catch(() => {});
         const btn = await page.$("#request-break-btn");
@@ -137,16 +121,10 @@ async function runAudit() {
       },
     },
     {
-      name: "04_keyholder_clearance_mobile.png",
+      name: "03_keyholder_clearance_desktop.png",
       url: `${BASE_URL}/unlock/${token}`,
-      viewport: {
-        width: 390,
-        height: 844,
-        isMobile: true,
-        hasTouch: true,
-        deviceScaleFactor: 2,
-      },
-      description: "Keyholder Decision Screen Mobile (390x844) - 256-Bit Channel, Stated Excuse, AI Reality Check Roast, Deny & Approve CTAs",
+      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
+      description: "Keyholder Decision Screen Desktop (1440x900) - 256-Bit Channel, Stated Excuse, Gemini AI Reality Check Roast, Deny & Approve CTAs",
       action: async (page) => {
         let activeToken = token;
         try {
@@ -166,65 +144,34 @@ async function runAudit() {
           }
         } catch (e) {}
 
+        await page.waitForSelector("button", { timeout: 15000 }).catch(() => {});
         await new Promise((r) => setTimeout(r, 1500));
       },
     },
     {
-      name: "05_create_wizard_desktop.png",
+      name: "04_create_wizard_desktop.png",
       url: `${BASE_URL}/create`,
       viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Creation Wizard Desktop (1440px) - Clean Inputs, Quick-Pick Goal Chips & Interactive AI Allowance Pacing Preview",
+      description: "Creation Wizard Desktop (1440x900) - Clean Inputs, Quick-Pick Goal Chips & Interactive AI Allowance Pacing Preview",
+      action: async (page) => {
+        await page.waitForSelector("form", { timeout: 15000 }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 1500));
+      },
+    },
+    {
+      name: "05_auth_login_desktop.png",
+      url: `${BASE_URL}/login`,
+      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
+      description: "Authentication Screen Desktop (1440x900) - Calm Trust Porcelain Card with 1-Click Judge Credentials Auto-Fill",
       action: async (page) => {
         await page.waitForSelector("form", { timeout: 15000 }).catch(() => {});
         await new Promise((r) => setTimeout(r, 1200));
-      },
-    },
-    {
-      name: "06_create_wizard_mobile.png",
-      url: `${BASE_URL}/create`,
-      viewport: {
-        width: 390,
-        height: 844,
-        isMobile: true,
-        hasTouch: true,
-        deviceScaleFactor: 2,
-      },
-      description: "Creation Wizard Mobile (390x844) - Responsive Touch-Friendly Pacing & Keyholder Appointing",
-      action: async (page) => {
-        await page.waitForSelector("form", { timeout: 15000 }).catch(() => {});
-        await new Promise((r) => setTimeout(r, 1200));
-      },
-    },
-    {
-      name: "07_auth_login_desktop.png",
-      url: `${BASE_URL}/login`,
-      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Authentication Screen Desktop (1440px) - Calm Trust Porcelain Card with 1-Click Judge Credentials Auto-Fill",
-      action: async (page) => {
-        await page.waitForSelector("form", { timeout: 15000 }).catch(() => {});
-        await new Promise((r) => setTimeout(r, 1000));
-      },
-    },
-    {
-      name: "08_auth_login_mobile.png",
-      url: `${BASE_URL}/login`,
-      viewport: {
-        width: 390,
-        height: 844,
-        isMobile: true,
-        hasTouch: true,
-        deviceScaleFactor: 2,
-      },
-      description: "Authentication Screen Mobile (390x844) - Clean Mobile-Optimized Sign In & Demo Auto-Fill",
-      action: async (page) => {
-        await page.waitForSelector("form", { timeout: 15000 }).catch(() => {});
-        await new Promise((r) => setTimeout(r, 1000));
       },
     },
   ];
 
   for (const item of targets) {
-    console.log(`\nCapturing: ${item.name} (${item.viewport.width}x${item.viewport.height})...`);
+    console.log(`\nCapturing Desktop: ${item.name} (${item.viewport.width}x${item.viewport.height})...`);
     const page = await browser.newPage();
     try {
       await page.setViewport(item.viewport);
@@ -245,7 +192,7 @@ async function runAudit() {
         name: item.name,
         route: item.url.replace(BASE_URL, "") || "/",
         viewport: `${item.viewport.width}x${item.viewport.height}`,
-        device: item.viewport.isMobile ? "Mobile (iPhone 390x844)" : "Desktop (1440x900)",
+        device: "Desktop (1440x900)",
         size: `${sizeKB} KB`,
         description: item.description,
       });
@@ -257,7 +204,7 @@ async function runAudit() {
   }
 
   await browser.close();
-  console.log("\nAll target screenshots captured successfully!");
+  console.log("\nAll desktop screenshots captured successfully!");
   console.table(screenshotsLog);
 
   return screenshotsLog;

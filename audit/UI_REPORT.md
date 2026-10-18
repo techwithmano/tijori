@@ -43,14 +43,11 @@ All 8 target views were captured in full fidelity using automated headless Chrom
 
 | Screenshot File | Route | Viewport | Form Factor | File Size | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| [`01_dashboard_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/01_dashboard_desktop.png) | `/` | 1440 × 900 | Desktop (1440p) | 38.3 KB | Main Vault Dashboard Desktop - Judges Demo Bar, Progress Ring, Allowance Timeline & Savings Ledger |
-| [`02_dashboard_mobile.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/02_dashboard_mobile.png) | `/` | 390 × 844 | Mobile (iPhone 390x844, 2x DPR) | 74.6 KB | Main Vault Dashboard Mobile - Fully Fluid Calm Trust Layout with 48px+ Touch Targets |
-| [`03_emergency_break_modal.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/03_emergency_break_modal.png) | `/?modal=true` | 1440 × 900 | Desktop (1440p) | 38.3 KB | Emergency Break Modal - Pure Social Friction with 5% Discipline Tax Warning & WhatsApp Share |
-| [`04_keyholder_clearance_mobile.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/04_keyholder_clearance_mobile.png) | `/unlock/[token]` | 390 × 844 | Mobile (iPhone 390x844, 2x DPR) | 79.2 KB | Keyholder Decision Screen Mobile - 256-Bit Channel, Stated Excuse, AI Reality Check Roast, Deny & Approve CTAs |
-| [`05_create_wizard_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/05_create_wizard_desktop.png) | `/create` | 1440 × 900 | Desktop (1440p) | 89.4 KB | Creation Wizard Desktop - Clean Inputs, Quick-Pick Goal Chips & Interactive AI Allowance Pacing Preview |
-| [`06_create_wizard_mobile.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/06_create_wizard_mobile.png) | `/create` | 390 × 844 | Mobile (iPhone 390x844, 2x DPR) | 158.0 KB | Creation Wizard Mobile - Responsive Touch-Friendly Pacing & Keyholder Appointing |
-| [`07_auth_login_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/07_auth_login_desktop.png) | `/login` | 1440 × 900 | Desktop (1440p) | 63.6 KB | Authentication Screen Desktop - Calm Trust Porcelain Card with 1-Click Judge Credentials Auto-Fill |
-| [`08_auth_login_mobile.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/08_auth_login_mobile.png) | `/login` | 390 × 844 | Mobile (iPhone 390x844, 2x DPR) | 115.6 KB | Authentication Screen Mobile - Clean Mobile-Optimized Sign In & Demo Auto-Fill |
+| [`01_dashboard_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/01_dashboard_desktop.png) | `/` | 1440 × 900 | Desktop (1440p) | 96.6 KB | Main Vault Dashboard Desktop - Judges Demo Bar, Progress Ring, Allowance Timeline & Savings Ledger |
+| [`02_emergency_break_modal_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/02_emergency_break_modal_desktop.png) | `/?modal=true` | 1440 × 900 | Desktop (1440p) | 47.9 KB | Emergency Break Modal Desktop - Social Friction, 5% Discipline Tax Warning, Excuse & WhatsApp Share |
+| [`03_keyholder_clearance_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/03_keyholder_clearance_desktop.png) | `/unlock/[token]` | 1440 × 900 | Desktop (1440p) | 89.9 KB | Keyholder Decision Screen Desktop - 256-Bit Channel, Stated Excuse, Gemini AI Reality Check Roast, Deny & Approve CTAs |
+| [`04_create_wizard_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/04_create_wizard_desktop.png) | `/create` | 1440 × 900 | Desktop (1440p) | 67.9 KB | Creation Wizard Desktop - Clean Inputs, Quick-Pick Goal Chips & Interactive AI Allowance Pacing Preview |
+| [`05_auth_login_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/05_auth_login_desktop.png) | `/login` | 1440 × 900 | Desktop (1440p) | 32.8 KB | Authentication Screen Desktop - Calm Trust Porcelain Card with 1-Click Judge Credentials Auto-Fill |
 
 ---
 
