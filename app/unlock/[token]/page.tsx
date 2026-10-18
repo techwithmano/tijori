@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { formatKWD } from "@/lib/utils";
+import GoalTitle from "@/components/GoalTitle";
 
 interface VaultData {
   _id: string;
@@ -214,7 +215,9 @@ export default function KeyholderTokenUnlockPage({
         <div className="my-5 p-4 rounded-2xl bg-slate-50 border border-slate-200/90 flex items-center justify-between">
           <div>
             <div className="text-[10px] uppercase font-mono text-slate-500 font-medium">Target Savings Goal</div>
-            <div className="text-base font-bold text-slate-900 mt-0.5">{vault.title}</div>
+            <div className="text-base font-bold text-slate-900 mt-0.5">
+              <GoalTitle title={vault.title} />
+            </div>
             <div className="text-xs text-emerald-700 font-mono flex items-center gap-1 mt-1 font-medium">
               <Coins className="w-3.5 h-3.5" />
               <span>

@@ -19,6 +19,7 @@ import {
   Share2,
 } from "lucide-react";
 import { formatKWD } from "@/lib/utils";
+import GoalTitle from "@/components/GoalTitle";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -189,7 +190,7 @@ export default function LandingPage() {
                     Target Goal
                   </span>
                   <h3 className="text-xl font-bold text-slate-900 mt-0.5">
-                    Japan Summer Trip 🇯🇵
+                    <GoalTitle title="Japan Summer Trip 🇯🇵" />
                   </h3>
                 </div>
 

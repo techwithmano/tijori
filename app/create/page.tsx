@@ -12,6 +12,7 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
+import GoalTitle from "@/components/GoalTitle";
 
 export default function CreateVaultPage() {
   const router = useRouter();
@@ -187,7 +188,9 @@ export default function CreateVaultPage() {
                     : "bg-slate-50 hover:bg-slate-100 border-slate-200/90 text-slate-700"
                 }`}
               >
-                <span className="font-semibold truncate">{preset.label}</span>
+                <span className="font-semibold truncate">
+                  <GoalTitle title={preset.label} iconClassName="w-3.5 h-3.5" />
+                </span>
                 <span className="text-[10px] font-mono text-slate-500 mt-0.5">
                   {preset.target} KWD &bull; {preset.pull}/wk
                 </span>

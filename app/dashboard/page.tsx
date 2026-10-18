@@ -32,6 +32,7 @@ import {
   Award,
 } from "lucide-react";
 import { formatKWD, cn } from "@/lib/utils";
+import GoalTitle from "@/components/GoalTitle";
 
 interface ITransaction {
   _id?: string;
@@ -484,11 +485,11 @@ function DashboardContent() {
   return (
     <div
       dir={lang === "ar" ? "rtl" : "ltr"}
-      className="min-h-screen bg-[#F8FAFC] text-[#0F172A] pb-20 selection:bg-amber-100 selection:text-amber-900"
+      className="min-h-screen bg-[#F8FAFC] text-[#0F172A] pb-6 selection:bg-amber-100 selection:text-amber-900"
     >
       {/* 1. TOP NAVIGATION BAR */}
       <header className="border-b border-slate-200/90 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
           {/* Brand Wordmark + Arabic Badge + Live Status Dot */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2.5 group">
@@ -588,9 +589,9 @@ function DashboardContent() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 space-y-3.5">
         {/* Mobile Shield Stat Banner */}
-        <div className="md:hidden flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950">
+        <div className="md:hidden flex items-center justify-between p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>
@@ -606,11 +607,11 @@ function DashboardContent() {
         </div>
 
         {/* 2. JUDGE STAGE DEMO BAR */}
-        <section className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-amber-600" />
+        <section className="p-3 sm:py-2.5 sm:px-4 rounded-2xl bg-white border border-slate-200/90 shadow-card">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-amber-600" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -621,23 +622,23 @@ function DashboardContent() {
                     Live Mongo Persistence
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-[11px] text-slate-500 mt-0.2">
                   Test micro-pull cadence, card payments, and live WhatsApp peer authorization.
                 </p>
               </div>
             </div>
 
             {/* Demo Trigger Buttons */}
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
               {/* Button: Simulate Day-25 Tuck */}
               <button
                 id="simulate-tuck-btn"
                 onClick={handleSimulateTuck}
                 disabled={pulling}
-                className="tactile-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-50"
+                className="tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-extrabold text-xs shadow-xs active:scale-95 transition-all disabled:opacity-50"
               >
                 {pulling ? (
-                  <div className="w-3.5 h-3.5 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                  <div className="w-3 h-3 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
                 ) : (
                   <Zap className="w-3.5 h-3.5 fill-slate-950" />
                 )}
@@ -649,10 +650,10 @@ function DashboardContent() {
                 id="stripe-boost-btn"
                 onClick={handleStripeBoost}
                 disabled={boosting}
-                className="tactile-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-bold text-xs shadow-xs active:scale-95 transition-all disabled:opacity-50"
+                className="tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-bold text-xs shadow-xs active:scale-95 transition-all disabled:opacity-50"
               >
                 {boosting ? (
-                  <div className="w-3.5 h-3.5 border-2 border-slate-600/30 border-t-slate-800 rounded-full animate-spin" />
+                  <div className="w-3 h-3 border-2 border-slate-600/30 border-t-slate-800 rounded-full animate-spin" />
                 ) : (
                   <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
                 )}
@@ -665,13 +666,13 @@ function DashboardContent() {
                   id="open-keyholder-link"
                   href={`/unlock/${vault.unlockToken || vault._id}`}
                   target="_blank"
-                  className="tactile-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-bold text-xs shadow-xs transition-all animate-pulse"
+                  className="tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-bold text-xs shadow-xs transition-all animate-pulse"
                 >
                   <ExternalLink className="w-3.5 h-3.5 text-rose-600" />
                   <span>{t.openKeyholderLink}</span>
                 </Link>
               ) : (
-                <span className="text-[11px] font-mono text-slate-400 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200/60 hidden sm:inline-block">
+                <span className="text-[10px] font-mono text-slate-400 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200/60 hidden sm:inline-block">
                   Keyholder link armed
                 </span>
               )}
@@ -680,38 +681,38 @@ function DashboardContent() {
         </section>
 
         {/* 3. MAIN 2-COLUMN GRID (65% Left Vault Core / 35% Right Live Audit Sidebar) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
           {/* LEFT COLUMN: 65% VAULT CORE (lg:col-span-8) */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8 space-y-3">
             {/* Header: Goal title, Time-lock countdown pill, and Gamified Streak Badge */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200/90">
+            <div className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-card pb-0 overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-200/90">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                       {t.targetLocked}
                     </span>
-                    <span className="text-xs text-slate-500 font-mono">
+                    <span className="text-[11px] text-slate-500 font-mono">
                       &bull; {vault.cadence.toUpperCase()} PULLS
                     </span>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                    {vault.title}
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    <GoalTitle title={vault.title} />
                   </h1>
                 </div>
 
-                <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                   {/* Gamified Streak Badge: 🔥 [streakCount]-Day Unbroken Streak */}
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border border-amber-200/80 text-amber-950 font-bold text-xs shadow-xs">
-                    <Flame className="w-4 h-4 text-amber-600 fill-amber-500" />
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border border-amber-200/80 text-amber-950 font-bold text-xs shadow-2xs">
+                    <Flame className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
                     <span>
                       {vault.streakCount || 18} {t.unbrokenStreak}
                     </span>
                   </div>
 
                   {/* Time-lock countdown pill */}
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs font-mono">
-                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs font-mono">
+                    <Clock className="w-3 h-3 text-slate-500" />
                     <span>
                       {daysRemaining} {t.daysRemaining}
                     </span>
@@ -720,8 +721,8 @@ function DashboardContent() {
               </div>
 
               {/* PHYSICAL VAULT DIAL COMPONENT */}
-              <div className="py-3 sm:py-4 flex flex-col items-center justify-center relative">
-                <div className="relative w-52 h-52 sm:w-60 sm:h-60 flex items-center justify-center">
+              <div className="py-2 sm:py-3 flex flex-col items-center justify-center relative">
+                <div className="relative w-44 h-44 sm:w-48 sm:h-48 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 240 240">
                     <defs>
                       <linearGradient id="honeyToEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -758,11 +759,11 @@ function DashboardContent() {
                   </svg>
 
                   {/* Center Dial Content */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3">
                     {/* Animated Padlock Glyph */}
                     <div
                       className={cn(
-                        "w-10 h-10 rounded-2xl flex items-center justify-center mb-1 shadow-xs transition-transform duration-300",
+                        "w-9 h-9 rounded-xl flex items-center justify-center mb-1 shadow-2xs transition-transform duration-300",
                         vault.status === "UNLOCK_PENDING"
                           ? "bg-rose-50 border border-rose-200 text-rose-600 animate-bounce"
                           : vault.status === "UNLOCKED"
@@ -771,98 +772,127 @@ function DashboardContent() {
                       )}
                     >
                       {vault.status === "UNLOCKED" ? (
-                        <Unlock className="w-5 h-5 stroke-[2.5]" />
+                        <Unlock className="w-4.5 h-4.5 stroke-[2.5]" />
                       ) : (
-                        <Lock className="w-5 h-5 stroke-[2.5]" />
+                        <Lock className="w-4.5 h-4.5 stroke-[2.5]" />
                       )}
                     </div>
 
                     {/* Tabular Monetary Display */}
-                    <div className="font-extrabold text-2xl sm:text-3xl font-mono text-slate-900 tracking-tight tabular-nums">
+                    <div className="font-extrabold text-2xl font-mono text-slate-900 tracking-tight tabular-nums">
                       {formatKWD(vault.currentBalance)}
-                      <span className="text-xs sm:text-sm font-semibold text-slate-500 font-sans ml-1">
+                      <span className="text-xs font-semibold text-slate-500 font-sans ml-1">
                         / {formatKWD(vault.targetAmount)} KWD
                       </span>
                     </div>
 
                     {/* Percentage Funded */}
-                    <div className="mt-1 text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    <div className="mt-0.5 text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                       {percentFunded}% {t.funded}
                     </div>
                   </div>
                 </div>
 
                 {/* Sub-Metrics Cards below Dial */}
-                <div className="grid grid-cols-3 gap-3 w-full max-w-lg mt-4">
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/90 text-center">
-                    <span className="text-[10px] font-mono uppercase text-slate-500 font-medium block">
+                <div className="grid grid-cols-3 gap-2.5 w-full max-w-md mt-2.5">
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 text-center">
+                    <span className="text-[9px] font-mono uppercase text-slate-500 font-medium block">
                       {t.currentBalance}
                     </span>
-                    <span className="text-sm sm:text-base font-extrabold text-slate-900 font-mono mt-0.5 block tabular-nums">
+                    <span className="text-sm font-extrabold text-slate-900 font-mono mt-0.5 block tabular-nums">
                       {formatKWD(vault.currentBalance)} KWD
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/90 text-center">
-                    <span className="text-[10px] font-mono uppercase text-slate-500 font-medium block">
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 text-center">
+                    <span className="text-[9px] font-mono uppercase text-slate-500 font-medium block">
                       {t.leftToSave}
                     </span>
-                    <span className="text-sm sm:text-base font-extrabold text-amber-700 font-mono mt-0.5 block tabular-nums">
+                    <span className="text-sm font-extrabold text-amber-700 font-mono mt-0.5 block tabular-nums">
                       {formatKWD(leftToSave)} KWD
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/90 text-center">
-                    <span className="text-[10px] font-mono uppercase text-slate-500 font-medium block">
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 text-center">
+                    <span className="text-[9px] font-mono uppercase text-slate-500 font-medium block">
                       {t.cadenceTuck}
                     </span>
-                    <span className="text-sm sm:text-base font-extrabold text-emerald-700 font-mono mt-0.5 block tabular-nums">
+                    <span className="text-sm font-extrabold text-emerald-700 font-mono mt-0.5 block tabular-nums">
                       +{formatKWD(vault.pullAmount)} KWD
                     </span>
                   </div>
                 </div>
               </div>
+
+              {/* RELOCATED EARLY BREAK TRIGGER DIRECTLY INSIDE VAULT CORE CARD */}
+              <div className="mt-3 -mx-4 sm:-mx-5 p-2.5 sm:px-4 bg-rose-50/70 border-t border-rose-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-rose-100 border border-rose-200 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-rose-950 block leading-tight">
+                      {t.disciplineTaxWarning}
+                    </span>
+                    <span className="text-[10px] text-rose-700 block leading-tight">
+                      {t.disciplineTaxSub}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  id="request-break-btn"
+                  onClick={() => {
+                    setShowBreakModal(true);
+                    setBreakResult(null);
+                    setExcuseText("");
+                  }}
+                  className="tactile-btn px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-[11px] shadow-xs active:scale-95 transition-all shrink-0 self-end sm:self-center"
+                >
+                  {t.requestEarlyBreak}
+                </button>
+              </div>
             </div>
 
             {/* ALLOWANCE PACING 4-WEEK BAR CHART */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+            <div className="p-3.5 sm:p-4 rounded-3xl bg-white border border-slate-200/90 shadow-card">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2.5">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-amber-600" />
+                  <h3 className="text-xs font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
                     <span>{t.pacingTitle}</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">{t.pacingSubtitle}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.2">{t.pacingSubtitle}</p>
                 </div>
-                <div className="text-[11px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 self-start font-semibold">
+                <div className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 self-start font-semibold">
                   Day-{vault.allowanceDay || 25} Aligned ⚡
                 </div>
               </div>
 
               {/* 4-Week Dynamic SVG/Visual Bars */}
-              <div className="grid grid-cols-4 gap-3 sm:gap-4 items-end pt-2 pb-1">
+              <div className="grid grid-cols-4 gap-2.5 sm:gap-3 items-end pt-1">
                 {pacingWeeks.map((item) => (
                   <div key={item.week} className="flex flex-col items-center group">
-                    <span className="text-xs font-mono font-bold text-slate-900 mb-1.5 tabular-nums">
+                    <span className="text-[10px] font-mono font-bold text-slate-900 mb-1 tabular-nums">
                       +{item.amount} KWD
                     </span>
-                    <div className="w-full bg-slate-100 rounded-2xl h-28 flex items-end p-1.5 border border-slate-200/80">
+                    <div className="w-full bg-slate-100 rounded-xl h-20 flex items-end p-1 border border-slate-200/80">
                       <div
                         style={{ height: `${item.percent}%` }}
                         className={cn(
-                          "w-full rounded-xl bg-gradient-to-t shadow-xs transition-all duration-700 ease-out group-hover:opacity-90",
+                          "w-full rounded-lg bg-gradient-to-t shadow-xs transition-all duration-700 ease-out group-hover:opacity-90",
                           item.color
                         )}
                       />
                     </div>
-                    <div className="text-center mt-2.5">
-                      <span className="text-[11px] font-extrabold text-slate-900 block">
+                    <div className="text-center mt-1.5">
+                      <span className="text-[10px] font-extrabold text-slate-900 block">
                         {t.week} {item.week}
                       </span>
-                      <span className="text-[10px] text-slate-500 font-medium block truncate max-w-[80px] sm:max-w-none">
+                      <span className="text-[9px] text-slate-500 font-medium block truncate max-w-[80px] sm:max-w-none">
                         {item.title}
                       </span>
-                      <span className="text-[9px] font-mono text-slate-400 block mt-0.5">
+                      <span className="text-[8px] font-mono text-slate-400 block">
                         {item.timing}
                       </span>
                     </div>
@@ -870,42 +900,13 @@ function DashboardContent() {
                 ))}
               </div>
             </div>
-
-            {/* FRICTION TRIGGER: 5% Discipline Tax Warning + Button */}
-            <div className="p-4 sm:p-5 rounded-3xl bg-rose-50/70 border border-rose-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center shrink-0 mt-0.5">
-                  <AlertTriangle className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-rose-950 uppercase tracking-wide">
-                    {t.disciplineTaxWarning}
-                  </h4>
-                  <p className="text-xs text-rose-800 mt-0.5 leading-relaxed">
-                    {t.disciplineTaxSub}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                id="request-break-btn"
-                onClick={() => {
-                  setShowBreakModal(true);
-                  setBreakResult(null);
-                  setExcuseText("");
-                }}
-                className="tactile-btn px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 active:scale-95 transition-all shrink-0"
-              >
-                {t.requestEarlyBreak}
-              </button>
-            </div>
           </div>
 
           {/* RIGHT COLUMN: 35% LIVE AUDIT SIDEBAR (lg:col-span-4) */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-3">
             {/* KEYHOLDER PROTOCOL CARD */}
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-200/90 mb-4">
+            <div className="p-4 sm:p-4.5 rounded-3xl bg-white border border-slate-200/90 shadow-card">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200/90 mb-3">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-amber-600" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 font-mono">
@@ -924,12 +925,12 @@ function DashboardContent() {
                 </span>
               </div>
 
-              <div className="space-y-3.5">
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90">
+              <div className="space-y-2.5">
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/90">
                   <span className="text-[10px] font-mono text-slate-500 uppercase font-medium block">
                     {t.designatedGuardian}
                   </span>
-                  <div className="text-sm font-bold text-slate-900 mt-1">
+                  <div className="text-sm font-bold text-slate-900 mt-0.5">
                     {vault.keyholder.name}
                   </div>
                   <div className="text-xs text-slate-600 font-mono mt-0.5">
@@ -944,17 +945,17 @@ function DashboardContent() {
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="tactile-btn w-full py-3 px-4 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all"
+                  className="tactile-btn w-full py-2 px-3.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs transition-all"
                 >
-                  <MessageSquare className="w-4 h-4 text-slate-950" />
+                  <MessageSquare className="w-3.5 h-3.5 text-slate-950" />
                   <span>{t.pingWhatsApp}</span>
                 </a>
               </div>
             </div>
 
             {/* AUDIT & ANTI-IMPULSE LEDGER */}
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-200/90 mb-4">
+            <div className="p-4 sm:p-4.5 rounded-3xl bg-white border border-slate-200/90 shadow-card">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/90 mb-2.5">
                 <div className="flex items-center gap-2">
                   <Coins className="w-4 h-4 text-amber-600" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 font-mono">
@@ -967,7 +968,7 @@ function DashboardContent() {
               </div>
 
               {/* Transactions List */}
-              <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
                 {vault.transactions && vault.transactions.length > 0 ? (
                   vault.transactions.map((tx, idx) => {
                     const isPositive =
