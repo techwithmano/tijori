@@ -154,7 +154,7 @@ async function runAudit() {
             });
             const reqData = await reqRes.json();
             activeToken = reqData.token;
-            await page.goto(`${BASE_URL}/unlock/${activeToken}`, { waitUntil: "networkidle2" });
+            await page.goto(`${BASE_URL}/unlock/${activeToken}`, { waitUntil: "domcontentloaded" });
           }
         } catch (e) {}
 

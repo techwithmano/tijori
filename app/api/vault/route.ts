@@ -6,22 +6,27 @@ import { getCurrentUser } from "@/lib/auth";
 export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
+    const { User } = await import("@/models/User");
     const session = await getCurrentUser(req);
 
-    let query: any = {};
+    let vault = null;
+    let user = null;
+
     if (session?.userId) {
-      query = { userId: session.userId };
+      vault = await Vault.findOne({ userId: session.userId }).sort({ createdAt: -1 });
+      user = await User.findById(session.userId).select("-password");
     }
 
-    // Find the most recent active or created vault for this user (or global latest fallback)
-    let vault = await Vault.findOne(query).sort({ createdAt: -1 });
-
-    // Fallback to any recent vault if user has none yet
-    if (!vault && session?.userId) {
-      vault = await Vault.findOne().sort({ createdAt: -1 });
+    // Default to the official demo user vault if not logged in
+    if (!vault) {
+      const demoUser = await User.findOne({ email: "demo@tijori.app" });
+      if (demoUser) {
+        vault = await Vault.findOne({ userId: demoUser._id }).sort({ createdAt: -1 });
+        if (!user) user = demoUser;
+      }
     }
 
-    // Auto-seed default demo vault if none exists in the database
+    // Auto-seed default demo vault if still none exists in the database
     if (!vault) {
       const now = Date.now();
       vault = await Vault.create({
@@ -33,42 +38,49 @@ export async function GET(req: NextRequest) {
         cadence: "weekly",
         allowanceDay: 25,
         status: "LOCKED",
-        totalProtected: 50,
+        totalProtected: 380,
+        streakCount: 18,
         keyholder: {
           name: "Fahad Al-Mutawa",
           phone: "+965 9988 7766",
-          relationship: "Best Friend / Diwaniya Bro",
+          relationship: "Brother",
         },
-        targetDate: new Date(now + 90 * 24 * 60 * 60 * 1000), // 3 months out
+        targetDate: new Date("2027-06-15T00:00:00.000Z"),
         transactions: [
           {
-            amount: 50,
-            type: "SIMULATED_PULL",
-            status: "SUCCESS",
-            createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
-            note: "Allowance Tuck post-salary surge ⚡",
-          },
-          {
-            amount: 50,
+            amount: 25,
             type: "SCHEDULED_PULL",
             status: "SUCCESS",
-            createdAt: new Date(now - 7 * 24 * 60 * 60 * 1000),
-            note: "Weekly disciplined micro-pull",
+            createdAt: new Date(now - 3 * 24 * 60 * 60 * 1000),
+            note: "Allowance Tuck (Day-25 Auto-Save) 🚀",
+          },
+          {
+            amount: 10,
+            type: "STRIPE_DEPOSIT",
+            status: "SUCCESS",
+            createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+            note: "KNET Quick Boost (+10 KWD)",
           },
           {
             amount: 25,
             type: "SCHEDULED_PULL",
             status: "SUCCESS",
-            createdAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
-            note: "Initial Tuck - Welcome to Tijori",
+            createdAt: new Date(now - 1 * 24 * 60 * 60 * 1000),
+            note: "Weekly Discipline Tuck ⚡",
+          },
+          {
+            amount: 65,
+            type: "SIMULATED_PULL",
+            status: "SUCCESS",
+            createdAt: new Date(),
+            note: "Mid-Month Shielded Micro-Pull 🛡️",
           },
         ],
       });
       console.log("Seeded default demo vault:", vault._id);
     }
 
-    let user = null;
-    if (session?.userId) {
+    if (session?.userId && !user) {
       const { User } = await import("@/models/User");
       user = await User.findById(session.userId).select("-password");
     }

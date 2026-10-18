@@ -60,7 +60,7 @@ TASK:
 Write a sharp, brutally honest, culturally grounded 2-sentence humorous reality check calling out their impulse spending (e.g. daily specialty iced lattes, late-night Talabat/Craving orders, random sneaker drops, chalet weekend splurges). Call them out directly.`;
 
             const aiRes = await ai.models.generateContent({
-              model: "gemini-2.5-flash",
+              model: "gemini-3.8-flash",
               contents: prompt,
             });
             realityCheck = aiRes.text?.trim() || "";

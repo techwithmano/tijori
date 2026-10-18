@@ -28,13 +28,13 @@ Tijori (تِجوري) is a behavioral anti-impulse micro-savings web platform co
    - High-density 2-column grid: 65% Vault Engine / 35% Live Audit Sidebar.
    - Top Nav Bar: Brand wordmark ("Tijori" + "تِجوري"), Live Status Dot, Centered Hero Stat (`🛡️ You've protected [totalProtected] KWD from impulse spending`), bilingual `[ EN | العربية ]` LTR/RTL toggle, and user profile greeting with real logout.
    - Judges Interactive Demo Bar: `⚡ Simulate Day-25 Tuck (+25 KWD)` with confetti, `💳 Quick KNET / Card Boost (+20 KWD Stripe)`, and `🔗 Open Keyholder Link ↗`.
-   - Physical Vault Dial Component: Large circular SVG gauge with Honey-to-Emerald gradient stroke, animated padlock glyph, and tabular metrics.
-   - Dynamic Allowance Pacing 4-Week Bar Chart: Micro-pull curve centered on Day-25 student allowance.
+   - Physical Vault Dial Component: Circular SVG gauge with Honey-to-Emerald gradient stroke, animated padlock glyph, and tabular metrics.
+   - Dynamic Allowance Pacing 4-Week Bar Chart: Micro-pull curve centered on Day-25 student allowance, with compact desktop proportions for 1440x900 viewport visibility.
    - Friction Trigger Card: 5% Discipline Tax warning and `🚨 Request Early Break` trigger.
 
-4. **Peer Keyholder Protocol & Gemini 2.5 Flash Reality Check:**
+4. **Peer Keyholder Protocol & Gemini 3.8 Flash Reality Check:**
    - Emergency Break Friction Modal requiring authentic user excuses.
-   - Google Gemini 2.5 Flash (`@google/genai`) generating sharp, 2-sentence humorous reality checks calling out GCC lifestyle splurges.
+   - Google Gemini 3.8 Flash (`@google/genai`) generating sharp, 2-sentence humorous reality checks calling out GCC lifestyle splurges.
    - Single-use UUID cryptographic token generation with instant pre-filled WhatsApp link sharing.
    - Mobile-first Keyholder Clearance screen (`/unlock/[token]`) with isolated guest security header (`TIJORI KEYHOLDER CLEARANCE • 256-Bit Channel`), touch-friendly "Deny & Protect Vault 🛡️", and permanent single-use token invalidation defense.
 
@@ -47,9 +47,9 @@ All target views were captured in full fidelity using automated headless Edge / 
 | Screenshot File | Route | Viewport | Form Factor | File Size | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [`00_landing_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/00_landing_desktop.png) | `/` | 1440 × 900 | Desktop | 115.6 KB | Public Landing Page - High-trust proposition, interactive dial teaser, allowance simulator & 1-Click demo launcher |
-| [`01_dashboard_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/01_dashboard_desktop.png) | `/dashboard` | 1440 × 900 | Desktop | 129.3 KB | Desktop Command Center - Top Nav Hero Stat, Demo Bar, Physical Vault Dial, 4-Week Pacing & Live Audit Ledger |
-| [`02_emergency_break_modal_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/02_emergency_break_modal_desktop.png) | `/dashboard` | 1440 × 900 | Desktop | 141.2 KB | Emergency Break Modal - Social Friction, 5% Discipline Tax Warning, Excuse Textarea & Gemini AI Reality Check |
-| [`03_keyholder_clearance_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/03_keyholder_clearance_desktop.png) | `/unlock/[token]` | 1440 × 900 | Desktop | 92.7 KB | Keyholder Decision Screen - 256-Bit Channel, Stated Excuse, Gemini AI Reality Check Roast, Deny & Approve CTAs |
+| [`01_dashboard_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/01_dashboard_desktop.png) | `/dashboard` | 1440 × 900 | Desktop | 137.4 KB | Desktop Command Center - Top Nav Hero Stat, Demo Bar, Physical Vault Dial, 4-Week Pacing & Live Audit Ledger |
+| [`02_emergency_break_modal_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/02_emergency_break_modal_desktop.png) | `/dashboard` | 1440 × 900 | Desktop | 169.1 KB | Emergency Break Modal - Social Friction, 5% Discipline Tax Warning, Excuse Textarea & Gemini AI Reality Check |
+| [`03_keyholder_clearance_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/03_keyholder_clearance_desktop.png) | `/unlock/[token]` | 1440 × 900 | Desktop | 99.4 KB | Keyholder Decision Screen - 256-Bit Channel, Stated Excuse, Gemini AI Reality Check Roast, Deny & Approve CTAs |
 | [`04_create_wizard_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/04_create_wizard_desktop.png) | `/create` | 1440 × 900 | Desktop | 90.0 KB | Creation Wizard - Clean Inputs, Quick-Pick Goal Chips & Interactive AI Allowance Pacing Preview |
 | [`05_auth_login_desktop.png`](file:///e:/Projects/unicode/Tijori/audit/screenshots/05_auth_login_desktop.png) | `/login` | 1440 × 900 | Desktop | 82.8 KB | Authentication Gateway - Calm Trust Porcelain Card with 1-Click Demo Access button and credentials auto-fill |
 

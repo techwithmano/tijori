@@ -50,7 +50,7 @@ Output strictly a valid JSON array of 4 objects with this exact structure, with 
     try {
       if (process.env.GEMINI_API_KEY) {
         const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.8-flash",
           contents: prompt,
         });
 

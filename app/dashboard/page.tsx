@@ -684,10 +684,10 @@ function DashboardContent() {
           {/* LEFT COLUMN: 65% VAULT CORE (lg:col-span-8) */}
           <div className="lg:col-span-8 space-y-6">
             {/* Header: Goal title, Time-lock countdown pill, and Gamified Streak Badge */}
-            <div className="p-6 sm:p-7 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200/90">
+            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-card">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200/90">
                 <div>
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex items-center gap-2 mb-1">
                     <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
                       {t.targetLocked}
                     </span>
@@ -702,7 +702,7 @@ function DashboardContent() {
 
                 <div className="flex items-center gap-2.5 flex-wrap">
                   {/* Gamified Streak Badge: 🔥 [streakCount]-Day Unbroken Streak */}
-                  <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border border-amber-200/80 text-amber-950 font-bold text-xs shadow-xs">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border border-amber-200/80 text-amber-950 font-bold text-xs shadow-xs">
                     <Flame className="w-4 h-4 text-amber-600 fill-amber-500" />
                     <span>
                       {vault.streakCount || 18} {t.unbrokenStreak}
@@ -710,7 +710,7 @@ function DashboardContent() {
                   </div>
 
                   {/* Time-lock countdown pill */}
-                  <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs font-mono">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs font-mono">
                     <Clock className="w-3.5 h-3.5 text-slate-500" />
                     <span>
                       {daysRemaining} {t.daysRemaining}
@@ -720,8 +720,8 @@ function DashboardContent() {
               </div>
 
               {/* PHYSICAL VAULT DIAL COMPONENT */}
-              <div className="py-8 sm:py-10 flex flex-col items-center justify-center relative">
-                <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center">
+              <div className="py-3 sm:py-4 flex flex-col items-center justify-center relative">
+                <div className="relative w-52 h-52 sm:w-60 sm:h-60 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 240 240">
                     <defs>
                       <linearGradient id="honeyToEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -762,7 +762,7 @@ function DashboardContent() {
                     {/* Animated Padlock Glyph */}
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center mb-2 shadow-xs transition-transform duration-300",
+                        "w-10 h-10 rounded-2xl flex items-center justify-center mb-1 shadow-xs transition-transform duration-300",
                         vault.status === "UNLOCK_PENDING"
                           ? "bg-rose-50 border border-rose-200 text-rose-600 animate-bounce"
                           : vault.status === "UNLOCKED"
@@ -771,9 +771,9 @@ function DashboardContent() {
                       )}
                     >
                       {vault.status === "UNLOCKED" ? (
-                        <Unlock className="w-6 h-6 stroke-[2.5]" />
+                        <Unlock className="w-5 h-5 stroke-[2.5]" />
                       ) : (
-                        <Lock className="w-6 h-6 stroke-[2.5]" />
+                        <Lock className="w-5 h-5 stroke-[2.5]" />
                       )}
                     </div>
 
@@ -793,7 +793,7 @@ function DashboardContent() {
                 </div>
 
                 {/* Sub-Metrics Cards below Dial */}
-                <div className="grid grid-cols-3 gap-3 w-full max-w-lg mt-6">
+                <div className="grid grid-cols-3 gap-3 w-full max-w-lg mt-4">
                   <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/90 text-center">
                     <span className="text-[10px] font-mono uppercase text-slate-500 font-medium block">
                       {t.currentBalance}
@@ -825,8 +825,8 @@ function DashboardContent() {
             </div>
 
             {/* ALLOWANCE PACING 4-WEEK BAR CHART */}
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-card">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-amber-600" />
@@ -840,13 +840,13 @@ function DashboardContent() {
               </div>
 
               {/* 4-Week Dynamic SVG/Visual Bars */}
-              <div className="grid grid-cols-4 gap-3 sm:gap-4 items-end pt-4 pb-2">
+              <div className="grid grid-cols-4 gap-3 sm:gap-4 items-end pt-2 pb-1">
                 {pacingWeeks.map((item) => (
                   <div key={item.week} className="flex flex-col items-center group">
-                    <span className="text-xs font-mono font-bold text-slate-900 mb-2 tabular-nums">
+                    <span className="text-xs font-mono font-bold text-slate-900 mb-1.5 tabular-nums">
                       +{item.amount} KWD
                     </span>
-                    <div className="w-full bg-slate-100 rounded-2xl h-36 flex items-end p-1.5 border border-slate-200/80">
+                    <div className="w-full bg-slate-100 rounded-2xl h-28 flex items-end p-1.5 border border-slate-200/80">
                       <div
                         style={{ height: `${item.percent}%` }}
                         className={cn(
@@ -855,7 +855,7 @@ function DashboardContent() {
                         )}
                       />
                     </div>
-                    <div className="text-center mt-3">
+                    <div className="text-center mt-2.5">
                       <span className="text-[11px] font-extrabold text-slate-900 block">
                         {t.week} {item.week}
                       </span>
@@ -872,7 +872,7 @@ function DashboardContent() {
             </div>
 
             {/* FRICTION TRIGGER: 5% Discipline Tax Warning + Button */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-rose-50/70 border border-rose-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 sm:p-5 rounded-3xl bg-rose-50/70 border border-rose-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-2xl bg-rose-100 border border-rose-200 flex items-center justify-center shrink-0 mt-0.5">
                   <AlertTriangle className="w-5 h-5 text-rose-600" />
