@@ -189,7 +189,7 @@ async function runAudit() {
     const page = await browser.newPage();
     try {
       await page.setViewport(item.viewport);
-      await page.goto(item.url, { waitUntil: "networkidle2", timeout: 35000 });
+      await page.goto(item.url, { waitUntil: "domcontentloaded", timeout: 35000 });
 
       if (item.action) {
         await item.action(page);
