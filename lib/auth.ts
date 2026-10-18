@@ -55,6 +55,8 @@ export async function getCurrentUser(req?: NextRequest): Promise<SessionUser | n
   }
 }
 
+export const getSessionUser = getCurrentUser;
+
 export function createSession(
   res: NextResponse,
   user: { _id?: any; id?: any; email: string; name: string }

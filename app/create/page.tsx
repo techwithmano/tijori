@@ -116,7 +116,7 @@ export default function CreateVaultPage() {
 
       const data = await res.json();
       if (data.success) {
-        router.push("/");
+        router.push("/dashboard");
       } else {
         setError(data.error || "Failed to create vault");
       }
@@ -138,7 +138,7 @@ export default function CreateVaultPage() {
     <div className="max-w-2xl mx-auto py-6 pb-16">
       <div className="mb-6">
         <Link
-          href="/"
+          href="/dashboard"
           className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 transition-colors mb-3"
         >
           <ArrowLeft className="w-3.5 h-3.5" />

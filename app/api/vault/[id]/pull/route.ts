@@ -28,13 +28,16 @@ export async function POST(
       // Body is optional; default to vault.pullAmount
     }
 
-    vault.currentBalance = (vault.currentBalance || 0) + pullAmount;
+    vault.currentBalance = Math.min(
+      vault.targetAmount,
+      (vault.currentBalance || 0) + pullAmount
+    );
 
     // Prepend new transaction so latest is first
     vault.transactions.unshift({
       amount: pullAmount,
       type: "SIMULATED_PULL",
-      status: "COMPLETED",
+      status: "SUCCESS",
       createdAt: new Date(),
       note: "Judges Demo Micro-Pull (+25 KWD) ⚡",
     });

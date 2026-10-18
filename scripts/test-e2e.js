@@ -158,13 +158,18 @@ async function runTestSuite() {
   let balanceBefore = 0;
   let balanceAfter = 0;
   try {
-    const getRes = await fetch(`${BASE_URL}/api/vault`);
+    const getRes = await fetch(`${BASE_URL}/api/vault`, {
+      headers: authCookie ? { Cookie: authCookie } : {},
+    });
     const getData = await getRes.json();
     balanceBefore = getData.vault.currentBalance;
 
     const pullRes = await fetch(`${BASE_URL}/api/vault/${testVaultId}/pull`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(authCookie ? { Cookie: authCookie } : {}),
+      },
       body: JSON.stringify({ amount: 25 }),
     });
     const pullData = await pullRes.json();
@@ -186,7 +191,9 @@ async function runTestSuite() {
 
   // Test 2.3: Verify Ledger Transaction Log
   try {
-    const res = await fetch(`${BASE_URL}/api/vault`);
+    const res = await fetch(`${BASE_URL}/api/vault`, {
+      headers: authCookie ? { Cookie: authCookie } : {},
+    });
     const data = await res.json();
     const transactions = data.vault?.transactions || [];
     const hasPullTx = transactions.some((t) => t.type === "SIMULATED_PULL");
@@ -327,7 +334,9 @@ async function runTestSuite() {
   // Test 5.3: Keyholder DENY Decision (Blocks impulse, increments totalProtected, burns token)
   let protectedBefore = 0;
   try {
-    const vaultRes = await fetch(`${BASE_URL}/api/vault`);
+    const vaultRes = await fetch(`${BASE_URL}/api/vault`, {
+      headers: authCookie ? { Cookie: authCookie } : {},
+    });
     const vaultData = await vaultRes.json();
     protectedBefore = vaultData.vault.totalProtected || 0;
 

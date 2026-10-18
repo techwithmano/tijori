@@ -21,8 +21,8 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { action, reason, excuse, realityCheck: incomingRoast } = body;
-    const finalReason = reason || excuse || "Impulse withdrawal request";
+    const { action = "REQUEST", reason, excuse, realityCheck: incomingRoast } = body;
+    const finalReason = excuse || reason || "Impulse withdrawal request";
 
     if (!["REQUEST", "APPROVE", "DENY", "LOCK"].includes(action)) {
       return NextResponse.json(
@@ -50,15 +50,14 @@ export async function POST(
       if (!realityCheck) {
         try {
           if (process.env.GEMINI_API_KEY) {
-            const prompt = `You are "Tijori" (تِجوري)—a witty, ruthless, yet caring GCC financial intervention AI designed to cure impulse spending among young adults (18-28) in Kuwait and the Gulf.
-The user is attempting to prematurely break open their locked savings vault:
+            const prompt = `You are the sharp, witty best friend of a young adult in Kuwait attempting to break their savings vault early:
 - Goal: "${vault.title}"
 - Current Progress: ${vault.currentBalance} KWD saved out of ${vault.targetAmount} KWD target.
 - User's Stated Excuse: "${finalReason}"
 - Designated Keyholder: "${vault.keyholder.name}"
 
 TASK:
-Write a sharp, brutally honest, culturally hilarious reality check in EXACTLY TWO SENTENCES calling out their excuse. Reference GCC habits (e.g., 4 KWD specialty Spanish lattes, Avenues shopping sprees, chalet weekends, designer sneakers). Remind them that ${vault.keyholder.name} will not approve this. Respond ONLY with the two sentences.`;
+Write a sharp, brutally honest, culturally grounded 2-sentence humorous reality check calling out their impulse spending (e.g. daily specialty iced lattes, late-night Talabat/Craving orders, random sneaker drops, chalet weekend splurges). Call them out directly.`;
 
             const aiRes = await ai.models.generateContent({
               model: "gemini-2.5-flash",
@@ -78,15 +77,15 @@ Write a sharp, brutally honest, culturally hilarious reality check in EXACTLY TW
       vault.realityCheck = realityCheck;
 
       whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
-        `Salam! I am trying to break my Tijori savings vault early for "${vault.title}". My reason: "${finalReason}". Approve or block me here: ${unlockUrl}`
+        `Salam! I am trying to break my Tijori savings vault for ${vault.title}. My reason: "${finalReason}". Approve or block me here: ${unlockUrl}`
       )}`;
 
       vault.transactions.unshift({
         amount: 0,
         type: "WITHDRAWAL",
-        status: "PENDING_KEYHOLDER",
+        status: "SUCCESS",
         createdAt: new Date(),
-        note: `Unlock requested: "${finalReason}"`,
+        note: `Early break requested: "${finalReason}"`,
       });
     } else if (action === "APPROVE") {
       vault.status = "UNLOCKED";
@@ -95,9 +94,9 @@ Write a sharp, brutally honest, culturally hilarious reality check in EXACTLY TW
       vault.transactions.unshift({
         amount: vault.currentBalance,
         type: "WITHDRAWAL",
-        status: "APPROVED_RELEASED",
+        status: "SUCCESS",
         createdAt: new Date(),
-        note: `Keyholder ${vault.keyholder.name} authorized full withdrawal ✅`,
+        note: `Keyholder ${vault.keyholder.name} authorized release`,
       });
     } else if (action === "DENY") {
       vault.status = "LOCKED";
@@ -107,7 +106,7 @@ Write a sharp, brutally honest, culturally hilarious reality check in EXACTLY TW
       vault.transactions.unshift({
         amount: 0,
         type: "SIMULATED_PULL",
-        status: "INTERVENED_PROTECTED",
+        status: "SUCCESS",
         createdAt: new Date(),
         note: `Keyholder ${vault.keyholder.name} blocked withdrawal! 🛡️ Savings safe`,
       });

@@ -36,6 +36,10 @@ function findBrowserExecutable() {
 
 async function fetchOrCreateActiveVaultAndToken() {
   try {
+    // Seed demo data first
+    const seedRes = await fetch(`${BASE_URL}/api/seed`, { method: "POST" });
+    const seedData = await seedRes.json();
+
     const res = await fetch(`${BASE_URL}/api/vault`);
     const data = await res.json();
     if (data.success && data.vault) {
@@ -96,20 +100,30 @@ async function runAudit() {
 
   const targets = [
     {
-      name: "01_dashboard_desktop.png",
+      name: "00_landing_desktop.png",
       url: `${BASE_URL}/`,
       viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Main Vault Dashboard Desktop (1440x900) - Judges Demo Bar, Progress Ring, Allowance Timeline & Savings Ledger",
+      description: "Public Landing Page (1440x900) - Proposition, Dial Teaser, Allowance Simulator & 1-Click Demo Launcher",
       action: async (page) => {
-        await page.waitForSelector("#simulate-pull-btn", { timeout: 15000 }).catch(() => {});
+        await page.waitForSelector("#launch-demo-btn", { timeout: 15000 }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 1200));
+      },
+    },
+    {
+      name: "01_dashboard_desktop.png",
+      url: `${BASE_URL}/dashboard`,
+      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
+      description: "Desktop Command Center (1440x900) - Top Nav Hero Stat, Demo Bar, Physical Vault Dial, Pacing & Live Audit Ledger",
+      action: async (page) => {
+        await page.waitForSelector("#simulate-tuck-btn, #simulate-pull-btn", { timeout: 15000 }).catch(() => {});
         await new Promise((r) => setTimeout(r, 1500));
       },
     },
     {
       name: "02_emergency_break_modal_desktop.png",
-      url: `${BASE_URL}/?modal=true`,
+      url: `${BASE_URL}/dashboard`,
       viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Emergency Break Modal Desktop (1440x900) - Social Friction, 5% Discipline Tax Warning, Excuse & WhatsApp Share",
+      description: "Emergency Break Modal (1440x900) - Social Friction, 5% Discipline Tax Warning, Excuse & Gemini AI Reality Check",
       action: async (page) => {
         await page.waitForSelector("#request-break-btn", { timeout: 15000 }).catch(() => {});
         const btn = await page.$("#request-break-btn");
@@ -124,7 +138,7 @@ async function runAudit() {
       name: "03_keyholder_clearance_desktop.png",
       url: `${BASE_URL}/unlock/${token}`,
       viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Keyholder Decision Screen Desktop (1440x900) - 256-Bit Channel, Stated Excuse, Gemini AI Reality Check Roast, Deny & Approve CTAs",
+      description: "Keyholder Decision Screen (1440x900) - 256-Bit Channel, Stated Excuse, Gemini AI Reality Check Roast, Deny & Approve CTAs",
       action: async (page) => {
         let activeToken = token;
         try {

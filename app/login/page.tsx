@@ -20,12 +20,32 @@ function AuthPageContent() {
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [allowanceDay, setAllowanceDay] = useState(25);
+  const [seeding, setSeeding] = useState(false);
 
   const handleFillDemo = () => {
     setMode("login");
     setEmail("demo@tijori.app");
     setPassword("password123");
     setError(null);
+  };
+
+  const handleInstantDemo = async () => {
+    try {
+      setSeeding(true);
+      setError(null);
+      const res = await fetch("/api/seed", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        router.push("/dashboard");
+        router.refresh();
+      } else {
+        setError(data.error || "Failed to seed demo data");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to initialize demo");
+    } finally {
+      setSeeding(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,8 +68,8 @@ function AuthPageContent() {
 
       const data = await res.json();
       if (data.success) {
-        // Successful login/register: redirect to main dashboard
-        router.push("/");
+        // Successful login/register: redirect to command center dashboard
+        router.push("/dashboard");
         router.refresh();
       } else {
         setError(data.error || "Authentication failed. Please check your credentials.");
@@ -84,23 +104,41 @@ function AuthPageContent() {
         </div>
 
         {/* 1-Click Judge Credentials Box */}
-        <div className="mb-6 p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs flex items-center justify-between gap-3 shadow-xs">
-          <div>
-            <div className="flex items-center gap-1.5 font-bold text-amber-900">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/60 border border-amber-200 text-xs shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 font-bold text-amber-950">
+              <Sparkles className="w-4 h-4 text-amber-600" />
               <span>Judges Sandbox Access</span>
             </div>
-            <p className="text-[11px] text-amber-800 mt-0.5 font-mono">
-              demo@tijori.app &bull; password123
-            </p>
+            <span className="text-[10px] font-mono text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded-full font-medium">
+              Live DB Seed
+            </span>
           </div>
-          <button
-            type="button"
-            onClick={handleFillDemo}
-            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-xs active:scale-95 transition-all shrink-0"
-          >
-            Auto-Fill Demo
-          </button>
+          <p className="text-[11px] text-amber-900 font-mono">
+            demo@tijori.app &bull; password123
+          </p>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              id="instant-demo-btn"
+              type="button"
+              onClick={handleInstantDemo}
+              disabled={seeding}
+              className="tactile-btn py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all text-center flex items-center justify-center gap-1.5 disabled:opacity-50"
+            >
+              {seeding ? (
+                <div className="w-3.5 h-3.5 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+              ) : (
+                <span>⚡ 1-Click Demo Login</span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleFillDemo}
+              className="py-2.5 px-3 rounded-xl bg-white hover:bg-amber-50 text-amber-900 border border-amber-200 font-bold text-xs transition-colors text-center"
+            >
+              Fill Credentials
+            </button>
+          </div>
         </div>
 
         {/* Tab Toggle: Log In / Sign Up */}

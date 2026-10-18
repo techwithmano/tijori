@@ -51,6 +51,10 @@ export default function Header() {
     }
   };
 
+  if (pathname === "/" || pathname === "/dashboard") {
+    return null;
+  }
+
   if (isKeyholderView) {
     return (
       <header className="border-b border-slate-200/90 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">

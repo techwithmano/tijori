@@ -59,23 +59,23 @@ export async function POST(req: NextRequest) {
         {
           amount: 25,
           type: "SCHEDULED_PULL",
-          status: "COMPLETED",
+          status: "SUCCESS",
           createdAt: new Date(),
           note: "Weekly micro-pull deposit #3",
         },
         {
           amount: 25,
           type: "SCHEDULED_PULL",
-          status: "COMPLETED",
+          status: "SUCCESS",
           createdAt: new Date(Date.now() - 7 * 86400000),
           note: "Weekly micro-pull deposit #2",
         },
         {
           amount: 25,
           type: "SCHEDULED_PULL",
-          status: "COMPLETED",
+          status: "SUCCESS",
           createdAt: new Date(Date.now() - 14 * 86400000),
-          note: "Genesis deposit - Welcome to Tijori",
+          note: "Initial Tuck - Welcome to Tijori",
         },
       ],
     });

@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
         },
       ],
       mode: "payment",
-      success_url: `${appUrl}/?deposit=success&vaultId=${vault._id}&amount=${depositAmount}`,
-      cancel_url: `${appUrl}/?deposit=cancel`,
+      success_url: `${appUrl}/dashboard?deposit=success&vaultId=${vault._id}&amount=${depositAmount}`,
+      cancel_url: `${appUrl}/dashboard?deposit=cancel`,
       metadata: {
         vaultId: String(vault._id),
         amount: String(depositAmount),
@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       url: session.url,
+      checkoutUrl: session.url,
       sessionId: session.id,
     });
   } catch (error: any) {

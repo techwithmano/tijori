@@ -44,30 +44,45 @@ export async function GET(req: NextRequest) {
           {
             amount: 50,
             type: "SIMULATED_PULL",
-            status: "COMPLETED",
+            status: "SUCCESS",
             createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
-            note: "Auto-pull post-salary surge ⚡",
+            note: "Allowance Tuck post-salary surge ⚡",
           },
           {
             amount: 50,
             type: "SCHEDULED_PULL",
-            status: "COMPLETED",
+            status: "SUCCESS",
             createdAt: new Date(now - 7 * 24 * 60 * 60 * 1000),
             note: "Weekly disciplined micro-pull",
           },
           {
             amount: 25,
             type: "SCHEDULED_PULL",
-            status: "COMPLETED",
+            status: "SUCCESS",
             createdAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
-            note: "Genesis deposit - Welcome to Tijori",
+            note: "Initial Tuck - Welcome to Tijori",
           },
         ],
       });
       console.log("Seeded default demo vault:", vault._id);
     }
 
-    return NextResponse.json({ success: true, vault });
+    let user = null;
+    if (session?.userId) {
+      const { User } = await import("@/models/User");
+      user = await User.findById(session.userId).select("-password");
+    }
+
+    return NextResponse.json({
+      success: true,
+      vault,
+      user: user || {
+        name: session?.name || "Abdulrahman Haramain",
+        email: session?.email || "demo@tijori.app",
+        allowanceDay: 25,
+        preferredLang: "en",
+      },
+    });
   } catch (error: any) {
     console.error("GET /api/vault error:", error);
     return NextResponse.json(
@@ -119,9 +134,9 @@ export async function POST(req: NextRequest) {
         {
           amount: Number(pullAmount),
           type: "SCHEDULED_PULL",
-          status: "COMPLETED",
+          status: "SUCCESS",
           createdAt: new Date(),
-          note: "Genesis deposit - Welcome to Tijori",
+          note: "Initial Tuck - Welcome to Tijori",
         },
       ],
     });

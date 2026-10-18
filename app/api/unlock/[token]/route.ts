@@ -86,9 +86,9 @@ export async function POST(
       vault.transactions.unshift({
         amount: vault.currentBalance,
         type: "WITHDRAWAL",
-        status: "KEYHOLDER_AUTHORIZED",
+        status: "SUCCESS",
         createdAt: new Date(),
-        note: `Keyholder ${vault.keyholder.name} authorized emergency unlock ✅`,
+        note: `Keyholder ${vault.keyholder.name} authorized release`,
       });
     } else if (action === "DENY") {
       vault.status = "LOCKED";
@@ -99,7 +99,7 @@ export async function POST(
       vault.transactions.unshift({
         amount: 0,
         type: "SIMULATED_PULL",
-        status: "SAVINGS_PROTECTED",
+        status: "SUCCESS",
         createdAt: new Date(),
         note: `Keyholder ${vault.keyholder.name} rejected impulse break! 🛡️ Savings safe`,
       });

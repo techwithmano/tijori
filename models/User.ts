@@ -4,9 +4,10 @@ export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
   email: string;
-  password: string;
+  password?: string;
   phone?: string;
-  allowanceDay: number;
+  allowanceDay: number; // default: 25 (Kuwait MoHE student allowance day)
+  preferredLang: "en" | "ar";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,7 +32,7 @@ const UserSchema = new Schema<IUser>(
     },
     phone: {
       type: String,
-      default: "",
+      default: "+965 9900 1122",
       trim: true,
     },
     allowanceDay: {
@@ -39,6 +40,11 @@ const UserSchema = new Schema<IUser>(
       default: 25,
       min: 1,
       max: 31,
+    },
+    preferredLang: {
+      type: String,
+      enum: ["en", "ar"],
+      default: "en",
     },
   },
   {
