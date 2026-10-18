@@ -164,92 +164,95 @@ export default function KeyholderTokenUnlockPage({
   const writtenReason =
     vault.unlockReason || vault.breakExcuse || "No excuse provided. Just feeling the urge to spend.";
 
+  const guardianFirstName = vault.keyholder?.name ? vault.keyholder.name.split(" ")[0] : "Fahad";
+  const applicantFirstName = "Abdulrahman";
+
   return (
-    <div className="max-w-md mx-auto pt-2 pb-24 sm:pb-12 px-3 sm:px-0">
-      {/* Protocol Badge Header */}
-      <div className="text-center mb-6">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-mono uppercase tracking-wider mb-2.5 shadow-xs">
-          <ShieldAlert className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-          <span>Tokenized Keyholder Protocol</span>
+    <div className="max-w-md mx-auto pt-2 pb-8 px-3.5">
+      {/* Human Headline Header */}
+      <div className="text-center mb-3">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold mb-1.5 shadow-2xs">
+          <ShieldAlert className="w-3 h-3 text-amber-600" />
+          <span>Anti-Impulse Safeguard</span>
         </div>
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Keyholder Gatekeeper Decision
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
+          {guardianFirstName}, {applicantFirstName} wants to break his vault.
         </h1>
-        <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-          Salam, <strong className="text-amber-800 font-semibold">{vault.keyholder.name}</strong> ({vault.keyholder.relationship}).
-          Your friend chose you as the sole guardian of their savings discipline.
+        <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+          Salam, <strong className="text-slate-900 font-semibold">{vault.keyholder.name}</strong> ({vault.keyholder.relationship}).
+          Your friend chose you as the sole guardian of his savings discipline.
         </p>
       </div>
 
       {/* Main Container */}
-      <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-card relative overflow-hidden">
+      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/90 shadow-card relative overflow-hidden">
         {/* Status Indicator Bar */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div className="flex items-center justify-between pb-2.5 border-b border-slate-200">
           <div className="flex items-center gap-2">
             {vault.status === "UNLOCK_PENDING" ? (
-              <span className="flex h-3 w-3 relative">
+              <span className="flex h-2.5 w-2.5 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
               </span>
             ) : vault.status === "LOCKED" ? (
-              <span className="h-3 w-3 rounded-full bg-emerald-600" />
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
             ) : (
-              <span className="h-3 w-3 rounded-full bg-amber-500" />
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
             )}
-            <span className="text-xs font-bold font-mono tracking-wide text-slate-800">
+            <span className="text-[11px] font-bold text-slate-800">
               {vault.status === "UNLOCK_PENDING"
-                ? "BREAK REQUEST ACTIVE"
+                ? "Break Request Active"
                 : vault.status === "LOCKED"
-                ? "VAULT LOCKED & SAFE"
-                : "VAULT UNLOCKED"}
+                ? "Vault Locked & Safe"
+                : "Vault Unlocked"}
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200 font-semibold">
+          <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">
             <Lock className="w-3 h-3 text-emerald-600" />
             <span>Single-Use Active</span>
           </div>
         </div>
 
         {/* Goal & Balance Card */}
-        <div className="my-5 p-4 rounded-2xl bg-slate-50 border border-slate-200/90 flex items-center justify-between">
+        <div className="my-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase font-mono text-slate-500 font-medium">Target Savings Goal</div>
-            <div className="text-base font-bold text-slate-900 mt-0.5">
+            <div className="text-[11px] text-slate-500 font-medium">Target Savings Goal</div>
+            <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">
               <GoalTitle title={vault.title} />
             </div>
-            <div className="text-xs text-emerald-700 font-mono flex items-center gap-1 mt-1 font-medium">
-              <Coins className="w-3.5 h-3.5" />
+            <div className="text-[11px] text-emerald-700 font-medium flex items-center gap-1 mt-0.5">
+              <Coins className="w-3 h-3" />
               <span>
                 {formatKWD(vault.currentBalance)} / {formatKWD(vault.targetAmount)} KWD ({percentFunded}%)
               </span>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] uppercase font-mono text-slate-500 font-medium">Funds At Stake</div>
-            <div className="text-xl font-extrabold text-slate-900 font-mono">
+            <div className="text-[11px] text-slate-500 font-medium">Funds At Stake</div>
+            <div className="text-xl sm:text-2xl font-extrabold text-slate-900 font-mono tracking-tight">
               {formatKWD(vault.currentBalance)} KWD
             </div>
           </div>
         </div>
 
         {/* User's EXACT Written Reason */}
-        <div className="mb-4">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700 mb-1.5">
-            <HelpCircle className="w-3.5 h-3.5 text-amber-600" />
-            <span>Applicant&apos;s Stated Excuse:</span>
+        <div className="mb-2.5">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 mb-1">
+            <HelpCircle className="w-3 h-3 text-amber-600" />
+            <span>{applicantFirstName}&apos;s Stated Excuse:</span>
           </div>
-          <div className="p-4 rounded-2xl bg-slate-50 border border-amber-200/80 text-xs italic text-slate-800 leading-relaxed font-sans shadow-xs">
+          <div className="p-3 rounded-2xl bg-slate-50 border border-amber-200/80 text-xs italic text-slate-800 leading-relaxed shadow-2xs">
             &ldquo;{writtenReason}&rdquo;
           </div>
         </div>
 
         {/* AI Reality Check Roast Card */}
         {vault.realityCheck && (
-          <div className="mb-5 p-4 rounded-2xl bg-rose-50/80 border border-rose-200 shadow-xs">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 mb-1.5">
+          <div className="mb-3 p-3 rounded-2xl bg-rose-50/90 border border-rose-200 shadow-2xs">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-rose-800 mb-1">
               <Sparkles className="w-3.5 h-3.5 text-rose-600" />
-              <span>Tijori AI Reality Check Roast 🔥</span>
+              <span>Tijori AI Reality Check 🔥</span>
             </div>
             <p className="text-xs text-rose-950 font-medium leading-relaxed">
               {vault.realityCheck}
@@ -260,7 +263,7 @@ export default function KeyholderTokenUnlockPage({
         {/* Action Message Feedback */}
         {actionMessage && (
           <div
-            className={`mb-5 p-3.5 rounded-2xl border text-xs flex items-center gap-2 ${
+            className={`mb-3 p-3 rounded-2xl border text-xs flex items-center gap-2 ${
               actionDone === "DENY"
                 ? "bg-emerald-50 border-emerald-200 text-emerald-900"
                 : "bg-amber-50 border-amber-200 text-amber-900"
@@ -273,52 +276,52 @@ export default function KeyholderTokenUnlockPage({
 
         {/* Decision Action Buttons */}
         {!actionDone ? (
-          <div className="space-y-3 pt-2">
+          <div className="space-y-2 pt-1">
             <button
               onClick={() => handleDecision("DENY")}
               disabled={processingAction !== null}
-              className="tactile-btn w-full py-4 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all disabled:opacity-50"
+              className="tactile-btn w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all disabled:opacity-50"
             >
               {processingAction === "DENY" ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <ShieldCheck className="w-5 h-5 text-white" />
+                  <ShieldCheck className="w-4 h-4 text-white" />
                   <span>Deny & Protect Vault 🛡️</span>
                 </>
               )}
             </button>
-            <p className="text-[11px] text-center text-slate-500">
+            <p className="text-[10px] text-center text-slate-500">
               Blocks early withdrawal, increments protected savings, and permanently burns this link.
             </p>
 
             <button
               onClick={() => handleDecision("APPROVE")}
               disabled={processingAction !== null}
-              className="tactile-btn w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-rose-50 text-rose-700 hover:text-rose-800 border-2 border-slate-300 hover:border-rose-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-4 mb-2"
+              className="tactile-btn w-full py-2.5 px-4 rounded-xl bg-white hover:bg-rose-50 text-rose-700 hover:text-rose-800 border border-slate-300 hover:border-rose-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 mt-1"
             >
               {processingAction === "APPROVE" ? (
-                <div className="w-4 h-4 border-2 border-rose-600/30 border-t-rose-600 rounded-full animate-spin" />
+                <div className="w-3.5 h-3.5 border-2 border-rose-600/30 border-t-rose-600 rounded-full animate-spin" />
               ) : (
                 <>
-                  <Unlock className="w-4 h-4" />
-                  <span>Approve Early Release (Give In)</span>
+                  <Unlock className="w-3.5 h-3.5" />
+                  <span>Approve Early Release</span>
                 </>
               )}
             </button>
           </div>
         ) : (
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
             <div className="text-xs text-slate-700 font-medium">
-              Decision executed. This single-use security token has been burned.
+              Decision executed. This single-use security link has been permanently burned.
             </div>
           </div>
         )}
       </div>
 
-      <div className="text-center mt-6">
-        <p className="text-[11px] text-slate-500 font-mono">
-          Tijori Security Clearance Protocol &bull; Single-Use Token Invalidation Enabled
+      <div className="text-center mt-3">
+        <p className="text-[11px] text-slate-400">
+          Protected by Tijori Keyholder Verification &bull; Single-Use Link
         </p>
       </div>
     </div>

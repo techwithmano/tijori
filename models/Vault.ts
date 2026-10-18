@@ -3,8 +3,8 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface ITransaction {
   _id?: string;
   amount: number;
-  type: "SCHEDULED_PULL" | "SIMULATED_PULL" | "STRIPE_DEPOSIT" | "WITHDRAWAL";
-  status: "SUCCESS" | "FAILED";
+  type: "SCHEDULED_PULL" | "SIMULATED_PULL" | "STRIPE_DEPOSIT" | "WITHDRAWAL" | "BREAK_REQUEST";
+  status: "SUCCESS" | "FAILED" | "PENDING";
   note?: string;
   createdAt: Date;
 }
@@ -42,10 +42,10 @@ const TransactionSchema = new Schema<ITransaction>(
     amount: { type: Number, required: true },
     type: {
       type: String,
-      enum: ["SCHEDULED_PULL", "SIMULATED_PULL", "STRIPE_DEPOSIT", "WITHDRAWAL"],
+      enum: ["SCHEDULED_PULL", "SIMULATED_PULL", "STRIPE_DEPOSIT", "WITHDRAWAL", "BREAK_REQUEST"],
       required: true,
     },
-    status: { type: String, enum: ["SUCCESS", "FAILED"], default: "SUCCESS" },
+    status: { type: String, enum: ["SUCCESS", "FAILED", "PENDING"], default: "SUCCESS" },
     note: { type: String },
     createdAt: { type: Date, default: Date.now },
   },

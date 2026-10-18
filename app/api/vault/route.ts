@@ -55,11 +55,11 @@ export async function GET(req: NextRequest) {
             note: "Allowance Tuck (Day-25 Auto-Save) 🚀",
           },
           {
-            amount: 10,
+            amount: 20,
             type: "STRIPE_DEPOSIT",
             status: "SUCCESS",
             createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
-            note: "KNET Quick Boost (+10 KWD)",
+            note: "KNET / Card Deposit (+20 KWD)",
           },
           {
             amount: 25,
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
             note: "Weekly Discipline Tuck ⚡",
           },
           {
-            amount: 65,
+            amount: 55,
             type: "SIMULATED_PULL",
             status: "SUCCESS",
             createdAt: new Date(),

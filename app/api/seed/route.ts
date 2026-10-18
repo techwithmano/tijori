@@ -45,10 +45,10 @@ export async function POST(req: NextRequest) {
         createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
       },
       {
-        amount: 10,
+        amount: 20,
         type: "STRIPE_DEPOSIT" as const,
         status: "SUCCESS" as const,
-        note: "KNET Quick Boost (+10 KWD)",
+        note: "KNET / Card Deposit (+20 KWD)",
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       },
       {
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
         createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       },
       {
-        amount: 65,
+        amount: 55,
         type: "SIMULATED_PULL" as const,
         status: "SUCCESS" as const,
         note: "Mid-Month Shielded Micro-Pull 🛡️",

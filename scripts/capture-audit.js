@@ -137,8 +137,9 @@ async function runAudit() {
     {
       name: "03_keyholder_clearance_desktop.png",
       url: `${BASE_URL}/unlock/${token}`,
-      viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
-      description: "Keyholder Decision Screen (1440x900) - 256-Bit Channel, Stated Excuse, Gemini AI Reality Check Roast, Deny & Approve CTAs",
+      viewport: { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
+      device: "Mobile (iPhone 15 Pro 390x844)",
+      description: "Keyholder Decision Screen on iPhone 15 Pro (390x844) - WhatsApp Flow, Stated Excuse, Gemini AI Roast, Deny & Approve CTAs",
       action: async (page) => {
         let activeToken = token;
         try {
@@ -169,7 +170,7 @@ async function runAudit() {
       description: "Creation Wizard Desktop (1440x900) - Clean Inputs, Quick-Pick Goal Chips & Interactive AI Allowance Pacing Preview",
       action: async (page) => {
         await page.waitForSelector("form", { timeout: 15000 }).catch(() => {});
-        await new Promise((r) => setTimeout(r, 1500));
+        await new Promise((r) => setTimeout(r, 1200));
       },
     },
     {
@@ -185,7 +186,7 @@ async function runAudit() {
   ];
 
   for (const item of targets) {
-    console.log(`\nCapturing Desktop: ${item.name} (${item.viewport.width}x${item.viewport.height})...`);
+    console.log(`\nCapturing: ${item.name} (${item.viewport.width}x${item.viewport.height})...`);
     const page = await browser.newPage();
     try {
       await page.setViewport(item.viewport);
@@ -206,7 +207,7 @@ async function runAudit() {
         name: item.name,
         route: item.url.replace(BASE_URL, "") || "/",
         viewport: `${item.viewport.width}x${item.viewport.height}`,
-        device: "Desktop (1440x900)",
+        device: item.device || "Desktop (1440x900)",
         size: `${sizeKB} KB`,
         description: item.description,
       });

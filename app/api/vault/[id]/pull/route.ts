@@ -36,10 +36,10 @@ export async function POST(
     // Prepend new transaction so latest is first
     vault.transactions.unshift({
       amount: pullAmount,
-      type: "SIMULATED_PULL",
+      type: pullAmount === 20 ? "STRIPE_DEPOSIT" : "SIMULATED_PULL",
       status: "SUCCESS",
       createdAt: new Date(),
-      note: "Judges Demo Micro-Pull (+25 KWD) ⚡",
+      note: pullAmount === 20 ? "KNET / Card Deposit (+20 KWD) 💳" : `Simulated Allowance Tuck (+${pullAmount} KWD) ⚡`,
     });
 
     await vault.save();

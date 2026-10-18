@@ -129,7 +129,7 @@ export default function CreateVaultPage() {
   };
 
   const GOAL_PRESETS = [
-    { label: "🇯🇵 Japan Summer Trip", title: "Japan Summer Trip 🇯🇵", target: 600, pull: 30, cadence: "weekly" as const },
+    { label: "🇯🇵 Japan Summer Trip", title: "Japan Summer Trip 🇯🇵", target: 500, pull: 25, cadence: "weekly" as const },
     { label: "💻 M3 Max Studio", title: "M3 Max Studio 💻", target: 850, pull: 45, cadence: "weekly" as const },
     { label: "👟 Sneaker Grail Vault", title: "Sneaker Grail Vault 👟", target: 120, pull: 15, cadence: "weekly" as const },
     { label: "🏎️ Car Downpayment", title: "Car Downpayment 🏎️", target: 1200, pull: 75, cadence: "weekly" as const },
@@ -465,15 +465,15 @@ export default function CreateVaultPage() {
           );
         })()}
 
-        {/* Step 2: Keyholder Protocol Setup */}
+        {/* Step 2: Keyholder Setup */}
         <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white shadow-card space-y-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-3">
             <Shield className="w-4 h-4 text-emerald-600" />
-            <span>2. Designate Keyholder Guardian (Peer Friction)</span>
+            <span>2. Designate Keyholder Guardian (Social Accountability)</span>
           </div>
 
           <p className="text-xs text-slate-600 leading-relaxed">
-            A trusted friend, sibling, or parent who holds the digital key to approve or deny early withdrawals.
+            A trusted friend, sibling, or parent who holds the authority to approve or deny early withdrawals.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -537,7 +537,7 @@ export default function CreateVaultPage() {
           ) : (
             <>
               <Lock className="w-4 h-4 stroke-[2.5]" />
-              <span>Lock Vault & Activate Protocol</span>
+              <span>Lock Vault & Activate Auto-Save</span>
             </>
           )}
         </button>

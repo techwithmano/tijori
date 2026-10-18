@@ -48,16 +48,13 @@ export async function POST(
 
       // Generate Gemini reality check roast if not already supplied
       if (!realityCheck) {
+        const keyholderFirstName = vault.keyholder?.name ? vault.keyholder.name.split(" ")[0] : "Fahad";
+        const cleanGoal = vault.title.replace(/🇯🇵/g, "").trim() || "Japan Summer Trip";
+        const applicantName = "Abdulrahman";
+
         try {
           if (process.env.GEMINI_API_KEY) {
-            const prompt = `You are the sharp, witty best friend of a young adult in Kuwait attempting to break their savings vault early:
-- Goal: "${vault.title}"
-- Current Progress: ${vault.currentBalance} KWD saved out of ${vault.targetAmount} KWD target.
-- User's Stated Excuse: "${finalReason}"
-- Designated Keyholder: "${vault.keyholder.name}"
-
-TASK:
-Write a sharp, brutally honest, culturally grounded 2-sentence humorous reality check calling out their impulse spending (e.g. daily specialty iced lattes, late-night Talabat/Craving orders, random sneaker drops, chalet weekend splurges). Call them out directly.`;
+            const prompt = `You are writing an alert to ${keyholderFirstName}, whose friend ${applicantName} is trying to break his savings vault for "${cleanGoal}" (current balance: ${vault.currentBalance} KWD). ${applicantName}'s excuse: "${finalReason}". Tell ${keyholderFirstName} why ${applicantName}'s excuse is ridiculous and tell ${keyholderFirstName} to do his job as Keyholder and deny the request. Keep it strictly to 2 short, punchy sentences in Gulf-flavored English with touches of Arabic/Arabizi (e.g., "Wallah", "ya rayal", "habibi"). Use "KWD", never "KD".`;
 
             const aiRes = await ai.models.generateContent({
               model: "gemini-3.8-flash",
@@ -70,22 +67,28 @@ Write a sharp, brutally honest, culturally grounded 2-sentence humorous reality 
         }
 
         if (!realityCheck) {
-          realityCheck = `Breaking your ${vault.title} savings for "${finalReason}" is peak lack of discipline. ${vault.keyholder.name} was chosen as your Keyholder specifically to block moments of weakness like this.`;
+          const fallbacks = [
+            `Wallah ${applicantName} wants to blow ${vault.currentBalance} KWD on sneakers at 360 Mall instead of going to ${cleanGoal || "Tokyo"}? Do your job as his brother, ${keyholderFirstName}—hit Deny and save him from himself.`,
+            `Ya rayal, ${applicantName} really thinks "${finalReason}" justifies raiding his ${cleanGoal} savings right before salary day? Lock it down, ${keyholderFirstName}, don't let him slip into regret.`,
+            `Habibi ${keyholderFirstName}, ${applicantName}'s excuse of "${finalReason}" is pure impulse talking over his ${vault.currentBalance} KWD fund. Hit Deny right now and protect his discipline.`,
+          ];
+          realityCheck = fallbacks[Math.floor(Math.random() * fallbacks.length)];
         }
       }
 
       vault.realityCheck = realityCheck;
 
       whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
-        `Salam! I am trying to break my Tijori savings vault for ${vault.title}. My reason: "${finalReason}". Approve or block me here: ${unlockUrl}`
+        `Salam ${vault.keyholder.name.split(" ")[0]}! I am trying to break my Tijori savings vault for ${vault.title}. My reason: "${finalReason}". Approve or block me here: ${unlockUrl}`
       )}`;
 
+      const guardianFirstName = vault.keyholder?.name ? vault.keyholder.name.split(" ")[0] : "Fahad";
       vault.transactions.unshift({
         amount: 0,
-        type: "WITHDRAWAL",
-        status: "SUCCESS",
+        type: "BREAK_REQUEST",
+        status: "PENDING",
         createdAt: new Date(),
-        note: `Early break requested: "${finalReason}"`,
+        note: `🚨 Break Requested (Pending ${guardianFirstName}'s Approval)`,
       });
     } else if (action === "APPROVE") {
       vault.status = "UNLOCKED";

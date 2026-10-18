@@ -5,25 +5,15 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      excuse = "I just really need this right now",
+      excuse = "Flash sneaker drop at 360 Mall and it ends tonight",
       goal = "Japan Summer Trip 🇯🇵",
       currentBalance = 125,
       targetAmount = 500,
       keyholderName = "Fahad",
+      applicantName = "Abdulrahman",
     } = body;
 
-    const prompt = `You are "Tijori" (تِجوري)—a witty, ruthless, yet caring GCC financial intervention AI designed to cure impulse spending among young adults (18-28) in Kuwait, Saudi Arabia, and the Gulf.
-
-The user is attempting to prematurely break open their locked savings vault!
-- Savings Goal: "${goal}"
-- Current Progress: ${currentBalance} KWD saved out of ${targetAmount} KWD target.
-- User's Stated Excuse: "${excuse}"
-- Designated Keyholder Friend: "${keyholderName}"
-
-TASK:
-Write a sharp, brutally honest, culturally hilarious reality check in EXACTLY TWO SENTENCES calling out their excuse. Reference GCC youth habits (e.g., 4 KWD daily specialty V60/Spanish lattes, luxury perfumes from Avenues/Al-Hamra, chalet weekend impulsive splits, designer drip, car valets). Remind them that ${keyholderName} will see right through this weak impulse. 
-
-Respond ONLY with the two sentences. No preamble, no quotes, no markdown headers.`;
+    const prompt = `You are writing an alert to ${keyholderName}, whose friend ${applicantName} is trying to break his savings vault for "${goal}" (current balance: ${currentBalance} KWD). ${applicantName}'s excuse: "${excuse}". Tell ${keyholderName} why ${applicantName}'s excuse is ridiculous and tell ${keyholderName} to do his job as Keyholder and deny the request. Keep it strictly to 2 short, punchy sentences in Gulf-flavored English with touches of Arabic/Arabizi (e.g., "Wallah", "ya rayal", "habibi"). Use "KWD", never "KD".`;
 
     let realityCheck = "";
 
@@ -40,12 +30,13 @@ Respond ONLY with the two sentences. No preamble, no quotes, no markdown headers
       console.warn("Gemini API call failed, using intelligent GCC fallback:", genError?.message);
     }
 
-    // High quality intelligent fallback if API key or rate limit triggers
+    // High quality culturally authentic fallback if API key or rate limit triggers
     if (!realityCheck) {
+      const cleanGoal = goal.replace(/🇯🇵/g, "").trim();
       const fallbacks = [
-        `Breaking your ${goal} vault for "${excuse}" is peak lack of discipline—another 4 KWD iced matcha won't fix your lifestyle. ${keyholderName} will laugh you out of the diwaniya before ever clicking approve on this.`,
-        `You've disciplined yourself to save ${currentBalance} KWD, and now you want to blow it on "${excuse}"? Good luck convincing ${keyholderName} that this impulse purchase is more important than your future.`,
-        `Let's be completely real: "${excuse}" is just your dopamine craving looking for an exit before salary day. ${keyholderName} was chosen as your Keyholder specifically to protect you from moments of weakness like this.`,
+        `Wallah ${applicantName} wants to blow ${currentBalance} KWD on sneakers at 360 Mall instead of going to ${cleanGoal || "Tokyo"}? Do your job as his brother, ${keyholderName}—hit Deny and save him from himself.`,
+        `Ya rayal, ${applicantName} really thinks "${excuse}" justifies raiding his ${cleanGoal} savings right before salary day? Lock it down, ${keyholderName}, don't let him slip into regret.`,
+        `Habibi ${keyholderName}, ${applicantName}'s excuse of "${excuse}" is pure impulse talking over his ${currentBalance} KWD fund. Hit Deny right now and protect his discipline.`,
       ];
       realityCheck = fallbacks[Math.floor(Math.random() * fallbacks.length)];
     }
@@ -61,7 +52,7 @@ Respond ONLY with the two sentences. No preamble, no quotes, no markdown headers
         success: false,
         error: error.message || "Failed to generate reality check",
         realityCheck:
-          "Impulse trap detected. Your Keyholder has been notified to protect your hard-earned savings from another avoidable expense.",
+          "Wallah Abdulrahman wants to blow 125 KWD on impulse spending instead of his goal? Do your job as his Keyholder, Fahad—hit Deny and save him from himself.",
       },
       { status: 500 }
     );

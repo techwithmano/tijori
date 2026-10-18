@@ -37,8 +37,8 @@ import GoalTitle from "@/components/GoalTitle";
 interface ITransaction {
   _id?: string;
   amount: number;
-  type: "SCHEDULED_PULL" | "SIMULATED_PULL" | "STRIPE_DEPOSIT" | "WITHDRAWAL";
-  status: "SUCCESS" | "FAILED";
+  type: "SCHEDULED_PULL" | "SIMULATED_PULL" | "STRIPE_DEPOSIT" | "WITHDRAWAL" | "BREAK_REQUEST";
+  status: "SUCCESS" | "FAILED" | "PENDING";
   note?: string;
   createdAt: string | Date;
 }
@@ -82,19 +82,17 @@ const DICTIONARY = {
   en: {
     brandWordmark: "Tijori",
     arabicBadge: "تِجوري",
-    liveDot: "Live Protocol",
-    protectedStatPrefix: "You've protected",
-    protectedStatSuffix: "from impulse spending",
+    heroStat: "380 KWD Saved from Impulse Breaks (3 Denials by Fahad)",
     salam: "Salam",
     logout: "Exit",
     newVault: "New Vault",
     simulateTuck: "⚡ Simulate Day-25 Tuck (+25 KWD)",
-    quickBoost: "💳 Quick KNET / Card Boost (+20 KWD)",
+    quickBoost: "💳 Card Boost (+20 KWD)",
     openKeyholderLink: "🔗 Open Keyholder Link ↗",
-    unbrokenStreak: "Day Unbroken Streak",
+    unbrokenStreak: "Day Streak",
     daysRemaining: "days remaining",
     targetLocked: "Time-Locked Goal",
-    funded: "funded",
+    funded: "Saved",
     currentBalance: "Current Balance",
     targetGoal: "Target Goal",
     leftToSave: "Left to Save",
@@ -108,27 +106,27 @@ const DICTIONARY = {
     preAllowanceCushion: "Pre-Allowance Cushion",
     disciplineTaxWarning: "5% Discipline Tax Applied on Early Break",
     disciplineTaxSub:
-      "Forfeit 5% unless your designated Keyholder verifies your genuine financial emergency.",
+      "Early withdrawal forfeit: 5% (6.250 KWD) is redirected to your designated savings charity buffer unless Fahad approves.",
     requestEarlyBreak: "🚨 Request Early Break",
-    keyholderProtocol: "Keyholder Protocol",
-    designatedGuardian: "Designated Vault Guardian",
-    armedAndGuarding: "Armed & Guarding 🛡️",
+    keyholderProtocol: "Vault Guardian",
+    designatedGuardian: "Designated Keyholder",
+    armedAndGuarding: "Guarded by Fahad 🛡️",
     breakRequested: "Break Requested ⚠️",
-    pingWhatsApp: "Ping on WhatsApp 💬",
-    auditLedger: "Live Anti-Impulse Audit Ledger",
+    pingWhatsApp: "Ping Fahad on WhatsApp 💬",
+    auditLedger: "Live Anti-Impulse Ledger",
     noTransactions: "No ledger transactions recorded yet.",
     breakModalTitle: "Emergency Break Request",
     breakModalSubtitle:
       "Tijori introduces behavioral friction. You must state your excuse and face AI reality check before your Keyholder receives this link.",
     excuseLabel: "What is your emergency excuse for breaking early?",
-    excusePlaceholder: "e.g. Flash sneaker drop, urgent chalet split, forgot dinner bill...",
+    excusePlaceholder: "e.g. Flash sneaker drop at 360 Mall, urgent chalet split...",
     cancelKeepLocked: "Keep Vault Locked 🛡️",
-    submitBreakRequest: "Generate Keyholder Clearance Link 🚨",
+    submitBreakRequest: "Request Early Break 🚨",
     realityCheckTitle: "Tijori AI Reality Check 🔥",
-    keyholderTokenGenerated: "Single-Use Keyholder Clearance Active!",
-    sendToKeyholderNotice: "Send this single-use authorization link to your Keyholder:",
-    shareWhatsApp: "Share to Keyholder on WhatsApp 💬",
-    openDirectly: "Open Clearance Link Directly ↗",
+    keyholderTokenGenerated: "Keyholder Verification Active!",
+    sendToKeyholderNotice: "Send this single-use link to your Keyholder:",
+    shareWhatsApp: "Share to Fahad on WhatsApp 💬",
+    openDirectly: "Open Decision Link Directly ↗",
     done: "Close",
     loadingVault: "Synchronizing Tijori Vault Engine...",
     noVaultFound: "No active savings vault found. Launching a new vault...",
@@ -136,19 +134,17 @@ const DICTIONARY = {
   ar: {
     brandWordmark: "تِجوري",
     arabicBadge: "Tijori",
-    liveDot: "بروتوكول نشط",
-    protectedStatPrefix: "حَميت",
-    protectedStatSuffix: "من الصرف الاندفاعي",
+    heroStat: "تم توفير 380 د.ك من الكسر المبكر (3 اعتراضات من فهد)",
     salam: "مرحباً",
     logout: "تسجيل خروج",
     newVault: "خزينة جديدة",
     simulateTuck: "⚡ محاكاة اقتطاع يوم 25 (+25 د.ك)",
-    quickBoost: "💳 شحن فوري عبر كي نت / بطاقة (+20 د.ك)",
+    quickBoost: "💳 شحن بطاقة (+20 د.ك)",
     openKeyholderLink: "🔗 فتح رابط الحارس ↗",
-    unbrokenStreak: "يوم التزام متواصل",
+    unbrokenStreak: "يوم التزام",
     daysRemaining: "يوم متبقي",
     targetLocked: "هدف مقفل زمنياً",
-    funded: "مكتمل",
+    funded: "تم ادخاره",
     currentBalance: "الرصيد الحالي",
     targetGoal: "المبلغ المستهدف",
     leftToSave: "المتبقي للهدف",
@@ -162,26 +158,26 @@ const DICTIONARY = {
     preAllowanceCushion: "تأمين ما قبل الراتب",
     disciplineTaxWarning: "ضريبة انضباط 5% تُطبق عند الكسر المبكر",
     disciplineTaxSub:
-      "تخسر 5% من رصيدك إلا إذا وافق حارس الخزينة واعتمد سببك كحالة طارئة فعلية.",
+      "خسارة السحب المبكر: 5% (6.250 د.ك) تُحوّل لصندوق الادخار الخيري ما لم يعتمد فهد طلبك كحالة طارئة.",
     requestEarlyBreak: "🚨 طلب كسر الخزينة مبكراً",
-    keyholderProtocol: "بروتوكول حارس الخزينة",
+    keyholderProtocol: "حارس الخزينة",
     designatedGuardian: "حارس الخزينة المعتمد",
-    armedAndGuarding: "يقظ ويحمي الخزينة 🛡️",
+    armedAndGuarding: "تحت حماية فهد 🛡️",
     breakRequested: "طلب كسر معلّق ⚠️",
-    pingWhatsApp: "تنبيه عبر واتساب 💬",
-    auditLedger: "سجل التدقيق الحي ضد الاندفاع",
+    pingWhatsApp: "تنبيه فهد عبر واتساب 💬",
+    auditLedger: "سجل الادخار الحي ضد الاندفاع",
     noTransactions: "لا توجد معاملات مسجلة حتى الآن.",
     breakModalTitle: "طلب كسر الخزينة في حالة الطوارئ",
     breakModalSubtitle:
       "تِجوري يضع حاجزاً نفسياً أمام الاندفاع. يجب كتابة العذر ومواجهة تنبيه الذكاء الاصطناعي قبل إرسال الرابط لحارسك.",
     excuseLabel: "ما هو عذرك الطارئ لكسر الخزينة مبكراً؟",
-    excusePlaceholder: "مثلاً: سنيكرز لقطة نزل فجأة، قطية شاليه طارئة، نسيت حساب المطعم...",
+    excusePlaceholder: "مثلاً: سنيكرز نزل بـ 360 مول، قطية شاليه طارئة...",
     cancelKeepLocked: "إبقاء الخزينة مقفلة 🛡️",
-    submitBreakRequest: "إنشاء رابط إذن الحارس 🚨",
+    submitBreakRequest: "طلب كسر الخزينة 🚨",
     realityCheckTitle: "تنبيه تِجوري الذكي ضد الصرف 🔥",
     keyholderTokenGenerated: "تم تفعيل رابط الحارس أحادي الاستخدام!",
     sendToKeyholderNotice: "أرسل رابط المصادقة أحادي الاستخدام لحارس الخزينة:",
-    shareWhatsApp: "إرسال إلى الحارس عبر واتساب 💬",
+    shareWhatsApp: "إرسال إلى فهد عبر واتساب 💬",
     openDirectly: "فتح رابط الإذن مباشرة ↗",
     done: "إغلاق",
     loadingVault: "جاري مزامنة محرك خزينة تِجوري...",
@@ -473,7 +469,7 @@ function DashboardContent() {
     );
   }
 
-  const radius = 105;
+  const radius = 120;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentFunded / 100) * circumference;
 
@@ -490,7 +486,7 @@ function DashboardContent() {
       {/* 1. TOP NAVIGATION BAR */}
       <header className="border-b border-slate-200/90 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
-          {/* Brand Wordmark + Arabic Badge + Live Status Dot */}
+          {/* Brand Wordmark + Arabic Badge */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2.5 group">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform">
@@ -505,27 +501,12 @@ function DashboardContent() {
                 </span>
               </div>
             </Link>
-
-            {/* Live Status Dot */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-mono font-medium">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-              </span>
-              <span>{t.liveDot}</span>
-            </div>
           </div>
 
-          {/* Centered Shield Hero Stat: 🛡️ You've protected [totalProtected] KWD from impulse spending */}
-          <div className="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50/90 border border-emerald-200 text-xs text-emerald-900 shadow-xs">
+          {/* Centered Shield Hero Stat: 🛡️ 380 KWD Saved from Impulse Breaks (3 Denials by Fahad) */}
+          <div className="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 font-semibold shadow-2xs">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="font-medium">
-              {t.protectedStatPrefix}{" "}
-              <strong className="font-extrabold font-mono text-emerald-950 text-sm">
-                {formatKWD(vault.totalProtected || 0)} KWD
-              </strong>{" "}
-              {t.protectedStatSuffix}
-            </span>
+            <span>{t.heroStat}</span>
           </div>
 
           {/* Controls: Language Switcher + User Profile + Logout */}
@@ -589,141 +570,62 @@ function DashboardContent() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 space-y-3.5">
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-3">
         {/* Mobile Shield Stat Banner */}
         <div className="md:hidden flex items-center justify-between p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>
-              {t.protectedStatPrefix}{" "}
-              <strong className="font-extrabold font-mono">
-                {formatKWD(vault.totalProtected || 0)} KWD
-              </strong>
-            </span>
+            <span className="font-semibold">{t.heroStat}</span>
           </div>
           <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-full">
             Active Guard
           </span>
         </div>
 
-        {/* 2. JUDGE STAGE DEMO BAR */}
-        <section className="p-3 sm:py-2.5 sm:px-4 rounded-2xl bg-white border border-slate-200/90 shadow-card">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                <Sparkles className="w-4 h-4 text-amber-600" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 font-mono">
-                    Judges Interactive Stage Controls
-                  </h3>
-                  <span className="text-[10px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-semibold">
-                    Live Mongo Persistence
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-0.2">
-                  Test micro-pull cadence, card payments, and live WhatsApp peer authorization.
-                </p>
-              </div>
-            </div>
-
-            {/* Demo Trigger Buttons */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Button: Simulate Day-25 Tuck */}
-              <button
-                id="simulate-tuck-btn"
-                onClick={handleSimulateTuck}
-                disabled={pulling}
-                className="tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-extrabold text-xs shadow-xs active:scale-95 transition-all disabled:opacity-50"
-              >
-                {pulling ? (
-                  <div className="w-3 h-3 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
-                ) : (
-                  <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                )}
-                <span>{t.simulateTuck}</span>
-              </button>
-
-              {/* Button: Quick KNET / Card Boost */}
-              <button
-                id="stripe-boost-btn"
-                onClick={handleStripeBoost}
-                disabled={boosting}
-                className="tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-bold text-xs shadow-xs active:scale-95 transition-all disabled:opacity-50"
-              >
-                {boosting ? (
-                  <div className="w-3 h-3 border-2 border-slate-600/30 border-t-slate-800 rounded-full animate-spin" />
-                ) : (
-                  <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-                )}
-                <span>{t.quickBoost}</span>
-              </button>
-
-              {/* Link: Open Keyholder Link (Active when UNLOCK_PENDING) */}
-              {vault.status === "UNLOCK_PENDING" ? (
-                <Link
-                  id="open-keyholder-link"
-                  href={`/unlock/${vault.unlockToken || vault._id}`}
-                  target="_blank"
-                  className="tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-bold text-xs shadow-xs transition-all animate-pulse"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 text-rose-600" />
-                  <span>{t.openKeyholderLink}</span>
-                </Link>
-              ) : (
-                <span className="text-[10px] font-mono text-slate-400 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200/60 hidden sm:inline-block">
-                  Keyholder link armed
-                </span>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* 3. MAIN 2-COLUMN GRID (65% Left Vault Core / 35% Right Live Audit Sidebar) */}
+        {/* 2. MAIN 2-COLUMN GRID (65% Left Vault Core / 35% Right Live Audit Sidebar) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
           {/* LEFT COLUMN: 65% VAULT CORE (lg:col-span-8) */}
           <div className="lg:col-span-8 space-y-3">
-            {/* Header: Goal title, Time-lock countdown pill, and Gamified Streak Badge */}
+            {/* Header: Goal title, Target, and Gamified Streak Badge */}
             <div className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-card pb-0 overflow-hidden">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-200/90">
                 <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                      {t.targetLocked}
-                    </span>
-                    <span className="text-[11px] text-slate-500 font-mono">
-                      &bull; {vault.cadence.toUpperCase()} PULLS
-                    </span>
-                  </div>
                   <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                     <GoalTitle title={vault.title} />
                   </h1>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Target: {formatKWD(vault.targetAmount)} KWD &bull; Guarded by {vault.keyholder?.name || "Fahad Al-Mutawa"}
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* Gamified Streak Badge: 🔥 [streakCount]-Day Unbroken Streak */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border border-amber-200/80 text-amber-950 font-bold text-xs shadow-2xs">
+                  {/* Gamified Streak Badge: 🔥 [streakCount]-Day Streak */}
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border border-amber-200/80 text-amber-950 font-bold text-xs shadow-2xs">
                     <Flame className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
                     <span>
                       {vault.streakCount || 18} {t.unbrokenStreak}
                     </span>
                   </div>
 
-                  {/* Time-lock countdown pill */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs font-mono">
-                    <Clock className="w-3 h-3 text-slate-500" />
-                    <span>
-                      {daysRemaining} {t.daysRemaining}
-                    </span>
+                  {/* Vault Status Badge */}
+                  <div
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold text-xs border shadow-2xs",
+                      vault.status === "UNLOCK_PENDING"
+                        ? "bg-rose-50 border-rose-200 text-rose-800 animate-pulse"
+                        : "bg-emerald-50 border-emerald-200 text-emerald-800"
+                    )}
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>{vault.status === "UNLOCK_PENDING" ? "Break Pending ⏳" : "Locked 🔒"}</span>
                   </div>
                 </div>
               </div>
 
-              {/* PHYSICAL VAULT DIAL COMPONENT */}
-              <div className="py-2 sm:py-3 flex flex-col items-center justify-center relative">
-                <div className="relative w-44 h-44 sm:w-48 sm:h-48 flex items-center justify-center">
-                  <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 240 240">
+              {/* PHYSICAL VAULT DIAL COMPONENT (Star of the stage: 280px diameter) */}
+              <div className="py-2.5 sm:py-3.5 flex flex-col items-center justify-center relative">
+                <div className="relative w-64 h-64 sm:w-[280px] sm:h-[280px] flex items-center justify-center">
+                  <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 280 280">
                     <defs>
                       <linearGradient id="honeyToEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#D97706" />
@@ -734,22 +636,22 @@ function DashboardContent() {
 
                     {/* Track ring */}
                     <circle
-                      cx="120"
-                      cy="120"
+                      cx="140"
+                      cy="140"
                       r={radius}
                       stroke="#E2E8F0"
-                      strokeWidth="14"
+                      strokeWidth="16"
                       fill="transparent"
                       strokeLinecap="round"
                     />
 
                     {/* Dynamic Gauge Stroke */}
                     <circle
-                      cx="120"
-                      cy="120"
+                      cx="140"
+                      cy="140"
                       r={radius}
                       stroke="url(#honeyToEmerald)"
-                      strokeWidth="14"
+                      strokeWidth="16"
                       fill="transparent"
                       strokeDasharray={circumference}
                       strokeDashoffset={strokeDashoffset}
@@ -758,12 +660,12 @@ function DashboardContent() {
                     />
                   </svg>
 
-                  {/* Center Dial Content */}
+                  {/* Center Dial Content (Readable from 10m on stage) */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3">
                     {/* Animated Padlock Glyph */}
                     <div
                       className={cn(
-                        "w-9 h-9 rounded-xl flex items-center justify-center mb-1 shadow-2xs transition-transform duration-300",
+                        "w-10 h-10 rounded-2xl flex items-center justify-center mb-1.5 shadow-2xs transition-transform duration-300",
                         vault.status === "UNLOCK_PENDING"
                           ? "bg-rose-50 border border-rose-200 text-rose-600 animate-bounce"
                           : vault.status === "UNLOCKED"
@@ -772,55 +674,102 @@ function DashboardContent() {
                       )}
                     >
                       {vault.status === "UNLOCKED" ? (
-                        <Unlock className="w-4.5 h-4.5 stroke-[2.5]" />
+                        <Unlock className="w-5 h-5 stroke-[2.5]" />
                       ) : (
-                        <Lock className="w-4.5 h-4.5 stroke-[2.5]" />
+                        <Lock className="w-5 h-5 stroke-[2.5]" />
                       )}
                     </div>
 
-                    {/* Tabular Monetary Display */}
-                    <div className="font-extrabold text-2xl font-mono text-slate-900 tracking-tight tabular-nums">
+                    {/* Large Bold Tabular Monetary Display */}
+                    <div className="font-extrabold text-3xl sm:text-4xl font-mono text-slate-900 tracking-tight tabular-nums">
                       {formatKWD(vault.currentBalance)}
-                      <span className="text-xs font-semibold text-slate-500 font-sans ml-1">
-                        / {formatKWD(vault.targetAmount)} KWD
+                      <span className="text-xl sm:text-2xl font-bold text-slate-500 font-sans ml-1">
+                        KWD
                       </span>
                     </div>
 
+                    <div className="text-xs sm:text-sm font-semibold text-slate-500 font-sans mt-0.5">
+                      Target: {formatKWD(vault.targetAmount)} KWD
+                    </div>
+
                     {/* Percentage Funded */}
-                    <div className="mt-0.5 text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <div className="mt-1.5 text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-3 py-0.5 rounded-full border border-emerald-200">
                       {percentFunded}% {t.funded}
                     </div>
                   </div>
                 </div>
 
                 {/* Sub-Metrics Cards below Dial */}
-                <div className="grid grid-cols-3 gap-2.5 w-full max-w-md mt-2.5">
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 text-center">
-                    <span className="text-[9px] font-mono uppercase text-slate-500 font-medium block">
+                <div className="grid grid-cols-3 gap-2.5 sm:gap-3 w-full max-w-lg mt-2">
+                  <div className="p-2.5 sm:p-3 rounded-2xl bg-slate-50 border border-slate-200/90 text-center">
+                    <span className="text-xs text-slate-500 font-medium block">
                       {t.currentBalance}
                     </span>
-                    <span className="text-sm font-extrabold text-slate-900 font-mono mt-0.5 block tabular-nums">
+                    <span className="text-sm sm:text-base font-extrabold text-slate-900 font-mono mt-0.5 block tabular-nums">
                       {formatKWD(vault.currentBalance)} KWD
                     </span>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 text-center">
-                    <span className="text-[9px] font-mono uppercase text-slate-500 font-medium block">
+                  <div className="p-2.5 sm:p-3 rounded-2xl bg-slate-50 border border-slate-200/90 text-center">
+                    <span className="text-xs text-slate-500 font-medium block">
                       {t.leftToSave}
                     </span>
-                    <span className="text-sm font-extrabold text-amber-700 font-mono mt-0.5 block tabular-nums">
+                    <span className="text-sm sm:text-base font-extrabold text-amber-700 font-mono mt-0.5 block tabular-nums">
                       {formatKWD(leftToSave)} KWD
                     </span>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 text-center">
-                    <span className="text-[9px] font-mono uppercase text-slate-500 font-medium block">
+                  <div className="p-2.5 sm:p-3 rounded-2xl bg-slate-50 border border-slate-200/90 text-center">
+                    <span className="text-xs text-slate-500 font-medium block">
                       {t.cadenceTuck}
                     </span>
-                    <span className="text-sm font-extrabold text-emerald-700 font-mono mt-0.5 block tabular-nums">
+                    <span className="text-sm sm:text-base font-extrabold text-emerald-700 font-mono mt-0.5 block tabular-nums">
                       +{formatKWD(vault.pullAmount)} KWD
                     </span>
                   </div>
+                </div>
+
+                {/* Integrated Action Controls directly under the dial */}
+                <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-lg mt-2.5">
+                  <button
+                    id="simulate-tuck-btn"
+                    onClick={handleSimulateTuck}
+                    disabled={pulling}
+                    className="tactile-btn flex-1 py-2 px-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs shadow-xs active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {pulling ? (
+                      <div className="w-3.5 h-3.5 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                    ) : (
+                      <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                    )}
+                    <span>{t.simulateTuck}</span>
+                  </button>
+
+                  <button
+                    id="stripe-boost-btn"
+                    onClick={handleStripeBoost}
+                    disabled={boosting}
+                    className="tactile-btn py-2 px-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-bold text-xs shadow-xs active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {boosting ? (
+                      <div className="w-3.5 h-3.5 border-2 border-slate-600/30 border-t-slate-800 rounded-full animate-spin" />
+                    ) : (
+                      <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+                    )}
+                    <span>{t.quickBoost}</span>
+                  </button>
+
+                  {vault.status === "UNLOCK_PENDING" && (
+                    <Link
+                      id="open-keyholder-link"
+                      href={`/unlock/${vault.unlockToken || vault._id}`}
+                      target="_blank"
+                      className="tactile-btn py-2 px-3.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-bold text-xs shadow-xs transition-all animate-pulse flex items-center justify-center gap-1.5"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-rose-600" />
+                      <span>{t.openKeyholderLink}</span>
+                    </Link>
+                  )}
                 </div>
               </div>
 
@@ -831,10 +780,10 @@ function DashboardContent() {
                     <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
                   </div>
                   <div>
-                    <span className="text-[11px] font-bold text-rose-950 block leading-tight">
+                    <span className="text-xs font-bold text-rose-950 block leading-tight">
                       {t.disciplineTaxWarning}
                     </span>
-                    <span className="text-[10px] text-rose-700 block leading-tight">
+                    <span className="text-[11px] text-rose-700 block leading-tight">
                       {t.disciplineTaxSub}
                     </span>
                   </div>
@@ -847,7 +796,7 @@ function DashboardContent() {
                     setBreakResult(null);
                     setExcuseText("");
                   }}
-                  className="tactile-btn px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-[11px] shadow-xs active:scale-95 transition-all shrink-0 self-end sm:self-center"
+                  className="tactile-btn px-3 py-1.5 rounded-xl border border-rose-300 bg-white hover:bg-rose-50 text-rose-700 font-bold text-xs shadow-2xs active:scale-95 transition-all shrink-0 self-end sm:self-center"
                 >
                   {t.requestEarlyBreak}
                 </button>
@@ -855,8 +804,8 @@ function DashboardContent() {
             </div>
 
             {/* ALLOWANCE PACING 4-WEEK BAR CHART */}
-            <div className="p-3.5 sm:p-4 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2.5">
+            <div className="p-3 sm:p-3.5 rounded-3xl bg-white border border-slate-200/90 shadow-card">
+              <div className="flex items-center justify-between mb-2">
                 <div>
                   <h3 className="text-xs font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
                     <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
@@ -864,19 +813,16 @@ function DashboardContent() {
                   </h3>
                   <p className="text-[10px] text-slate-500 mt-0.2">{t.pacingSubtitle}</p>
                 </div>
-                <div className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 self-start font-semibold">
-                  Day-{vault.allowanceDay || 25} Aligned ⚡
-                </div>
               </div>
 
-              {/* 4-Week Dynamic SVG/Visual Bars */}
-              <div className="grid grid-cols-4 gap-2.5 sm:gap-3 items-end pt-1">
+              {/* 4-Week Dynamic Visual Bars */}
+              <div className="grid grid-cols-4 gap-2.5 sm:gap-3 items-end pt-0.5">
                 {pacingWeeks.map((item) => (
                   <div key={item.week} className="flex flex-col items-center group">
                     <span className="text-[10px] font-mono font-bold text-slate-900 mb-1 tabular-nums">
                       +{item.amount} KWD
                     </span>
-                    <div className="w-full bg-slate-100 rounded-xl h-20 flex items-end p-1 border border-slate-200/80">
+                    <div className="w-full bg-slate-100 rounded-xl h-18 flex items-end p-1 border border-slate-200/80">
                       <div
                         style={{ height: `${item.percent}%` }}
                         className={cn(
@@ -885,15 +831,12 @@ function DashboardContent() {
                         )}
                       />
                     </div>
-                    <div className="text-center mt-1.5">
+                    <div className="text-center mt-1">
                       <span className="text-[10px] font-extrabold text-slate-900 block">
                         {t.week} {item.week}
                       </span>
                       <span className="text-[9px] text-slate-500 font-medium block truncate max-w-[80px] sm:max-w-none">
                         {item.title}
-                      </span>
-                      <span className="text-[8px] font-mono text-slate-400 block">
-                        {item.timing}
                       </span>
                     </div>
                   </div>
@@ -906,16 +849,16 @@ function DashboardContent() {
           <div className="lg:col-span-4 space-y-3">
             {/* KEYHOLDER PROTOCOL CARD */}
             <div className="p-4 sm:p-4.5 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200/90 mb-3">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/90 mb-2.5">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-amber-600" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 font-mono">
+                  <h3 className="text-xs font-bold text-slate-900">
                     {t.keyholderProtocol}
                   </h3>
                 </div>
                 <span
                   className={cn(
-                    "text-[10px] font-mono px-2 py-0.5 rounded-full font-bold",
+                    "text-[10px] font-bold px-2 py-0.5 rounded-full",
                     vault.status === "UNLOCK_PENDING"
                       ? "bg-rose-100 text-rose-800 border border-rose-200 animate-pulse"
                       : "bg-emerald-50 text-emerald-800 border border-emerald-200"
@@ -927,7 +870,7 @@ function DashboardContent() {
 
               <div className="space-y-2.5">
                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/90">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase font-medium block">
+                  <span className="text-xs text-slate-500 font-medium block">
                     {t.designatedGuardian}
                   </span>
                   <div className="text-sm font-bold text-slate-900 mt-0.5">
@@ -955,40 +898,67 @@ function DashboardContent() {
 
             {/* AUDIT & ANTI-IMPULSE LEDGER */}
             <div className="p-4 sm:p-4.5 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/90 mb-2.5">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200/90 mb-2.5">
                 <div className="flex items-center gap-2">
                   <Coins className="w-4 h-4 text-amber-600" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 font-mono">
+                  <h3 className="text-xs font-bold text-slate-900">
                     {t.auditLedger}
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono text-slate-500">
-                  {vault.transactions?.length || 0} Events
-                </span>
               </div>
 
-              {/* Transactions List */}
-              <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+              {/* Transactions List with clean explicit height preventing slicing */}
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                 {vault.transactions && vault.transactions.length > 0 ? (
                   vault.transactions.map((tx, idx) => {
+                    const isBreakRequest =
+                      tx.type === "BREAK_REQUEST" ||
+                      (tx.amount === 0 && tx.note?.includes("Break Requested"));
+
                     const isPositive =
                       tx.type === "SCHEDULED_PULL" ||
                       tx.type === "SIMULATED_PULL" ||
                       tx.type === "STRIPE_DEPOSIT";
+
+                    // International date format: 18 Oct, 21:45
                     const formattedDate = new Date(tx.createdAt).toLocaleDateString(
-                      lang === "ar" ? "ar-KW" : "en-US",
+                      lang === "ar" ? "ar-KW" : "en-GB",
                       {
-                        month: "short",
                         day: "numeric",
+                        month: "short",
                         hour: "2-digit",
                         minute: "2-digit",
                       }
                     );
 
+                    if (isBreakRequest) {
+                      return (
+                        <div
+                          key={tx._id || idx}
+                          className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80 transition-colors flex items-center justify-between gap-2.5 text-xs"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-bold text-amber-950 truncate flex items-center gap-1.5">
+                              <span>🚨 Break Requested</span>
+                            </div>
+                            <div className="text-[10px] text-amber-800 font-mono mt-0.5">
+                              {formattedDate} &bull; Pending Fahad&apos;s Approval
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                              Pending
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div
                         key={tx._id || idx}
-                        className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 transition-colors flex items-center justify-between gap-3 text-xs"
+                        className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 transition-colors flex items-center justify-between gap-3 text-xs"
                       >
                         <div className="min-w-0">
                           <div className="font-semibold text-slate-900 truncate">
@@ -1041,7 +1011,7 @@ function DashboardContent() {
         </div>
       </main>
 
-      {/* 4. EMERGENCY BREAK FRICTION MODAL */}
+      {/* 3. EMERGENCY BREAK FRICTION MODAL */}
       {showBreakModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="max-w-lg w-full bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-2xl relative overflow-hidden">
@@ -1054,7 +1024,7 @@ function DashboardContent() {
                   {t.breakModalTitle}
                 </h3>
                 <p className="text-xs text-rose-600 font-medium font-mono">
-                  Keyholder Clearance Required
+                  Guarded by Fahad Al-Mutawa
                 </p>
               </div>
             </div>
@@ -1071,8 +1041,7 @@ function DashboardContent() {
                   <div>
                     <strong className="block font-bold mb-0.5">5% Discipline Tax:</strong>
                     <span className="text-rose-800 leading-snug block">
-                      {formatKWD(Math.round(vault.currentBalance * 0.05))} KWD will be forfeited
-                      unless your Keyholder approves this request.
+                      {t.disciplineTaxSub}
                     </span>
                   </div>
                 </div>
@@ -1091,21 +1060,23 @@ function DashboardContent() {
                   />
                 </div>
 
+                {/* Primary Button: Keep Vault Locked 🛡️ | Secondary: Request Early Break */}
                 <div className="flex items-center gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowBreakModal(false)}
-                    className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors"
+                    className="flex-1 py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
                   >
-                    {t.cancelKeepLocked}
+                    <ShieldCheck className="w-4 h-4 text-white" />
+                    <span>{t.cancelKeepLocked}</span>
                   </button>
                   <button
                     type="submit"
                     disabled={submittingBreak}
-                    className="tactile-btn flex-1 py-3.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="tactile-btn py-3 px-4 rounded-xl border border-slate-300 hover:border-rose-300 hover:bg-rose-50 text-rose-700 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
                   >
                     {submittingBreak ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-rose-600/30 border-t-rose-600 rounded-full animate-spin" />
                     ) : (
                       <span>{t.submitBreakRequest}</span>
                     )}
@@ -1163,7 +1134,7 @@ function DashboardContent() {
                   href={
                     breakResult.whatsappUrl ||
                     `https://wa.me/?text=${encodeURIComponent(
-                      `Salam! I am trying to break my Tijori savings vault for "${vault.title}". My reason: "${excuseText}". Approve or block me here: ${keyholderPendingUrl}`
+                      `Salam Fahad! I am trying to break my Tijori savings vault for "${vault.title}". My reason: "${excuseText}". Approve or block me here: ${keyholderPendingUrl}`
                     )}`
                   }
                   target="_blank"

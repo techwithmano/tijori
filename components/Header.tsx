@@ -59,28 +59,28 @@ export default function Header() {
     return (
       <header className="border-b border-slate-200/90 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Left: Clean Tijori Gold Shield logo with text "TIJORI KEYHOLDER CLEARANCE • 256-Bit Channel" */}
+          {/* Left: Clean Tijori Gold Shield logo with text "Tijori Keyholder Decision" */}
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-md shadow-amber-500/20">
               <Shield className="w-5 h-5 text-slate-950 stroke-[2.5]" />
             </div>
             <div>
-              <span className="font-extrabold text-xs sm:text-sm tracking-wider text-slate-900 font-mono">
-                TIJORI KEYHOLDER CLEARANCE • 256-Bit Channel
+              <span className="font-bold text-sm tracking-tight text-slate-900">
+                Tijori Keyholder Decision
               </span>
-              <p className="text-[10px] text-amber-700 font-mono font-medium">
-                Protected Peer Protocol
+              <p className="text-xs text-slate-500 font-medium">
+                Guarded by WhatsApp Verification
               </p>
             </div>
           </div>
 
           {/* Right: Pulsing green badge "🛡️ Live WhatsApp Verification" */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-mono shadow-2xs">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium shadow-2xs">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
             </span>
-            <span className="text-[10px] sm:text-[11px] font-semibold tracking-wide">
+            <span className="text-xs font-semibold">
               🛡️ Live WhatsApp Verification
             </span>
           </div>
@@ -107,8 +107,8 @@ export default function Header() {
                   تِجوري
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 -mt-1 font-mono">
-                GCC Anti-Impulse Protocol
+              <p className="text-xs text-slate-500 -mt-0.5 font-sans">
+                GCC Anti-Impulse Micro-Savings
               </p>
             </div>
           </Link>
@@ -145,8 +145,8 @@ export default function Header() {
                 تِجوري
               </span>
             </div>
-            <p className="text-[10px] text-slate-500 -mt-1 font-mono">
-              GCC Anti-Impulse Protocol
+            <p className="text-xs text-slate-500 -mt-0.5 font-sans">
+              GCC Anti-Impulse Micro-Savings
             </p>
           </div>
         </Link>
