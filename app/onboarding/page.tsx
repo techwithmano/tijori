@@ -15,9 +15,9 @@ import {
   HeartHandshake,
   Calendar,
   Smartphone,
-  Plane,
-  Car,
+  KeyRound,
   Coins,
+  TrendingUp,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { formatKWD } from "@/lib/utils";
@@ -51,15 +51,19 @@ export default function OnboardingPage() {
   const [goalName, setGoalName] = useState("Japan Summer Trip");
   const [targetAmount, setTargetAmount] = useState<number | string>(500);
 
-  // Step 2: Amount & Frequency
+  // Step 2: Flexible Pacing
   const [pullAmount, setPullAmount] = useState<number | string>(25);
-  const [cadence, setCadence] = useState<"weekly" | "monthly">("weekly");
+  const [cadence, setCadence] = useState<"daily" | "weekly" | "biweekly" | "monthly" | "custom">("weekly");
+  const [customCadenceDays, setCustomCadenceDays] = useState<number>(3);
+  const [incrementalType, setIncrementalType] = useState<"none" | "fixed" | "percentage">("none");
+  const [incrementalValue, setIncrementalValue] = useState<number>(0.1);
   const [allowanceDay, setAllowanceDay] = useState<number>(25);
 
   // Step 3: Keyholder
-  const [keyholderName, setKeyholderName] = useState("");
+  const [keyholderName, setKeyholderName] = useState("Ahmed");
   const [keyholderPhone, setKeyholderPhone] = useState("");
   const [keyholderRel, setKeyholderRel] = useState("Best Friend");
+  const [keyholderPin, setKeyholderPin] = useState("123456");
 
   // Phone Validation: Kuwait mobile numbers are 8 digits
   const validatePhone = (num: string): boolean => {
@@ -71,11 +75,11 @@ export default function OnboardingPage() {
     e.preventDefault();
     setError(null);
     if (!goalName.trim()) {
-      setError("Please enter what you are saving for.");
+      setError(isArabic ? "يرجى تحديد هدف التوفير." : "Please enter what you are saving for.");
       return;
     }
     if (!targetAmount || Number(targetAmount) <= 0) {
-      setError("Please enter a valid target amount.");
+      setError(isArabic ? "يرجى إدخال مبلغ هدف صالح." : "Please enter a valid target amount.");
       return;
     }
     setStep(2);
@@ -85,7 +89,7 @@ export default function OnboardingPage() {
     e.preventDefault();
     setError(null);
     if (!pullAmount || Number(pullAmount) <= 0) {
-      setError("Please enter a valid auto-save amount.");
+      setError(isArabic ? "يرجى تحديد مبلغ استقطاع صالح." : "Please enter a valid auto-save amount.");
       return;
     }
     setStep(3);
@@ -95,11 +99,15 @@ export default function OnboardingPage() {
     e.preventDefault();
     setError(null);
     if (!keyholderName.trim()) {
-      setError("Please enter your Keyholder's name.");
+      setError(isArabic ? "يرجى كتابة اسم حامل المفتاح." : "Please enter your Keyholder's name.");
       return;
     }
     if (!keyholderPhone.trim() || !validatePhone(keyholderPhone)) {
       setError(t("onboarding.phoneValidation"));
+      return;
+    }
+    if (!/^\d{6}$/.test(keyholderPin)) {
+      setError(isArabic ? "رمز PIN لحامل المفتاح يجب أن يكون 6 أرقام." : "Keyholder PIN must be exactly 6 digits.");
       return;
     }
     setStep(4);
@@ -122,8 +130,12 @@ export default function OnboardingPage() {
           title: goalName.trim(),
           targetAmount: Number(targetAmount),
           pullAmount: Number(pullAmount),
-          cadence,
+          cadence: cadence === "custom" ? "weekly" : cadence,
+          customCadenceDays: cadence === "custom" ? customCadenceDays : undefined,
+          incrementalSavingsType: incrementalType,
+          incrementalSavingsValue: incrementalType !== "none" ? incrementalValue : 0,
           allowanceDay: Number(allowanceDay) || 25,
+          keyholderPin: keyholderPin.trim() || "123456",
           keyholder: {
             name: keyholderName.trim(),
             phone: formattedPhone,
@@ -151,67 +163,65 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-[85vh] flex flex-col justify-center max-w-2xl mx-auto px-4 py-8">
       {/* Top Header & Progress Bar */}
-      <div className="mb-8 space-y-4">
+      <div className="mb-6 space-y-4">
         <div className="flex items-center justify-between text-xs text-muted">
           <div className="flex items-center gap-2">
             {step > 1 && (
               <button
                 type="button"
                 onClick={() => setStep((s) => (s > 1 ? ((s - 1) as any) : 1))}
-                className="inline-flex items-center gap-1 text-muted hover:text-text font-bold transition-colors me-2"
+                className="inline-flex items-center gap-1 text-muted hover:text-ink font-bold transition-colors me-2 cursor-pointer"
               >
-                <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" />
+                <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
                 <span>{t("onboarding.backAction")}</span>
               </button>
             )}
-            <span className="font-semibold text-text">
+            <span className="font-extrabold text-ink">
               {t("onboarding.stepCount", { current: step, total: 4 })}
             </span>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-btn bg-raised border border-line text-xs font-semibold text-accent">
-            <Lock className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-lime border-2 border-ink text-xs font-bold text-ink shadow-[2px_2px_0_var(--ink)]">
+            <Lock className="w-3.5 h-3.5 text-ink" />
             <span>
               {isArabic ? "إعداد خزينة تِجوري" : "Anti-Impulse Vault Setup"}
             </span>
           </div>
         </div>
 
-        {/* Progress Bar Line */}
-        <div className="w-full h-1.5 bg-raised rounded-full overflow-hidden border border-line">
+        {/* Neobrutalist Progress Bar */}
+        <div className="w-full h-3 bg-surface rounded-full overflow-hidden border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
           <div
-            className="h-full bg-gradient-to-r from-violet to-accent transition-all duration-300 rounded-full"
+            className="h-full bg-lime border-e-2 border-ink transition-all duration-300 rounded-full"
             style={{ width: `${progressPercentage}%` }}
           />
         </div>
       </div>
 
-      {/* Card Content for Steps */}
-      <div className="bg-surface border border-line rounded-card p-6 sm:p-10 shadow-card space-y-8">
+      {/* Main Card */}
+      <div className="card-hard bg-surface p-6 sm:p-10 shadow-[4px_4px_0_var(--ink)] space-y-8">
         {error && (
-          <div className="p-3.5 rounded-xl bg-coral/10 border border-coral/30 text-coral text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="p-3.5 rounded-xl bg-coral/20 border-2 border-ink text-ink font-bold text-xs flex items-center gap-2 shadow-[2px_2px_0_var(--ink)]">
+            <AlertCircle className="w-4 h-4 text-coral shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        {/* =========================================================================
-            STEP 1: What are you saving for?
-            ========================================================================= */}
+        {/* ── STEP 1: What are you saving for? ── */}
         {step === 1 && (
           <form onSubmit={handleNextStep1} className="space-y-6">
             <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-text tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-ink tracking-tight leading-tight font-heading">
                 {t("onboarding.step1Title")}
               </h1>
-              <p className="text-sm sm:text-base text-muted">
+              <p className="text-sm sm:text-base text-muted font-medium">
                 {t("onboarding.step1Sub")}
               </p>
             </div>
 
             {/* Quick-Pick Chips */}
             <div className="space-y-2">
-              <span className="text-xs font-semibold text-muted block">
+              <span className="text-xs font-bold text-muted block">
                 {isArabic ? "اقتراحات سريعة:" : "Quick suggestions:"}
               </span>
               <div className="flex flex-wrap gap-2">
@@ -223,10 +233,10 @@ export default function OnboardingPage() {
                       setGoalName(chip.defaultTitle);
                       setTargetAmount(chip.defaultAmount);
                     }}
-                    className={`tactile-btn px-3.5 py-1.5 rounded-btn text-xs font-semibold border transition-all ${
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold border-2 border-ink transition-all cursor-pointer shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 ${
                       goalName === chip.defaultTitle
-                        ? "bg-raised border-accent text-accent shadow-violetSubtle"
-                        : "bg-surface border-line text-muted hover:text-text hover:bg-raised/50"
+                        ? "bg-lime text-ink"
+                        : "bg-surface text-muted hover:text-ink hover:bg-bg"
                     }`}
                   >
                     {t(`onboarding.${chip.labelKey}`)}
@@ -237,7 +247,7 @@ export default function OnboardingPage() {
 
             {/* Goal Title Input */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-text block">
+              <label className="text-xs font-bold text-ink block">
                 {t("onboarding.goalNameLabel")}
               </label>
               <input
@@ -246,13 +256,13 @@ export default function OnboardingPage() {
                 value={goalName}
                 onChange={(e) => setGoalName(e.target.value)}
                 placeholder={t("onboarding.goalNamePlaceholder")}
-                className="w-full bg-raised border border-line text-text placeholder:text-muted/40 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:border-violet focus:ring-2 focus:ring-violet/20 transition-all font-medium"
+                className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-semibold"
               />
             </div>
 
             {/* Target Amount Input */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-text block">
+              <label className="text-xs font-bold text-ink block">
                 {t("onboarding.targetAmountLabel")}
               </label>
               <div className="relative">
@@ -262,9 +272,9 @@ export default function OnboardingPage() {
                   required
                   value={targetAmount}
                   onChange={(e) => setTargetAmount(e.target.value)}
-                  className="w-full bg-raised border border-line text-text placeholder:text-muted/40 rounded-xl px-4 py-3.5 text-2xl font-extrabold tabular-nums pe-20 focus:outline-none focus:border-violet focus:ring-2 focus:ring-violet/20 transition-all"
+                  className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3.5 text-2xl font-extrabold tabular-nums pe-20 focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-heading"
                 />
-                <span className="absolute inset-y-0 end-4 flex items-center text-sm font-bold text-accent pointer-events-none">
+                <span className="absolute inset-y-0 end-4 flex items-center text-sm font-extrabold text-ink pointer-events-none">
                   {isArabic ? "د.ك" : "KWD"}
                 </span>
               </div>
@@ -272,7 +282,7 @@ export default function OnboardingPage() {
 
             <button
               type="submit"
-              className="w-full tactile-btn py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 pt-3"
+              className="btn-hard w-full py-4 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 pt-3 cursor-pointer"
             >
               <span>{t("onboarding.nextAction")}</span>
               <ArrowRight className="w-4 h-4 rtl:rotate-180" />
@@ -280,23 +290,23 @@ export default function OnboardingPage() {
           </form>
         )}
 
-        {/* =========================================================================
-            STEP 2: How much, how often?
-            ========================================================================= */}
+        {/* ── STEP 2: Flexible Pacing ── */}
         {step === 2 && (
           <form onSubmit={handleNextStep2} className="space-y-6">
             <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-text tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-ink tracking-tight leading-tight font-heading">
                 {t("onboarding.step2Title")}
               </h1>
-              <p className="text-sm sm:text-base text-muted">
-                {t("onboarding.step2Sub")}
+              <p className="text-sm sm:text-base text-muted font-medium">
+                {isArabic
+                  ? "تحكّم في وتيرة الادخار وسرعته حسب ميزانيتك وموعد راتبك."
+                  : "Customize cadence, frequency, and micro-savings according to your budget."}
               </p>
             </div>
 
             {/* Amount Per Tuck */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-text block">
+              <label className="text-xs font-bold text-ink block">
                 {t("onboarding.pullAmountLabel")}
               </label>
               <div className="relative">
@@ -306,73 +316,132 @@ export default function OnboardingPage() {
                   required
                   value={pullAmount}
                   onChange={(e) => setPullAmount(e.target.value)}
-                  className="w-full bg-raised border border-line text-text placeholder:text-muted/40 rounded-xl px-4 py-3.5 text-2xl font-extrabold tabular-nums pe-20 focus:outline-none focus:border-violet focus:ring-2 focus:ring-violet/20 transition-all"
+                  className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3.5 text-2xl font-extrabold tabular-nums pe-20 focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-heading"
                 />
-                <span className="absolute inset-y-0 end-4 flex items-center text-sm font-bold text-accent pointer-events-none">
-                  KWD
+                <span className="absolute inset-y-0 end-4 flex items-center text-sm font-extrabold text-ink pointer-events-none">
+                  {isArabic ? "د.ك" : "KWD"}
                 </span>
               </div>
 
               {/* Quick amount chips */}
-              <div className="flex gap-2 pt-1">
+              <div className="flex flex-wrap gap-2 pt-1">
                 {[10, 20, 25, 50].map((amt) => (
                   <button
                     key={amt}
                     type="button"
                     onClick={() => setPullAmount(amt)}
-                    className={`tactile-btn px-3 py-1 rounded-btn text-xs font-bold border tabular-nums ${
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold border-2 border-ink transition-all tabular-nums cursor-pointer shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 ${
                       Number(pullAmount) === amt
-                        ? "bg-raised border-accent text-accent"
-                        : "bg-surface border-line text-muted hover:text-text"
+                        ? "bg-lime text-ink"
+                        : "bg-surface text-muted hover:text-ink"
                     }`}
                   >
-                    {amt} KWD
+                    {amt} {isArabic ? "د.ك" : "KWD"}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Cadence Selector */}
+            {/* Cadence Selector: Daily, Weekly, Bi-weekly, Monthly, Custom */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-text block">
-                {t("onboarding.cadenceLabel")}
+              <label className="text-xs font-bold text-ink block">
+                {isArabic ? "وتيرة الاستقطاع:" : "Savings Frequency:"}
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCadence("weekly")}
-                  className={`p-4 rounded-xl border text-start space-y-1 transition-all tactile-btn ${
-                    cadence === "weekly"
-                      ? "bg-raised border-accent text-text shadow-violetSubtle"
-                      : "bg-surface border-line text-muted hover:border-violet/40"
-                  }`}
-                >
-                  <span className="font-extrabold text-sm block text-text">Weekly</span>
-                  <span className="text-xs text-muted block">Every 7 days quietly</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setCadence("monthly")}
-                  className={`p-4 rounded-xl border text-start space-y-1 transition-all tactile-btn ${
-                    cadence === "monthly"
-                      ? "bg-raised border-accent text-text shadow-violetSubtle"
-                      : "bg-surface border-line text-muted hover:border-violet/40"
-                  }`}
-                >
-                  <span className="font-extrabold text-sm block text-text">Monthly</span>
-                  <span className="text-xs text-muted block">Day-25 deposit tuck</span>
-                </button>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[
+                  { id: "daily", label: isArabic ? "يومي" : "Daily", desc: isArabic ? "كل يوم" : "Every day" },
+                  { id: "weekly", label: isArabic ? "أسبوعي" : "Weekly", desc: isArabic ? "كل ٧ أيام" : "Every 7 days" },
+                  { id: "biweekly", label: isArabic ? "كل أسبوعين" : "Bi-weekly", desc: isArabic ? "كل ١٤ يوم" : "Every 14 days" },
+                  { id: "custom", label: isArabic ? "مخصص" : "Custom", desc: isArabic ? "حدد الأيام" : "Pick days" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setCadence(item.id as any)}
+                    className={`p-3 rounded-2xl border-2 border-ink text-start space-y-0.5 transition-all cursor-pointer shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 ${
+                      cadence === item.id
+                        ? "bg-lime text-ink"
+                        : "bg-surface text-muted hover:text-ink"
+                    }`}
+                  >
+                    <span className="font-black text-sm block text-ink">{item.label}</span>
+                    <span className="text-[11px] text-muted block font-medium">{item.desc}</span>
+                  </button>
+                ))}
               </div>
+
+              {/* Custom Cadence Slider */}
+              {cadence === "custom" && (
+                <div className="p-4 rounded-2xl bg-bg border-2 border-ink space-y-2 mt-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-ink">
+                    <span>{isArabic ? "استقطاع تلقائي كل:" : "Auto-save every:"}</span>
+                    <span className="font-extrabold text-sm text-violet">
+                      {customCadenceDays} {isArabic ? "أيام" : "days"}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="30"
+                    value={customCadenceDays}
+                    onChange={(e) => setCustomCadenceDays(Number(e.target.value))}
+                    className="w-full accent-violet cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted font-bold">
+                    <span>1 {isArabic ? "يوم" : "day"}</span>
+                    <span>15 {isArabic ? "يوم" : "days"}</span>
+                    <span>30 {isArabic ? "يوم" : "days"}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Allowance / Salary Day (optional) */}
-            <div className="space-y-2 pt-1 border-t border-line">
+            {/* Incremental Savings (Micro-scaling) */}
+            <div className="space-y-2 pt-2 border-t-2 border-ink/10">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-text block">
+                <label className="text-xs font-bold text-ink block flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-violet" />
+                  <span>{isArabic ? "زيادة تدريجية ذكية (اختياري)" : "Incremental Savings Step (Optional)"}</span>
+                </label>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { type: "none", val: 0, label: isArabic ? "ثابت" : "Fixed Amount" },
+                  { type: "fixed", val: 0.1, label: "+100 fils" },
+                  { type: "fixed", val: 0.25, label: "+250 fils" },
+                  { type: "fixed", val: 1.0, label: "+1.0 KWD" },
+                ].map((opt, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setIncrementalType(opt.type as any);
+                      setIncrementalValue(opt.val);
+                    }}
+                    className={`py-2 px-3 rounded-xl border-2 border-ink text-xs font-bold transition-all cursor-pointer shadow-[2px_2px_0_var(--ink)] ${
+                      incrementalType === opt.type && incrementalValue === opt.val
+                        ? "bg-violet text-white"
+                        : "bg-surface text-ink hover:bg-bg"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted">
+                {isArabic
+                  ? "يزيد مبلغ التوفير تلقائياً بمقدار بسيط مع كل إيداع لرفع وتيرة التوفير بدون مجهود."
+                  : "Slightly scales up each tuck to accelerate your savings streak over time."}
+              </p>
+            </div>
+
+            {/* Allowance / Salary Day */}
+            <div className="space-y-2 pt-2 border-t-2 border-ink/10">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-ink block">
                   {t("onboarding.allowanceDayLabel")}
                 </label>
-                <span className="text-xs text-muted">
+                <span className="text-xs text-muted font-medium">
                   {t("onboarding.allowanceDayHint")}
                 </span>
               </div>
@@ -382,13 +451,13 @@ export default function OnboardingPage() {
                 max="31"
                 value={allowanceDay}
                 onChange={(e) => setAllowanceDay(Number(e.target.value))}
-                className="w-full bg-raised border border-line text-text rounded-xl px-4 py-3 text-sm font-semibold tabular-nums focus:outline-none focus:border-violet focus:ring-2 focus:ring-violet/20"
+                className="w-full bg-bg border-2 border-ink text-ink rounded-xl px-4 py-3 text-sm font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-violet/30"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full tactile-btn py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 pt-3"
+              className="btn-hard w-full py-4 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 pt-3 cursor-pointer"
             >
               <span>{t("onboarding.nextAction")}</span>
               <ArrowRight className="w-4 h-4 rtl:rotate-180" />
@@ -396,23 +465,21 @@ export default function OnboardingPage() {
           </form>
         )}
 
-        {/* =========================================================================
-            STEP 3: Who keeps you honest?
-            ========================================================================= */}
+        {/* ── STEP 3: Who keeps you honest? ── */}
         {step === 3 && (
           <form onSubmit={handleNextStep3} className="space-y-6">
             <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-text tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-ink tracking-tight leading-tight font-heading">
                 {t("onboarding.step3Title")}
               </h1>
-              <p className="text-sm sm:text-base text-muted">
+              <p className="text-sm sm:text-base text-muted font-medium">
                 {t("onboarding.step3Sub")}
               </p>
             </div>
 
             {/* Keyholder Name */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-text block">
+              <label className="text-xs font-bold text-ink block">
                 {t("onboarding.keyholderNameLabel")}
               </label>
               <input
@@ -420,18 +487,18 @@ export default function OnboardingPage() {
                 required
                 value={keyholderName}
                 onChange={(e) => setKeyholderName(e.target.value)}
-                placeholder={t("onboarding.keyholderNamePlaceholder")}
-                className="w-full bg-raised border border-line text-text placeholder:text-muted/40 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:border-violet focus:ring-2 focus:ring-violet/20 transition-all font-medium"
+                placeholder="Ahmed"
+                className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-semibold"
               />
             </div>
 
             {/* Keyholder WhatsApp Number with +965 default */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-text block">
+              <label className="text-xs font-bold text-ink block">
                 {t("onboarding.keyholderPhoneLabel")}
               </label>
               <div className="flex gap-2">
-                <span className="inline-flex items-center px-4 rounded-xl bg-raised border border-line text-xs font-bold text-accent font-mono select-none">
+                <span className="inline-flex items-center px-4 rounded-xl bg-bg border-2 border-ink text-xs font-extrabold text-ink font-mono select-none">
                   +965
                 </span>
                 <input
@@ -440,17 +507,45 @@ export default function OnboardingPage() {
                   value={keyholderPhone}
                   onChange={(e) => setKeyholderPhone(e.target.value)}
                   placeholder={t("onboarding.keyholderPhonePlaceholder")}
-                  className="flex-1 bg-raised border border-line text-text placeholder:text-muted/40 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:border-violet focus:ring-2 focus:ring-violet/20 transition-all font-mono font-medium"
+                  className="flex-1 bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-mono font-bold"
                 />
               </div>
               <p className="text-xs text-muted">
-                Must be an active WhatsApp number. Single-use unlock requests are sent here.
+                {isArabic
+                  ? "رقم واتساب كويتي صالح (٨ أرقام). تُرسل له طلبات الإذن بكسر الخزينة."
+                  : "Must be an active Kuwait WhatsApp number. Single-use unlock requests are sent here."}
+              </p>
+            </div>
+
+            {/* Keyholder 6-Digit Authorization PIN */}
+            <div className="space-y-1.5 p-4 rounded-2xl bg-bg border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-ink flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-violet" />
+                  <span>{isArabic ? "رمز PIN المعتمد لحامل المفتاح (٦ أرقام)" : "Keyholder 6-Digit Approval PIN"}</span>
+                </label>
+                <span className="text-[10px] bg-lime px-2 py-0.5 rounded-full border border-ink font-bold text-ink">
+                  {isArabic ? "حماية مضاعفة" : "High Security"}
+                </span>
+              </div>
+              <input
+                type="text"
+                maxLength={6}
+                value={keyholderPin}
+                onChange={(e) => setKeyholderPin(e.target.value.replace(/\D/g, ""))}
+                placeholder="123456"
+                className="w-full bg-surface border-2 border-ink text-ink font-mono font-extrabold tracking-widest text-lg rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet/30 text-center"
+              />
+              <p className="text-[11px] text-muted">
+                {isArabic
+                  ? `يقوم ${keyholderName || "أحمد"} بإدخال هذا الرمز للموافقة على فك القفل مع خصم ٥٪ فقط كرسوم تشغيل.`
+                  : `${keyholderName || "Ahmed"} must enter this PIN to authorize an unlock with only a 5% handling fee.`}
               </p>
             </div>
 
             {/* Relationship */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-text block">
+              <label className="text-xs font-bold text-ink block">
                 {t("onboarding.keyholderRelLabel")}
               </label>
               <input
@@ -458,13 +553,13 @@ export default function OnboardingPage() {
                 value={keyholderRel}
                 onChange={(e) => setKeyholderRel(e.target.value)}
                 placeholder={t("onboarding.keyholderRelPlaceholder")}
-                className="w-full bg-raised border border-line text-text placeholder:text-muted/40 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-violet focus:ring-2 focus:ring-violet/20 transition-all font-medium"
+                className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-medium"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full tactile-btn py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 pt-3"
+              className="btn-hard w-full py-4 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 pt-3 cursor-pointer"
             >
               <span>{t("onboarding.nextAction")}</span>
               <ArrowRight className="w-4 h-4 rtl:rotate-180" />
@@ -472,33 +567,31 @@ export default function OnboardingPage() {
           </form>
         )}
 
-        {/* =========================================================================
-            STEP 4: Add your card (Real Stripe Elements with SetupIntent)
-            ========================================================================= */}
+        {/* ── STEP 4: Add your card ── */}
         {step === 4 && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-text tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-4xl font-extrabold text-ink tracking-tight leading-tight font-heading">
                 {t("onboarding.step4Title")}
               </h1>
-              <p className="text-sm sm:text-base text-muted">
+              <p className="text-sm sm:text-base text-muted font-medium">
                 {t("onboarding.step4Sub")}
               </p>
             </div>
 
             {savedCard ? (
               <div className="space-y-6">
-                <div className="p-6 rounded-2xl bg-raised border border-line space-y-4">
+                <div className="p-6 rounded-2xl bg-bg border-2 border-ink shadow-[2px_2px_0_var(--ink)] space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-surface border border-line flex items-center justify-center text-accent">
+                      <div className="w-12 h-12 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink shadow-[2px_2px_0_var(--ink)]">
                         <CreditCard className="w-6 h-6" />
                       </div>
                       <div>
-                        <h3 className="font-extrabold text-base text-text">
+                        <h3 className="font-extrabold text-base text-ink">
                           {savedCard.brand} •••• {savedCard.last4}
                         </h3>
-                        <p className="text-xs text-mint flex items-center gap-1.5 mt-0.5">
+                        <p className="text-xs text-mint flex items-center gap-1.5 mt-0.5 font-bold">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>Saved as default payment method</span>
                         </p>
@@ -507,7 +600,7 @@ export default function OnboardingPage() {
                     <button
                       type="button"
                       onClick={() => setSavedCard(null)}
-                      className="text-xs text-muted hover:text-text underline"
+                      className="text-xs text-muted hover:text-ink underline font-bold cursor-pointer"
                     >
                       Change card
                     </button>
@@ -518,10 +611,10 @@ export default function OnboardingPage() {
                   type="button"
                   disabled={loading}
                   onClick={handleCreateVault}
-                  className="w-full tactile-btn py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="btn-hard w-full py-4 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {loading ? (
-                    <div className="w-4 h-4 border-2 border-accent-foreground/30 border-t-accent-foreground rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
                       <span>{t("onboarding.finishAction")}</span>

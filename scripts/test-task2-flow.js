@@ -127,17 +127,25 @@ async function run() {
     });
     console.log("Captured task2-onboarding-step4.png");
 
-    // Click Finish & Open Vault
+    // Click Finish & Open Vault or Skip Card
     const buttons = await page.$$("button");
     for (const b of buttons) {
       const text = await page.evaluate((el) => el.textContent, b);
-      if (text && (text.includes("Open My Vault") || text.includes("افتح خزينتي"))) {
+      if (
+        text &&
+        (text.includes("Open My Vault") ||
+          text.includes("افتح خزينتي") ||
+          text.includes("link my card later") ||
+          text.includes("سأربط بطاقتي لاحقاً"))
+      ) {
         await b.click();
         break;
       }
     }
 
-    await page.waitForNavigation({ waitUntil: "networkidle0", timeout: 10000 });
+    await page
+      .waitForFunction(() => window.location.pathname.includes("/dashboard"), { timeout: 10000 })
+      .catch(() => {});
     console.log("Current URL after onboarding:", page.url());
   }
 

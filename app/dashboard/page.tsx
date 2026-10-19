@@ -86,9 +86,19 @@ function DashboardContent() {
   const { t, lang } = useT();
   const isArabic = lang === "ar";
 
-  const [vault, setVault] = useState<IVault | null>(null);
+  const [vaults, setVaults] = useState<IVault[]>([]);
+  const [selectedVaultIndex, setSelectedVaultIndex] = useState(0);
+  const vault = vaults[selectedVaultIndex] || null;
   const [user, setUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const updateCurrentVault = (updated: IVault) => {
+    setVaults((prev) => {
+      const next = [...prev];
+      next[selectedVaultIndex] = updated;
+      return next;
+    });
+  };
 
   // Top Up Modal State (Task 3)
   const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -131,8 +141,12 @@ function DashboardContent() {
 
         if (vaultRes.ok) {
           const vaultData = await vaultRes.json();
-          if (vaultData.success && vaultData.vault) {
-            setVault(vaultData.vault);
+          if (vaultData.success) {
+            if (vaultData.vaults && vaultData.vaults.length > 0) {
+              setVaults(vaultData.vaults);
+            } else if (vaultData.vault) {
+              setVaults([vaultData.vault]);
+            }
           }
         }
       } catch (err) {
@@ -186,13 +200,13 @@ function DashboardContent() {
         return;
       }
 
-      setVault(data.vault);
+      updateCurrentVault(data.vault);
       setTopUpSuccess(data.message || t("dashboard.topUpSuccess"));
       confetti({
         particleCount: 80,
         spread: 60,
         origin: { y: 0.6 },
-        colors: ["#C6FF3D", "#7C5CFF", "#3DFFB0", "#FFFFFF"],
+        colors: ["#CFFF3A", "#6B4DFF", "#2DE0A5", "#14102B"],
       });
       setTimeout(() => {
         setShowTopUpModal(false);
@@ -257,7 +271,7 @@ function DashboardContent() {
 
       const data = await res.json();
       if (data.success && data.vault) {
-        setVault(data.vault);
+        updateCurrentVault(data.vault);
         setUnlockUrl(data.unlockUrl || "");
         setWhatsappUrl(data.whatsappUrl || "");
         setBreakStep("share");
@@ -271,20 +285,60 @@ function DashboardContent() {
     }
   };
 
+  // Emergency Solo Break (15% penalty fee, 85% refund)
+  const handleEmergencyBreak = async () => {
+    if (!vault) return;
+    const confirmMsg = isArabic
+      ? "هل أنت متأكد من الكسر الفوري دون موافقة رفيقك؟ سيتم خصم رسوم طوارئ بنسبة 15% واسترداد 85%."
+      : "Are you sure you want to emergency break without friend approval? A 15% emergency penalty fee will be deducted (85% refund).";
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setSubmittingBreak(true);
+      const res = await fetch(`/api/vault/${vault._id}/unlock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "EMERGENCY_BREAK" }),
+      });
+      const data = await res.json();
+      if (data.success && data.vault) {
+        updateCurrentVault(data.vault);
+        setShowBreakSheet(false);
+        alert(isArabic ? "تم كسر الخزينة بنجاح واقتطاع 15% رسوم طوارئ." : "Vault emergency broken. 85% refund initiated.");
+      } else {
+        alert(data.error || "Failed to execute emergency break");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to emergency break");
+    } finally {
+      setSubmittingBreak(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  // Loading Screen
+  // Loading Screen (Branded Light Neobrutalist Safe)
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-4 text-text">
-        <div className="w-12 h-12 rounded-full border-3 border-line border-t-accent animate-spin" />
-        <p className="text-sm font-mono text-muted tracking-wide">
-          {isArabic ? "جاري مزامنة بيانات الخزينة..." : "Syncing Tijori Vault..."}
-        </p>
+      <div className="min-h-screen bg-bg text-ink flex flex-col items-center justify-center p-4 selection:bg-lime selection:text-ink">
+        <div className="card-hard bg-surface p-8 max-w-sm w-full text-center space-y-5">
+          <div className="w-16 h-16 rounded-3xl bg-lime border-2 border-ink mx-auto flex items-center justify-center shadow-[3px_3px_0_var(--ink)] animate-bounce">
+            <Lock className="w-8 h-8 text-ink stroke-[2.5]" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-2xl font-black text-ink font-heading tracking-tight">Tijori</h2>
+            <p className="text-xs font-bold text-muted">
+              {isArabic ? "جاري مزامنة بيانات الخزينة..." : "Syncing Tijori Vault..."}
+            </p>
+          </div>
+          <div className="w-full bg-bg border-2 border-ink rounded-full h-3 overflow-hidden p-0.5">
+            <div className="bg-lime h-full rounded-full animate-pulse w-3/4" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -310,20 +364,20 @@ function DashboardContent() {
         </header>
 
         <main className="max-w-xl mx-auto px-4 py-20 text-center space-y-6">
-          <div className="w-16 h-16 rounded-2xl bg-raised border border-line mx-auto flex items-center justify-center shadow-violetSubtle">
-            <Lock className="w-8 h-8 text-accent" />
+          <div className="w-16 h-16 rounded-3xl bg-lime border-2 border-ink mx-auto flex items-center justify-center shadow-[3px_3px_0_var(--ink)]">
+            <Lock className="w-8 h-8 text-ink" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-text">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-ink font-heading">
               {t("dashboard.emptyState.title")}
             </h1>
-            <p className="text-sm text-muted max-w-md mx-auto">
+            <p className="text-sm text-muted font-medium max-w-md mx-auto">
               {t("dashboard.emptyState.subtitle")}
             </p>
           </div>
           <Link
             href="/onboarding"
-            className="tactile-btn inline-flex items-center gap-2 px-8 py-3.5 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow"
+            className="btn-hard inline-flex items-center gap-2 px-8 py-3.5 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] cursor-pointer"
           >
             <span>{t("dashboard.emptyState.action")}</span>
             <ArrowRight className="w-4 h-4 rtl:rotate-180" />
@@ -366,18 +420,18 @@ function DashboardContent() {
     : isArabic ? "الأحد القادم" : "Sunday";
 
   return (
-    <div className="min-h-screen bg-bg text-text selection:bg-accent/20 selection:text-accent pb-16 overflow-x-clip">
+    <div className="min-h-screen bg-bg text-ink selection:bg-lime selection:text-ink pb-16 overflow-x-clip">
       {/* ── 1. TOP BAR: Greeting + Language Switcher + Avatar (No mobile overflow) ── */}
-      <header className="border-b border-line bg-surface/90 backdrop-blur-md sticky top-0 z-40">
+      <header className="border-b-2 border-ink bg-surface/90 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
           {/* Logo & Greeting */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <BrandLogo href="/" size="sm" showTagline={false} />
 
             {user && (
-              <div className="hidden sm:flex items-center gap-1.5 ms-2 ps-3 border-s border-line text-xs font-semibold text-text">
+              <div className="hidden sm:flex items-center gap-1.5 ms-2 ps-3 border-s-2 border-ink/20 text-xs font-bold text-ink">
                 <span className="text-muted">{isArabic ? "حيّاك،" : "Salam,"}</span>
-                <span className="font-bold">{user.name.split(" ")[0]}</span>
+                <span className="font-extrabold">{user.name.split(" ")[0]}</span>
               </div>
             )}
           </div>
@@ -385,13 +439,13 @@ function DashboardContent() {
           {/* Right: Language Switcher + Saved Card + Avatar */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Card chip */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-btn bg-raised border border-line text-xs text-muted">
-              <CreditCard className="w-3.5 h-3.5 text-accent" />
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface border-2 border-ink text-xs font-bold text-ink shadow-[2px_2px_0_var(--ink)]">
+              <CreditCard className="w-3.5 h-3.5 text-violet" />
               <span>
                 {user?.cardLast4 ? (
                   `${user.cardBrand || "Visa"} •••• ${user.cardLast4}`
                 ) : (
-                  <button onClick={() => setShowCardModal(true)} className="text-accent hover:underline">
+                  <button onClick={() => setShowCardModal(true)} className="text-violet hover:underline cursor-pointer">
                     {t("dashboard.linkCard")}
                   </button>
                 )}
@@ -403,7 +457,7 @@ function DashboardContent() {
             {/* Avatar & Logout */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <div
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-accent text-accent-foreground font-extrabold text-xs flex items-center justify-center shadow-limeGlow"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-lime text-ink border-2 border-ink font-extrabold text-xs flex items-center justify-center shadow-[2px_2px_0_var(--ink)]"
                 title={user?.name}
               >
                 {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
@@ -413,7 +467,7 @@ function DashboardContent() {
                 type="button"
                 onClick={handleLogout}
                 aria-label="Log out"
-                className="p-2 rounded-btn bg-surface hover:bg-raised border border-line text-muted hover:text-text transition-colors shrink-0"
+                className="p-2 rounded-full bg-surface hover:bg-bg border-2 border-ink text-ink shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 transition-all shrink-0 cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -423,26 +477,64 @@ function DashboardContent() {
       </header>
 
       {/* ── MAIN DASHBOARD CONTAINER (Phone-First, Desktop 2-Column) ── */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Multi-Vault Switcher (Up to 5 active vaults) */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
+            {vaults.map((v, idx) => (
+              <button
+                key={v._id || idx}
+                type="button"
+                onClick={() => setSelectedVaultIndex(idx)}
+                className={cn(
+                  "px-4 py-2 rounded-full font-bold text-xs sm:text-sm border-2 border-ink transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer",
+                  selectedVaultIndex === idx
+                    ? "bg-lime text-ink shadow-[2px_2px_0_var(--ink)] -translate-y-0.5"
+                    : "bg-surface text-ink hover:bg-bg shadow-none"
+                )}
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>{v.title}</span>
+                <span className="text-[11px] opacity-80 font-mono">
+                  ({formatKWD(v.currentBalance)} د.ك)
+                </span>
+              </button>
+            ))}
+
+            {vaults.length < 5 && (
+              <Link
+                href="/onboarding"
+                className="px-4 py-2 rounded-full font-bold text-xs sm:text-sm border-2 border-dashed border-ink bg-surface text-ink hover:bg-lime/30 transition-all inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[1px_1px_0_var(--ink)]"
+              >
+                <span className="font-black">+</span>
+                <span>{isArabic ? "خزينة جديدة" : "New Vault"}</span>
+                <span className="text-[10px] text-muted font-normal">
+                  ({vaults.length}/5)
+                </span>
+              </Link>
+            )}
+          </div>
+        </div>
+
         {/* ATTENTION REQUIRED BANNER (if charge failed) */}
         {vault.needsAttention && (
-          <div className="p-4 rounded-2xl bg-coral/10 border border-coral/30 text-coral flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-card">
+          <div className="p-4 rounded-2xl bg-coral/15 border-2 border-ink text-ink flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[4px_4px_0_var(--ink)]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-coral/20 border border-coral/30 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5 text-coral" />
+              <div className="w-10 h-10 rounded-xl bg-coral border-2 border-ink flex items-center justify-center text-white shrink-0 shadow-[2px_2px_0_var(--ink)]">
+                <AlertTriangle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h4 className="font-extrabold text-sm text-text">
+                <h4 className="font-extrabold text-sm text-ink">
                   {t("dashboard.needsAttentionBanner")}
                 </h4>
-                <p className="text-xs text-coral/90 mt-0.5">
+                <p className="text-xs text-muted font-medium mt-0.5">
                   {vault.needsAttentionReason || "Card charge failed. Please update your card."}
                 </p>
               </div>
             </div>
             <button
               onClick={() => setShowCardModal(true)}
-              className="py-2 px-4 rounded-btn bg-coral text-white font-bold text-xs shrink-0 self-end sm:self-center"
+              className="btn-hard py-2 px-4 bg-coral text-white font-bold text-xs shrink-0 self-end sm:self-center shadow-[2px_2px_0_var(--ink)] cursor-pointer"
             >
               {t("dashboard.changeCard")}
             </button>
@@ -455,10 +547,10 @@ function DashboardContent() {
             {/* VAULT HERO CARD */}
             <div
               className={cn(
-                "rounded-[28px] p-6 sm:p-8 transition-all relative overflow-hidden border shadow-card",
+                "card-hard bg-surface border-2 border-ink p-6 sm:p-8 transition-all relative overflow-hidden shadow-[4px_4px_0_var(--ink)]",
                 isPendingBreak
-                  ? "bg-coral/10 border-coral/50 shadow-coralGlow"
-                  : "bg-surface border-line shadow-violetSubtle"
+                  ? "bg-coral/10 border-coral shadow-[4px_4px_0_var(--coral)]"
+                  : "bg-surface"
               )}
             >
               {/* SINGLE PENDING STATE BANNER (Shown ONCE, not in four places) */}
@@ -479,19 +571,19 @@ function DashboardContent() {
               )}
 
               {/* Card Header: Goal Title & Small Flame Streak Counter */}
-              <div className="flex items-center justify-between gap-3 pb-6 border-b border-line/60">
+              <div className="flex items-center justify-between gap-3 pb-6 border-b-2 border-ink/10">
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-black text-text tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-black text-ink tracking-tight font-heading">
                     <GoalTitle title={vault.title} />
                   </h1>
-                  <p className="text-xs text-muted mt-0.5">
+                  <p className="text-xs text-muted font-medium mt-0.5">
                     {isArabic ? "حارس القفل:" : "Guarded by"} {vault.keyholder?.name}
                   </p>
                 </div>
 
                 {/* Flame Streak Counter */}
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-btn bg-raised border border-line text-accent font-extrabold text-xs font-mono shadow-sm">
-                  <Flame className="w-4 h-4 text-accent fill-accent" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sun border-2 border-ink text-ink font-extrabold text-xs font-mono shadow-[2px_2px_0_var(--ink)]">
+                  <Flame className="w-4 h-4 text-ink fill-ink" />
                   <span>
                     {vault.streakCount || 0} {isArabic ? "يوم التزام" : "days"}
                   </span>
@@ -506,19 +598,19 @@ function DashboardContent() {
                   <div
                     className={cn(
                       "absolute inset-0 rounded-full blur-2xl pointer-events-none transition-all duration-700",
-                      isPendingBreak ? "bg-coral/20" : "bg-accent/15"
+                      isPendingBreak ? "bg-coral/20" : "bg-lime/25"
                     )}
                   />
 
                   <svg className="w-full h-full -rotate-90 transform relative z-10" viewBox="0 0 280 280">
                     <defs>
                       <linearGradient id="limeDialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#8B6DFF" />
-                        <stop offset="100%" stopColor="#D4FF00" />
+                        <stop offset="0%" stopColor="#6B4DFF" />
+                        <stop offset="100%" stopColor="#CFFF3A" />
                       </linearGradient>
                       <linearGradient id="coralDialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#FF5773" />
-                        <stop offset="100%" stopColor="#FFA07A" />
+                        <stop offset="0%" stopColor="#FF5A6E" />
+                        <stop offset="100%" stopColor="#FFD23F" />
                       </linearGradient>
                     </defs>
 
@@ -527,10 +619,10 @@ function DashboardContent() {
                       cx="140"
                       cy="140"
                       r="124"
-                      stroke="#282637"
-                      strokeWidth="6"
+                      stroke="#14102B"
+                      strokeWidth="4"
                       fill="transparent"
-                      className="opacity-70"
+                      className="opacity-90"
                     />
 
                     {/* Concentric Bolt Rivet Markers */}
@@ -543,25 +635,25 @@ function DashboardContent() {
                           key={deg}
                           cx={x}
                           cy={y}
-                          r="2.5"
-                          fill="#4E4A68"
+                          r="3"
+                          fill="#14102B"
                           className="opacity-90"
                         />
                       );
                     })}
 
-                    {/* Dark Steel Track */}
+                    {/* Track */}
                     <circle
                       cx="140"
                       cy="140"
                       r="112"
-                      stroke="#1E1D2A"
+                      stroke="#EAE4FF"
                       strokeWidth="14"
                       fill="transparent"
                       strokeLinecap="round"
                     />
 
-                    {/* Neon Progress Arc */}
+                    {/* Progress Arc */}
                     <circle
                       cx="140"
                       cy="140"
@@ -576,35 +668,31 @@ function DashboardContent() {
                     />
                   </svg>
 
-                  {/* Center Hub & Huge Numbers */}
-                  <div className="absolute inset-7 rounded-full bg-gradient-to-tr from-[#161520] via-[#1E1D2A] to-[#282637] border border-line flex flex-col items-center justify-center text-center p-6 shadow-inner z-20">
-                    {/* Subtle Crosshair Dial Spokes */}
-                    <div className="absolute w-full h-[1px] bg-line/40 pointer-events-none" />
-                    <div className="absolute h-full w-[1px] bg-line/40 pointer-events-none" />
-
-                    <span className="text-xs text-muted font-medium mb-1 relative z-10">
+                  {/* Center Hub & Numbers */}
+                  <div className="absolute inset-7 rounded-full bg-surface border-2 border-ink flex flex-col items-center justify-center text-center p-6 shadow-[4px_4px_0_var(--ink)] z-20">
+                    <span className="text-xs text-muted font-bold mb-1 relative z-10">
                       {isArabic ? "المبلغ المحفوظ" : "Saved so far"}
                     </span>
 
                     <div className="flex items-baseline justify-center gap-1.5 relative z-10">
-                      <span className="text-4xl sm:text-5xl font-black text-text tracking-tight tabular-nums">
+                      <span className="text-4xl sm:text-5xl font-black text-ink tracking-tight tabular-nums font-heading">
                         {formatKWD(vault.currentBalance)}
                       </span>
-                      <span className="text-sm font-bold text-accent">
+                      <span className="text-sm font-extrabold text-violet">
                         {isArabic ? "د.ك" : "KWD"}
                       </span>
                     </div>
 
-                    <span className="text-xs text-muted mt-2 font-mono relative z-10">
+                    <span className="text-xs text-muted mt-2 font-mono font-bold relative z-10">
                       {isArabic ? "الهدف:" : "Goal:"} {formatKWD(vault.targetAmount)} ({percentFunded}%)
                     </span>
                   </div>
                 </div>
 
-                {/* One Status Line Under the Dial */}
+                {/* Status Line Under Dial */}
                 <div className="mt-4 text-center">
-                  <p className="text-xs sm:text-sm text-muted font-medium flex items-center justify-center gap-2">
-                    <Clock className="w-4 h-4 text-accent" />
+                  <p className="text-xs sm:text-sm text-ink font-bold flex items-center justify-center gap-2">
+                    <Clock className="w-4 h-4 text-violet shrink-0" />
                     <span>
                       {isArabic
                         ? `التوفير القادم: ${formatKWD(vault.pullAmount)} د.ك في ${nextDateFormatted}`
@@ -617,8 +705,8 @@ function DashboardContent() {
               {/* Real Denials Pill (Only shown if real denials exist in DB) */}
               {(vault.denialsCount ?? 0) > 0 && (
                 <div className="pt-2 text-center">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-btn bg-raised border border-line text-xs text-muted">
-                    <ShieldCheck className="w-3.5 h-3.5 text-accent" />
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-lime border-2 border-ink text-xs font-bold text-ink shadow-[2px_2px_0_var(--ink)]">
+                    <ShieldCheck className="w-3.5 h-3.5 text-ink" />
                     <span>
                       {isArabic
                         ? `تم تجنب ${vault.denialsCount} محاولات كسر (${formatKWD(vault.totalProtected)} د.ك محمية)`
@@ -634,8 +722,9 @@ function DashboardContent() {
               {/* Primary Lime: Add money */}
               <button
                 type="button"
+                id="add-money-now-btn"
                 onClick={() => setShowTopUpModal(true)}
-                className="tactile-btn flex-1 py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm sm:text-base shadow-limeGlow flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+                className="btn-hard flex-1 py-4 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>{t("dashboard.addMoneyAction")}</span>
                 <ArrowRight className="w-4 h-4 rtl:rotate-180" />
@@ -652,10 +741,10 @@ function DashboardContent() {
                   setShowBreakSheet(true);
                 }}
                 className={cn(
-                  "flex-1 py-4 px-6 rounded-btn border font-bold text-sm sm:text-base transition-colors flex items-center justify-center gap-2",
+                  "btn-hard flex-1 py-4 px-6 border-2 font-bold text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer",
                   isPendingBreak
-                    ? "border-coral/40 bg-coral/10 text-coral cursor-not-allowed opacity-90"
-                    : "border-line bg-surface hover:bg-raised text-muted hover:text-text"
+                    ? "border-coral bg-coral/10 text-coral cursor-not-allowed opacity-90 shadow-[2px_2px_0_var(--coral)]"
+                    : "border-ink bg-surface text-ink hover:bg-coral/10 hover:text-coral shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5"
                 )}
               >
                 <span>
@@ -672,18 +761,18 @@ function DashboardContent() {
           {/* ── RIGHT COLUMN (lg:col-span-5): WEEKLY PACING + LEDGER ── */}
           <div className="lg:col-span-5 space-y-6">
             {/* WEEKLY PACING: Clean 4-bar chart rendering at full height immediately */}
-            <div className="bg-surface border border-line rounded-card p-6 shadow-card space-y-4">
+            <div className="card-hard bg-surface border-2 border-ink p-6 shadow-[4px_4px_0_var(--ink)] space-y-4">
               <div>
-                <h3 className="font-extrabold text-base text-text">
+                <h3 className="font-extrabold text-base text-ink font-heading">
                   {t("dashboard.pacingTitle")}
                 </h3>
-                <p className="text-xs text-muted mt-0.5">
+                <p className="text-xs text-muted font-medium mt-0.5">
                   {t("dashboard.pacingSubtitle")}
                 </p>
               </div>
 
               {/* 4 Clean Proportional Bars */}
-              <div className="h-36 pt-4 flex items-end justify-between gap-3 px-2 border-b border-line pb-3">
+              <div className="h-36 pt-4 flex items-end justify-between gap-3 px-2 border-b-2 border-ink/10 pb-3">
                 {pacingWeeks.map((w, idx) => {
                   const barHeightPercent = Math.max(
                     18,
@@ -694,25 +783,25 @@ function DashboardContent() {
                   return (
                     <div key={w.week} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
                       {/* Amount above bar */}
-                      <span className="text-xs font-mono font-bold text-muted tabular-nums">
+                      <span className="text-xs font-mono font-bold text-ink tabular-nums">
                         {w.amount}
                       </span>
 
-                      {/* Bar (Renders at full height immediately, NO delayed animation) */}
-                      <div className="w-full max-w-[48px] bg-raised rounded-t-xl overflow-hidden flex flex-col justify-end h-24">
+                      {/* Bar */}
+                      <div className="w-full max-w-[48px] bg-bg border-2 border-ink rounded-t-xl overflow-hidden flex flex-col justify-end h-24">
                         <div
                           style={{ height: `${barHeightPercent}%` }}
                           className={cn(
-                            "w-full rounded-t-xl transition-none",
+                            "w-full rounded-t-lg transition-none",
                             isCurrentWeek
-                              ? "bg-accent shadow-limeGlow"
-                              : "bg-violet/70"
+                              ? "bg-lime"
+                              : "bg-violet"
                           )}
                         />
                       </div>
 
                       {/* Label below bar */}
-                      <span className="text-xs text-muted font-medium">
+                      <span className="text-xs text-muted font-bold">
                         {w.label}
                       </span>
                     </div>
@@ -722,22 +811,22 @@ function DashboardContent() {
             </div>
 
             {/* ACTIVITY LEDGER: Simple list, newest first, real timestamps, no clipped rows */}
-            <div className="bg-surface border border-line rounded-card p-6 shadow-card space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-line">
-                <h3 className="font-extrabold text-base text-text">
+            <div className="card-hard bg-surface border-2 border-ink p-6 shadow-[4px_4px_0_var(--ink)] space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b-2 border-ink/10">
+                <h3 className="font-extrabold text-base text-ink font-heading">
                   {t("dashboard.recentActivity")}
                 </h3>
-                <span className="text-xs font-mono text-muted">
+                <span className="text-xs font-mono font-bold text-muted">
                   {sortedTransactions.length} {isArabic ? "حركات" : "entries"}
                 </span>
               </div>
 
               {sortedTransactions.length === 0 ? (
-                <div className="py-8 text-center text-xs text-muted">
+                <div className="py-8 text-center text-xs text-muted font-medium">
                   {t("dashboard.noActivity")}
                 </div>
               ) : (
-                <div className="max-h-72 overflow-y-auto space-y-3 pe-1 scrollbar-thin">
+                <div className="max-h-72 overflow-y-auto space-y-2.5 pe-1 scrollbar-thin">
                   {sortedTransactions.map((tx, idx) => {
                     const isCredit =
                       tx.type === "TOP_UP" ||
@@ -751,13 +840,13 @@ function DashboardContent() {
                     return (
                       <div
                         key={tx._id || idx}
-                        className="p-3 rounded-2xl bg-raised/70 border border-line flex items-center justify-between gap-3 text-xs"
+                        className="p-3 rounded-2xl bg-bg border-2 border-ink flex items-center justify-between gap-3 text-xs shadow-[1px_1px_0_var(--ink)]"
                       >
                         <div className="space-y-0.5">
-                          <p className="font-bold text-text">
+                          <p className="font-bold text-ink">
                             {tx.note || tx.type.replace(/_/g, " ")}
                           </p>
-                          <p className="text-xs text-muted font-mono">
+                          <p className="text-xs text-muted font-mono font-medium">
                             {formatDate(tx.createdAt, lang)}
                           </p>
                         </div>
@@ -767,7 +856,7 @@ function DashboardContent() {
                             className={cn(
                               "font-mono font-extrabold text-xs sm:text-sm tabular-nums",
                               isCredit
-                                ? "text-accent"
+                                ? "text-violet"
                                 : isDebit
                                 ? "text-coral"
                                 : "text-muted"
@@ -841,27 +930,44 @@ function DashboardContent() {
                   <button
                     type="button"
                     onClick={() => setShowBreakSheet(false)}
-                    className="tactile-btn flex-1 py-3.5 px-5 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow"
+                    className="btn-hard flex-1 py-3.5 px-5 bg-lime text-ink font-extrabold text-sm shadow-[3px_3px_0_var(--ink)] cursor-pointer"
                   >
                     {t("dashboard.keepLockedBtn")}
                   </button>
 
-                  {/* Secondary: Send to Keyholder */}
+                  {/* Secondary: Send to Keyholder (Ahmed - 5% fee) */}
                   <button
                     type="button"
                     disabled={reasonText.trim().length < 10 || loadingRoast}
                     onClick={handleFetchRoast}
-                    className="flex-1 py-3.5 px-5 rounded-btn border border-line bg-surface hover:bg-raised text-text font-bold text-sm disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+                    className="btn-hard flex-1 py-3.5 px-5 bg-surface text-ink font-bold text-sm disabled:opacity-40 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-[3px_3px_0_var(--ink)]"
                   >
                     {loadingRoast ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                      <Loader2 className="w-4 h-4 animate-spin text-violet" />
                     ) : (
                       <span>
                         {isArabic
-                          ? `أرسل لـ ${keyholderFirstName}`
-                          : `Send to ${keyholderFirstName}`}
+                          ? `طلب إذن ${keyholderFirstName} (خصم 5%)`
+                          : `Ask ${keyholderFirstName} (5% fee)`}
                       </span>
                     )}
+                  </button>
+                </div>
+
+                {/* Option B: Emergency Solo Break (15% penalty fee, 85% refund) */}
+                <div className="pt-2 border-t-2 border-ink/10">
+                  <button
+                    type="button"
+                    disabled={submittingBreak}
+                    onClick={handleEmergencyBreak}
+                    className="w-full py-3 px-4 rounded-xl border-2 border-coral bg-coral/10 hover:bg-coral/20 text-coral font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-[2px_2px_0_var(--coral)]"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 text-coral shrink-0" />
+                    <span>
+                      {isArabic
+                        ? "أو كسر فوري بنفسك الآن (خصم 15% رسوم طوارئ)"
+                        : "Or break immediately alone (15% emergency fee)"}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -929,7 +1035,7 @@ function DashboardContent() {
                   </h2>
                   <p className="text-xs text-muted max-w-sm mx-auto leading-relaxed">
                     {isArabic
-                      ? `تم إنشاء رابط الفتح ذو الاستخدام الواحد. أرسل الرسالة لفهد عبر واتساب ليقرر.`
+                      ? `تم إنشاء رابط الفتح ذو الاستخدام الواحد. أرسل الرسالة لأحمد عبر واتساب ليقرر.`
                       : `Your single-use clearance link is ready. Send it to ${keyholderFirstName} on WhatsApp for his decision.`}
                   </p>
                 </div>

@@ -185,23 +185,26 @@ export default function LandingPage() {
             </div>
 
             {/* End Column: 3D Vault with 3 Floating Bobbing HTML Stickers */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center relative min-h-[300px] sm:min-h-[460px] overflow-visible pointer-events-auto">
+            <div
+              id="vault-3d-anchor"
+              className="w-full lg:w-1/2 flex items-center justify-center relative min-h-[220px] sm:min-h-[340px] lg:min-h-[460px] overflow-visible pointer-events-auto"
+            >
               {/* Interactive Click Target on Vault to spin wheel */}
               <button
                 type="button"
                 onClick={handleVaultClick}
-                className="w-[260px] sm:w-[380px] h-[260px] sm:h-[380px] rounded-full cursor-pointer focus:outline-none focus:ring-0 active:scale-95 transition-transform"
+                className="w-[140px] sm:w-[300px] lg:w-[360px] h-[140px] sm:h-[300px] lg:h-[360px] rounded-full cursor-pointer focus:outline-none focus:ring-0 active:scale-95 transition-transform"
                 aria-label="Spin the vault wheel"
               />
 
               {/* Sticker A: Lime (+25 KWD locked) */}
               <div
-                className={`absolute top-[8%] start-[3%] sm:start-[8%] z-20 animate-sticker-bob-1 pointer-events-none transition-transform duration-300 ${
+                className={`absolute top-[4%] start-[4%] sm:start-[8%] z-20 animate-sticker-bob-1 pointer-events-none transition-transform duration-300 ${
                   stickersPulsing ? "scale-110" : ""
                 }`}
                 style={{ "--rot": "-3deg" } as React.CSSProperties}
               >
-                <div className="px-3.5 py-1.5 rounded-full bg-lime border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none whitespace-nowrap">
+                <div className="px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-lime border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none whitespace-nowrap">
                   <Lock className="w-3.5 h-3.5 text-ink shrink-0" />
                   <span>{t("landing.stickerLocked")}</span>
                 </div>
@@ -209,12 +212,12 @@ export default function LandingPage() {
 
               {/* Sticker B: Coral (Ahmed said no) */}
               <div
-                className={`absolute top-[48%] end-[1%] sm:end-[6%] z-20 animate-sticker-bob-2 pointer-events-none transition-transform duration-300 ${
+                className={`absolute top-[46%] end-[2%] sm:end-[6%] z-20 animate-sticker-bob-2 pointer-events-none transition-transform duration-300 ${
                   stickersPulsing ? "scale-110" : ""
                 }`}
                 style={{ "--rot": "2.5deg" } as React.CSSProperties}
               >
-                <div className="px-3.5 py-1.5 rounded-full bg-coral border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white select-none whitespace-nowrap">
+                <div className="px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-coral border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white select-none whitespace-nowrap">
                   <Shield className="w-3.5 h-3.5 text-white shrink-0" />
                   <span>{t("landing.stickerFahadNo")}</span>
                 </div>
@@ -222,12 +225,12 @@ export default function LandingPage() {
 
               {/* Sticker C: Sun (18-day streak) */}
               <div
-                className={`absolute bottom-[10%] start-[4%] sm:start-[12%] z-20 animate-sticker-bob-3 pointer-events-none transition-transform duration-300 ${
+                className={`absolute bottom-[4%] start-[6%] sm:start-[12%] z-20 animate-sticker-bob-3 pointer-events-none transition-transform duration-300 ${
                   stickersPulsing ? "scale-110" : ""
                 }`}
                 style={{ "--rot": "-2deg" } as React.CSSProperties}
               >
-                <div className="px-3.5 py-1.5 rounded-full bg-sun border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none whitespace-nowrap">
+                <div className="px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-sun border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none whitespace-nowrap">
                   <Flame className="w-3.5 h-3.5 text-ink shrink-0" />
                   <span>{t("landing.stickerStreak")}</span>
                 </div>

@@ -156,7 +156,7 @@ async function run() {
     console.log("Requesting AI reality check roast...");
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll("button"));
-      const sendBtn = btns.find((b) => b.textContent && (b.textContent.includes("Send to") || b.textContent.includes("أرسل")));
+      const sendBtn = btns.find((b) => b.textContent && (b.textContent.includes("Ask") || b.textContent.includes("Send to") || b.textContent.includes("أرسل") || b.textContent.includes("طلب إذن")));
       if (sendBtn) sendBtn.click();
     });
 

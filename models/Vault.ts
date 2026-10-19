@@ -13,19 +13,28 @@ export interface ITransaction {
 export interface IKeyholder {
   name: string;
   phone: string;
-  relationship: string;
+  relationship?: string;
+  avatar?: string;
 }
 
 export interface IVault extends Document {
   userId?: mongoose.Types.ObjectId;
   title: string;
+  titleAr?: string;
   targetAmount: number;
   currentBalance: number;
+  currency?: string;
   totalProtected: number; // Increments when Keyholder clicks "Deny & Protect"
   streakCount: number; // Days/cycles without breaking vault
+  streakDays?: number;
   denialsCount?: number; // Total number of times break was denied
-  cadence: "daily" | "weekly" | "biweekly" | "monthly";
+  penaltyFeeRate?: number;
+  friendFeeRate?: number;
+  cadence: "daily" | "weekly" | "biweekly" | "monthly" | "custom";
+  customCadenceDays?: number;
   pullAmount: number;
+  incrementalSavingsType?: "fixed" | "percent" | "none";
+  incrementalSavingsValue?: number;
   allowanceDay: number;
   targetDate: Date;
   nextPullAt?: Date;
@@ -34,8 +43,13 @@ export interface IVault extends Document {
   processedPaymentIntents?: string[];
   status: "LOCKED" | "UNLOCK_PENDING" | "UNLOCKED";
   keyholder: IKeyholder;
+  keyholderName?: string;
+  keyholderNameAr?: string;
+  keyholderPhone?: string;
+  keyholderPin?: string | null;
   unlockToken?: string | null;
   unlockReason?: string | null;
+  unlockMethod?: "friend_approved" | "emergency_self_break" | "FRIEND_APPROVAL" | "EMERGENCY_SOLO" | string | null;
   realityCheck?: string | null;
   breakExcuse?: string | null;
   transactions: ITransaction[];
@@ -82,7 +96,10 @@ const VaultSchema = new Schema<IVault>(
     streakCount: { type: Number, default: 0 },
     denialsCount: { type: Number, default: 0 },
     cadence: { type: String, default: "weekly" },
+    customCadenceDays: { type: Number, default: 7 },
     pullAmount: { type: Number, required: true },
+    incrementalSavingsType: { type: String, enum: ["fixed", "percent", "none"], default: "none" },
+    incrementalSavingsValue: { type: Number, default: 0 },
     allowanceDay: { type: Number, default: 25 },
     targetDate: { type: Date, required: true },
     nextPullAt: { type: Date, default: null, index: true },
@@ -94,13 +111,23 @@ const VaultSchema = new Schema<IVault>(
       enum: ["LOCKED", "UNLOCK_PENDING", "UNLOCKED"],
       default: "LOCKED",
     },
+    titleAr: { type: String, default: null },
+    currency: { type: String, default: "KWD" },
+    streakDays: { type: Number, default: 0 },
+    penaltyFeeRate: { type: Number, default: 0.15 },
+    friendFeeRate: { type: Number, default: 0.05 },
     keyholder: {
       name: { type: String, required: true },
       phone: { type: String, required: true },
       relationship: { type: String, default: "Best Friend" },
     },
+    keyholderName: { type: String, default: null },
+    keyholderNameAr: { type: String, default: null },
+    keyholderPhone: { type: String, default: null },
+    keyholderPin: { type: String, default: "123456" },
     unlockToken: { type: String, default: null, index: true },
     unlockReason: { type: String, default: null },
+    unlockMethod: { type: String, enum: ["friend_approved", "emergency_self_break", "FRIEND_APPROVAL", "EMERGENCY_SOLO", null], default: null },
     realityCheck: { type: String, default: null },
     breakExcuse: { type: String, default: null },
     transactions: [TransactionSchema],

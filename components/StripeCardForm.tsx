@@ -97,7 +97,7 @@ function InnerCardForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--line)]">
+      <div className="p-4 rounded-2xl bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
         <PaymentElement
           options={{
             layout: "tabs",
@@ -106,18 +106,18 @@ function InnerCardForm({
       </div>
 
       {isTestMode && (
-        <div className="p-3.5 rounded-xl bg-[var(--raised)] border border-[var(--line)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-[var(--muted)]">
+        <div className="p-3.5 rounded-xl bg-bg border-2 border-ink flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-muted">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+            <span className="w-2.5 h-2.5 rounded-full bg-lime border border-ink" />
             <span>
-              <strong>Test mode:</strong> use <code className="text-[var(--text)] font-mono">4242 4242 4242 4242</code>, any future date, any CVC.
+              <strong>Test mode:</strong> use <code className="text-ink font-mono font-bold">4242 4242 4242 4242</code>, any future date, any CVC.
             </span>
           </div>
           <button
             type="button"
             onClick={handleUseTestCard}
             disabled={loading}
-            className="px-2.5 py-1 rounded-full bg-[var(--line)] hover:bg-[var(--accent)] hover:text-[var(--bg)] text-[var(--text)] transition-colors font-medium text-xs shrink-0"
+            className="px-3 py-1 rounded-full bg-surface border-2 border-ink hover:bg-lime text-ink transition-colors font-bold text-xs shrink-0 shadow-[1px_1px_0_var(--ink)] cursor-pointer"
           >
             Auto-fill Test Card
           </button>
@@ -125,8 +125,8 @@ function InnerCardForm({
       )}
 
       {errorMessage && (
-        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
+        <div className="p-3.5 rounded-xl bg-coral/20 border-2 border-ink text-ink text-sm font-bold flex items-center gap-2 shadow-[2px_2px_0_var(--ink)]">
+          <AlertCircle className="w-4 h-4 text-coral shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
@@ -135,16 +135,16 @@ function InnerCardForm({
         <button
           type="submit"
           disabled={!stripe || loading}
-          className="w-full py-4 rounded-full bg-[var(--accent)] text-[var(--bg)] font-bold text-base hover:opacity-90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(198,255,61,0.25)] disabled:opacity-50"
+          className="btn-hard w-full py-4 rounded-full bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
         >
           {loading ? (
             <>
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin text-ink" />
               <span>Saving Card...</span>
             </>
           ) : (
             <>
-              <Lock className="w-4 h-4" />
+              <Lock className="w-4 h-4 text-ink" />
               <span>{submitLabel}</span>
             </>
           )}
@@ -155,7 +155,7 @@ function InnerCardForm({
             type="button"
             onClick={onSkip}
             disabled={loading}
-            className="w-full py-3 text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+            className="w-full py-3 text-sm text-muted hover:text-ink font-bold transition-colors cursor-pointer"
           >
             {skipLabel}
           </button>
@@ -244,23 +244,25 @@ export default function StripeCardForm({
   if (initError || !stripePromise || !clientSecret) {
     return (
       <div className="space-y-5">
-        <div className="p-6 rounded-2xl bg-surface border border-line space-y-4 shadow-card">
-          <div className="flex items-center gap-3 text-accent">
-            <CreditCard className="w-6 h-6" />
-            <h4 className="font-extrabold text-base text-text">
+        <div className="p-6 rounded-2xl bg-surface border-2 border-ink space-y-4 shadow-[4px_4px_0_var(--ink)]">
+          <div className="flex items-center gap-3 text-ink">
+            <div className="w-10 h-10 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink shadow-[2px_2px_0_var(--ink)]">
+              <CreditCard className="w-5 h-5 text-ink" />
+            </div>
+            <h4 className="font-extrabold text-base text-ink font-heading">
               {isArabic ? "ربط البطاقة البنكية التلقائية" : "Automated Card Deduction"}
             </h4>
           </div>
 
-          <p className="text-sm text-muted leading-relaxed">
+          <p className="text-sm text-muted font-medium leading-relaxed">
             {isArabic
               ? "يتم ربط بطاقتك بأمان للاستقطاع التلقائي في مواعيد التوفير المحددة لحماية أهدافك من الصرف اللحظي."
               : "Link your debit or credit card securely for automatic recurring micro-savings to protect your goals from impulse urges."}
           </p>
 
           {isTestMode && (
-            <div className="p-3.5 rounded-xl bg-raised border border-line text-xs text-muted flex items-start gap-2">
-              <span className="font-bold text-accent shrink-0">
+            <div className="p-3.5 rounded-xl bg-bg border-2 border-ink text-xs text-muted font-medium flex items-start gap-2 shadow-[2px_2px_0_var(--ink)]">
+              <span className="font-bold text-ink shrink-0">
                 {isArabic ? "وضع التجربة:" : "Test Mode:"}
               </span>
               <span>
@@ -275,9 +277,9 @@ export default function StripeCardForm({
             type="button"
             disabled={loading}
             onClick={handleFallbackTestCard}
-            className="w-full py-4 rounded-btn bg-accent text-accent-foreground font-extrabold text-base hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-limeGlow disabled:opacity-50"
+            className="btn-hard w-full py-4 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
-            <Lock className="w-4 h-4" />
+            <Lock className="w-4 h-4 text-ink" />
             <span>
               {isArabic
                 ? "ربط بطاقة تجريبية (Visa •••• 4242)"
@@ -290,7 +292,7 @@ export default function StripeCardForm({
           <button
             type="button"
             onClick={onSkip}
-            className="w-full py-3 text-xs sm:text-sm text-muted hover:text-text transition-colors"
+            className="w-full py-3 text-xs sm:text-sm text-muted hover:text-ink font-bold transition-colors cursor-pointer"
           >
             {skipLabel}
           </button>
@@ -305,12 +307,12 @@ export default function StripeCardForm({
       options={{
         clientSecret,
         appearance: {
-          theme: "night",
+          theme: "stripe",
           variables: {
-            colorPrimary: "#C6FF3D",
-            colorBackground: "#15131F",
-            colorText: "#F5F3FF",
-            colorDanger: "#FF5C7A",
+            colorPrimary: "#6B4DFF",
+            colorBackground: "#FFFFFF",
+            colorText: "#14102B",
+            colorDanger: "#FF5A6E",
             borderRadius: "16px",
           },
         },

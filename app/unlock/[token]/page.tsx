@@ -57,6 +57,9 @@ export default function KeyholderTokenUnlockPage({
   const [alreadyUsed, setAlreadyUsed] = useState(false);
   const [processingAction, setProcessingAction] = useState<"APPROVE" | "DENY" | null>(null);
   const [decisionRecorded, setDecisionRecorded] = useState<"APPROVE" | "DENY" | null>(null);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchVault() {
@@ -78,28 +81,34 @@ export default function KeyholderTokenUnlockPage({
     fetchVault();
   }, [token]);
 
-  const handleDecision = async (action: "APPROVE" | "DENY") => {
+  const handleDecision = async (action: "APPROVE" | "DENY", pinCode?: string) => {
     if (!vault || processingAction) return;
     try {
       setProcessingAction(action);
+      setPinError(null);
       const res = await fetch(`/api/unlock/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, pin: pinCode || pin }),
       });
       const data = await res.json();
       if (data.success) {
+        setShowPinModal(false);
         setDecisionRecorded(action);
         if (action === "DENY") {
           confetti({
             particleCount: 90,
             spread: 70,
             origin: { y: 0.6 },
-            colors: ["#3DFFB0", "#C6FF3D", "#7C5CFF", "#FFFFFF"],
+            colors: ["#CFFF3A", "#6B4DFF", "#2DE0A5", "#14102B"],
           });
         }
       } else {
-        setAlreadyUsed(true);
+        if (data.invalidPin) {
+          setPinError(isArabic ? "الرمز غير صحيح. يرجى إدخال الرمز المكون من 6 أرقام." : "Invalid 6-digit PIN. Please try again.");
+        } else {
+          setAlreadyUsed(true);
+        }
       }
     } catch {
       alert("Network error processing decision.");
@@ -115,11 +124,13 @@ export default function KeyholderTokenUnlockPage({
   // 1. Loading State
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg text-text flex flex-col items-center justify-center p-4">
-        <div className="w-12 h-12 rounded-full border-3 border-line border-t-accent animate-spin" />
-        <p className="mt-4 text-xs font-mono text-muted">
-          {isArabic ? "جاري التحقق من رابط الحماية..." : "Verifying clearance link..."}
-        </p>
+      <div className="min-h-screen bg-bg text-ink flex flex-col items-center justify-center p-4">
+        <div className="card-hard bg-surface p-8 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full border-4 border-ink border-t-lime animate-spin mx-auto" />
+          <p className="text-sm font-bold text-ink">
+            {isArabic ? "جاري التحقق من رابط الحماية..." : "Verifying clearance link..."}
+          </p>
+        </div>
       </div>
     );
   }
@@ -127,32 +138,33 @@ export default function KeyholderTokenUnlockPage({
   // 2. Link Already Used or Expired
   if (alreadyUsed || !vault) {
     return (
-      <div className="min-h-screen bg-bg text-text flex flex-col">
-        {/* Single-line Header without overflow */}
-        <header className="border-b border-line bg-surface/80 backdrop-blur-md px-4 py-3 flex items-center justify-between">
+      <div className="min-h-screen bg-bg text-ink flex flex-col">
+        <header className="border-b-2 border-ink bg-surface px-4 py-3 flex items-center justify-between">
           <BrandLogo href="/" size="sm" showTagline={false} />
           <LanguageSwitcher />
         </header>
 
-        <main className="flex-1 max-w-[390px] w-full mx-auto p-4 sm:p-6 flex flex-col justify-center items-center text-center">
-          <div className="w-16 h-16 rounded-2xl bg-raised border border-line flex items-center justify-center mb-4 text-muted shadow-violetSubtle">
-            <ShieldCheck className="w-8 h-8 text-accent" />
+        <main className="flex-1 max-w-[400px] w-full mx-auto p-4 sm:p-6 flex flex-col justify-center items-center text-center">
+          <div className="card-hard bg-surface p-8 space-y-5 w-full">
+            <div className="w-16 h-16 rounded-2xl bg-lime border-2 border-ink mx-auto flex items-center justify-center text-ink shadow-[2px_2px_0_var(--ink)]">
+              <ShieldCheck className="w-8 h-8 text-ink" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-ink">
+              {isArabic ? "تم استخدام هذا الرابط مسبقاً" : "This link was already used"}
+            </h1>
+            <p className="text-xs sm:text-sm text-muted leading-relaxed">
+              {isArabic
+                ? "تم تسجيل القرار في هذا الرابط الفردي بالفعل. يتم حرق الروابط لمرة واحدة فور استخدامها لحماية مدخراتك من التكرار."
+                : "A decision has already been executed for this clearance request. Single-use links are permanently burned to protect savings."}
+            </p>
+            <Link
+              href="/"
+              className="btn-hard w-full bg-lime text-ink font-bold text-xs sm:text-sm py-3 inline-flex items-center justify-center gap-2"
+            >
+              <span>{isArabic ? "الرجوع لمنصة تِجوري" : "Return to Tijori"}</span>
+              <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+            </Link>
           </div>
-          <h1 className="text-xl font-black text-text mb-2">
-            {isArabic ? "تم استخدام هذا الرابط مسبقاً" : "This link was already used"}
-          </h1>
-          <p className="text-xs text-muted leading-relaxed mb-6">
-            {isArabic
-              ? "تم تسجيل القرار في هذا الرابط الفردي بالفعل. يتم حرق الروابط لمرة واحدة فور استخدامها لحماية مدخراتك من التكرار."
-              : "A decision has already been executed for this clearance request. Single-use links are permanently burned to protect savings."}
-          </p>
-          <Link
-            href="/"
-            className="tactile-btn inline-flex items-center gap-2 px-6 py-3 rounded-btn bg-surface hover:bg-raised border border-line text-xs font-bold text-text hover:text-accent transition-colors"
-          >
-            <span>{isArabic ? "الرجوع لمنصة تِجوري" : "Return to Tijori"}</span>
-            <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
-          </Link>
         </main>
       </div>
     );
@@ -162,85 +174,81 @@ export default function KeyholderTokenUnlockPage({
   if (decisionRecorded) {
     const isDeny = decisionRecorded === "DENY";
     return (
-      <div className="min-h-screen bg-bg text-text flex flex-col">
-        <header className="border-b border-line bg-surface/80 backdrop-blur-md px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-surface border border-line flex items-center justify-center shadow-violetSubtle">
-              <Lock className="w-4 h-4 text-accent" />
-            </div>
-            <span className="font-extrabold text-sm tracking-tight text-text">Tijori</span>
-          </Link>
+      <div className="min-h-screen bg-bg text-ink flex flex-col">
+        <header className="border-b-2 border-ink bg-surface px-4 py-3 flex items-center justify-between">
+          <BrandLogo href="/" size="sm" showTagline={false} />
           <LanguageSwitcher />
         </header>
 
-        <main className="flex-1 max-w-[390px] w-full mx-auto p-4 sm:p-6 flex flex-col justify-center items-center text-center space-y-6">
-          <div
-            className={`w-20 h-20 rounded-3xl flex items-center justify-center border ${
-              isDeny
-                ? "bg-[#3DFFB0]/15 border-[#3DFFB0]/40 text-[#3DFFB0] shadow-limeGlow"
-                : "bg-coral/15 border-coral/40 text-coral"
-            }`}
-          >
-            {isDeny ? <ShieldCheck className="w-10 h-10" /> : <XCircle className="w-10 h-10" />}
-          </div>
+        <main className="flex-1 max-w-[420px] w-full mx-auto p-4 sm:p-6 flex flex-col justify-center items-center text-center space-y-6">
+          <div className="card-hard bg-surface p-8 space-y-6 w-full text-center">
+            <div
+              className={`w-20 h-20 rounded-3xl mx-auto flex items-center justify-center border-2 border-ink shadow-[3px_3px_0_var(--ink)] ${
+                isDeny
+                  ? "bg-lime text-ink"
+                  : "bg-coral text-white"
+              }`}
+            >
+              {isDeny ? <ShieldCheck className="w-10 h-10" /> : <XCircle className="w-10 h-10" />}
+            </div>
 
-          <div className="space-y-2">
-            <h1 className="text-2xl font-black text-text">
-              {isDeny
-                ? isArabic ? "كفو! تم حفظ المدخرات" : "Vault Kept Locked!"
-                : isArabic ? "تم تأكيد فك الخزينة" : "Break Approved"}
-            </h1>
-            <p className="text-xs text-muted leading-relaxed">
-              {isDeny
-                ? isArabic
-                  ? `أحسنت التصرف! تم رفض كسر الخزينة بنجاح، ومدخرات ${applicantName} (${formatKWD(vault.currentBalance)} د.ك) لا زالت بأمان وسلسلة التزامه مستمرة.`
-                  : `Hero move! You blocked the impulse break. ${applicantName}'s savings (${formatKWD(vault.currentBalance)} KWD) remain 100% locked and his streak is alive.`
-                : isArabic
-                  ? `تم الإفراج عن المبلغ بعد خصم 5% رسوم التزام، وإرسال الاسترداد عبر Stripe.`
-                  : `Vault broken. Payout issued (minus 5% discipline fee) via Stripe refund.`}
-            </p>
-          </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-ink font-heading">
+                {isDeny
+                  ? isArabic ? "كفو! تم حفظ المدخرات" : "Vault Kept Locked!"
+                  : isArabic ? "تم تأكيد فك الخزينة" : "Break Approved"}
+              </h1>
+              <p className="text-xs sm:text-sm text-muted leading-relaxed">
+                {isDeny
+                  ? isArabic
+                    ? `أحسنت التصرف! تم رفض كسر الخزينة بنجاح، ومدخرات ${applicantName} (${formatKWD(vault.currentBalance)} د.ك) لا زالت بأمان وسلسلة التزامه مستمرة.`
+                    : `Hero move! You blocked the impulse break. ${applicantName}'s savings (${formatKWD(vault.currentBalance)} KWD) remain 100% locked and his streak is alive.`
+                  : isArabic
+                    ? `تم الإفراج عن المبلغ بعد خصم 5% رسوم التزام، وإرسال الاسترداد عبر Stripe.`
+                    : `Vault broken. Payout issued (minus 5% discipline fee) via Stripe refund.`}
+              </p>
+            </div>
 
-          <div className="p-3.5 rounded-xl bg-surface border border-line text-xs text-muted w-full font-mono">
-            {isArabic
-              ? "تم حرق الرابط بنجاح ولا يمكن إعادة استخدامه."
-              : "Single-use authorization token has been burned."}
-          </div>
+            <div className="p-3.5 rounded-xl bg-bg border-2 border-ink text-xs text-muted w-full font-mono font-bold">
+              {isArabic
+                ? "تم حرق الرابط بنجاح ولا يمكن إعادة استخدامه."
+                : "Single-use authorization token has been burned."}
+            </div>
 
-          <Link
-            href="/"
-            className="tactile-btn inline-flex items-center gap-2 px-6 py-3 rounded-btn bg-surface hover:bg-raised border border-line text-xs font-bold text-text hover:text-accent transition-colors"
-          >
-            <span>{isArabic ? "الرجوع للرئيسية" : "Return to Home"}</span>
-            <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
-          </Link>
+            <Link
+              href="/"
+              className="btn-hard w-full bg-lime text-ink font-bold text-xs sm:text-sm py-3.5 inline-flex items-center justify-center gap-2"
+            >
+              <span>{isArabic ? "الرجوع للرئيسية" : "Return to Home"}</span>
+              <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+            </Link>
+          </div>
         </main>
       </div>
     );
   }
 
-  // 4. Main Clearance Decision View (Mobile-First 390px, Zero Header Overflow)
+  // 4. Main Clearance Decision View (Light Neobrutalism)
   const excuseText = vault.unlockReason || vault.breakExcuse || (isArabic ? "رغبة شراء لحظية" : "Impulse purchase urge");
   const streak = vault.streakCount || 0;
   const denials = vault.denialsCount || 0;
 
   return (
-    <div className="min-h-screen bg-bg text-text flex flex-col selection:bg-accent/20 selection:text-accent">
-      {/* Single-line Header with NO overflow */}
-      <header className="border-b border-line bg-surface/90 backdrop-blur-md px-4 py-3 flex items-center justify-between sticky top-0 z-40">
+    <div className="min-h-screen bg-bg text-ink flex flex-col selection:bg-lime selection:text-ink">
+      <header className="border-b-2 border-ink bg-surface px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_0_var(--ink)]">
         <BrandLogo href="/" size="sm" showTagline={false} />
         <LanguageSwitcher />
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-[390px] w-full mx-auto p-4 sm:p-5 space-y-4">
+      <main className="flex-1 max-w-[420px] w-full mx-auto p-4 sm:p-6 space-y-4">
         {/* Headline */}
-        <div className="text-start space-y-1">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-coral/10 border border-coral/30 text-coral text-xs font-bold">
-            <ShieldAlert className="w-3 h-3" />
+        <div className="text-start space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-coral text-white border-2 border-ink text-xs font-bold shadow-[2px_2px_0_var(--ink)]">
+            <ShieldAlert className="w-3.5 h-3.5 text-white" />
             <span>{isArabic ? "طلب كسر معلّق" : "Clearance Request"}</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-text tracking-tight leading-snug">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight font-heading leading-tight">
             {isArabic
               ? `${guardianFirstName}، ${applicantName} يبي يكسر تِجوريه.`
               : `${guardianFirstName}, ${applicantName} wants to break his vault.`}
@@ -248,47 +256,47 @@ export default function KeyholderTokenUnlockPage({
         </div>
 
         {/* Goal & Amount at Stake Card */}
-        <div className="bg-surface border border-line rounded-card p-4 space-y-3 shadow-card">
-          <div className="flex items-center justify-between text-xs text-muted">
+        <div className="card-hard bg-surface p-5 space-y-3">
+          <div className="flex items-center justify-between text-xs font-bold text-muted">
             <span>{isArabic ? "الهدف المحفوظ" : "Savings Goal"}</span>
-            <span className="font-medium text-text">{vault.title}</span>
+            <span className="text-ink">{vault.title}</span>
           </div>
 
           <div className="pt-1">
-            <span className="text-xs text-muted block">{isArabic ? "المبلغ المعرض للكسر" : "Amount at stake"}</span>
+            <span className="text-xs font-bold text-muted block">{isArabic ? "المبلغ المعرض للكسر" : "Amount at stake"}</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl sm:text-4xl font-black tracking-tight text-text tabular-nums">
+              <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink tabular-nums font-heading">
                 {formatKWD(vault.currentBalance)}
               </span>
-              <span className="text-sm font-bold text-accent">
+              <span className="text-sm font-bold text-violet">
                 {isArabic ? "د.ك" : "KWD"}
               </span>
             </div>
           </div>
         </div>
 
-        {/* User Excuse Quote Card with Bidi Isolation to prevent inverted quotation marks */}
-        <div className="bg-raised border border-violet/30 rounded-card p-4 space-y-2 shadow-sm">
-          <div className="flex items-center justify-between text-xs text-muted">
-            <span className="font-bold text-[#E3DAFC]">
+        {/* User Excuse Quote Card */}
+        <div className="card-hard bg-[#F6F2FF] p-4 space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold text-ink">
+            <span>
               {isArabic ? `عذر ${applicantName}:` : `${applicantName}'s stated excuse:`}
             </span>
             <span className="text-xs text-muted font-mono">
               {isArabic ? "مكتوب بخط يده" : "Applicant note"}
             </span>
           </div>
-          <blockquote className="text-xs sm:text-sm font-semibold text-text italic leading-relaxed" dir="auto">
+          <blockquote className="text-xs sm:text-sm font-semibold text-ink italic leading-relaxed" dir="auto">
             <bdi>&ldquo;{excuseText}&rdquo;</bdi>
           </blockquote>
         </div>
 
-        {/* Neutral AI Briefing Line (Fact-based, does NOT tell Fahad what to decide) */}
-        <div className="p-3.5 rounded-2xl bg-surface border border-line space-y-1.5 shadow-sm text-start">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-accent">
-            <Sparkles className="w-3.5 h-3.5 text-accent" />
+        {/* Neutral AI Briefing Line */}
+        <div className="card-hard bg-surface p-4 space-y-2 text-start">
+          <div className="flex items-center gap-1.5 text-xs font-extrabold text-violet">
+            <Sparkles className="w-3.5 h-3.5 text-violet" />
             <span>{isArabic ? "بيانات الذكاء المحايدة" : "Neutral AI Briefing"}</span>
           </div>
-          <p className="text-xs text-muted leading-relaxed">
+          <p className="text-xs sm:text-sm text-muted leading-relaxed font-medium">
             {isArabic
               ? `${applicantName} محافظ على سلسلة التزام لمدة ${streak} يوم، ولديه ${denials} محاولات كسر سابقة. القرار النهائي بيدك وحدك كرفيقه الموثوق.`
               : `${applicantName} has maintained an active ${streak}-day savings streak with ${denials} previous break attempts. The final decision rests entirely in your hands as his trusted friend.`}
@@ -297,12 +305,12 @@ export default function KeyholderTokenUnlockPage({
 
         {/* Two Equal-Weight Big Buttons */}
         <div className="space-y-3 pt-2">
-          {/* 1. Keep it locked (Consistent Signature Neon Lime) */}
+          {/* 1. Keep it locked */}
           <button
             type="button"
             disabled={processingAction !== null}
             onClick={() => handleDecision("DENY")}
-            className="tactile-btn w-full py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm sm:text-base shadow-limeGlow flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+            className="btn-hard w-full py-4 px-6 bg-lime text-ink font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer shadow-[4px_4px_0_var(--ink)]"
           >
             <Lock className="w-4 h-4" />
             <span>
@@ -312,29 +320,92 @@ export default function KeyholderTokenUnlockPage({
             </span>
           </button>
 
-          {/* 2. Let him have it */}
+          {/* 2. Let him have it -> Opens PIN verification modal */}
           <button
             type="button"
             disabled={processingAction !== null}
-            onClick={() => handleDecision("APPROVE")}
-            className="w-full py-3.5 px-6 rounded-btn border border-coral/60 bg-coral/15 hover:bg-coral/25 text-coral font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+            onClick={() => {
+              setPin("");
+              setPinError(null);
+              setShowPinModal(true);
+            }}
+            className="btn-hard w-full py-3.5 px-6 bg-surface text-coral border-2 border-coral hover:bg-[#FFEBEF] font-bold text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer shadow-[3px_3px_0_var(--coral)]"
           >
             <XCircle className="w-4 h-4" />
             <span>
-              {processingAction === "APPROVE"
-                ? isArabic ? "جاري الفتح..." : "Unlocking..."
-                : isArabic ? "خلّه يصرف" : "Let him have it"}
+              {isArabic ? "خلّه يصرف" : "Let him have it"}
             </span>
           </button>
         </div>
 
         {/* Small Discipline Fee Disclaimer */}
-        <p className="text-xs text-muted text-center pt-1 leading-normal">
+        <p className="text-xs text-muted text-center pt-1 leading-normal font-medium">
           {isArabic
             ? "في حال الموافقة يُخصم 5% رسوم انضباط ويُسترد 95%. في حال الرفض لا يُخصم أي فلس."
             : "If approved, a 5% discipline fee is deducted (95% refund). If locked, 0% is charged."}
         </p>
       </main>
+
+      {/* 6-Digit PIN Verification Modal */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="card-hard bg-surface max-w-sm w-full p-6 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="text-center space-y-1">
+              <div className="w-12 h-12 rounded-2xl bg-coral/10 border-2 border-coral mx-auto flex items-center justify-center text-coral mb-2">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-extrabold text-ink font-heading">
+                {isArabic ? "أدخل رمز التفويض" : "Keyholder Authorization PIN"}
+              </h2>
+              <p className="text-xs text-muted leading-relaxed font-medium">
+                {isArabic
+                  ? `أدخل رمزك المكون من 6 أرقام لتأكيد كسر الخزينة وإعادة 95% من المدخرات.`
+                  : `Enter your 6-digit PIN to authorize breaking the vault and releasing 95% payout.`}
+              </p>
+            </div>
+
+            {pinError && (
+              <div className="p-3 rounded-xl bg-coral/10 border-2 border-coral text-coral text-xs font-bold text-center">
+                {pinError}
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                autoFocus
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="••••••"
+                className="w-full text-center text-2xl tracking-[0.5em] font-mono font-black py-3.5 bg-bg border-2 border-ink rounded-xl focus:outline-none focus:ring-2 focus:ring-violet"
+              />
+              <p className="text-[11px] text-muted text-center pt-1 font-mono">
+                {isArabic ? "الرمز الافتراضي: 123456" : "Default PIN: 123456"}
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowPinModal(false)}
+                className="flex-1 py-3 px-4 rounded-btn border-2 border-ink bg-surface text-ink font-bold text-xs cursor-pointer hover:bg-bg transition-colors"
+              >
+                {isArabic ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                type="button"
+                disabled={pin.length < 6 || processingAction !== null}
+                onClick={() => handleDecision("APPROVE", pin)}
+                className="flex-1 btn-hard py-3 px-4 bg-coral text-white font-extrabold text-xs cursor-pointer disabled:opacity-50"
+              >
+                {processingAction === "APPROVE" ? (isArabic ? "جاري التأكيد..." : "Verifying...") : (isArabic ? "تأكيد الفك" : "Authorize")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

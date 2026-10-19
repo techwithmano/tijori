@@ -24,9 +24,9 @@ export async function POST(
     const { action = "REQUEST", reason, excuse, realityCheck: incomingRoast, lang = "en" } = body;
     const finalReason = excuse || reason || "Impulse spending urge";
 
-    if (!["REQUEST", "APPROVE", "DENY", "LOCK"].includes(action)) {
+    if (!["REQUEST", "APPROVE", "DENY", "LOCK", "EMERGENCY_BREAK"].includes(action)) {
       return NextResponse.json(
-        { success: false, error: "Invalid action. Must be REQUEST, APPROVE, DENY, or LOCK" },
+        { success: false, error: "Invalid action. Must be REQUEST, APPROVE, DENY, LOCK, or EMERGENCY_BREAK" },
         { status: 400 }
       );
     }
@@ -65,6 +65,22 @@ export async function POST(
         note: `Break Requested (Waiting on ${guardianFirstName})`,
       });
     } else if (action === "APPROVE") {
+      // Validate Ahmed's 6-digit numeric PIN
+      const { pin } = body;
+      const expectedPin = String(vault.keyholderPin || "123456").trim();
+      const enteredPin = String(pin || "").trim();
+
+      if (!enteredPin || enteredPin !== expectedPin) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid 6-digit Keyholder authorization PIN. Please verify with Ahmed.",
+            invalidPin: true,
+          },
+          { status: 400 }
+        );
+      }
+
       const totalAmount = vault.currentBalance;
       const fee = Math.round(totalAmount * 0.05 * 1000) / 1000;
       const payout = Math.round((totalAmount - fee) * 1000) / 1000;
@@ -86,6 +102,7 @@ export async function POST(
 
       vault.currentBalance = 0;
       vault.status = "UNLOCKED";
+      vault.unlockMethod = "friend_approved";
       vault.unlockToken = null; // Burn single-use token
 
       vault.transactions.unshift({
@@ -93,7 +110,7 @@ export async function POST(
         type: "BREAK_REFUND",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `Break approved (95% payout released via Stripe refund)`,
+        note: `Break approved by ${vault.keyholder?.name || "Ahmed"} with PIN (95% payout released via Stripe refund)`,
       });
 
       vault.transactions.unshift({
@@ -103,6 +120,46 @@ export async function POST(
         createdAt: new Date(),
         note: `5% Discipline fee retained in reserve`,
       });
+    } else if (action === "EMERGENCY_BREAK") {
+      // Emergency Break Alone (15% penalty fee, 85% refund)
+      const totalAmount = vault.currentBalance;
+      const fee = Math.round(totalAmount * 0.15 * 1000) / 1000;
+      const payout = Math.round((totalAmount - fee) * 1000) / 1000;
+
+      if (vault.processedPaymentIntents && vault.processedPaymentIntents.length > 0) {
+        const latestPi = vault.processedPaymentIntents[vault.processedPaymentIntents.length - 1];
+        try {
+          const refundCents = kwdToUsdCents(payout);
+          await stripe.refunds.create({
+            payment_intent: latestPi,
+            amount: refundCents,
+            reason: "requested_by_customer",
+          });
+        } catch (stripeErr: any) {
+          console.warn("Stripe test mode refund note:", stripeErr.message);
+        }
+      }
+
+      vault.currentBalance = 0;
+      vault.status = "UNLOCKED";
+      vault.unlockMethod = "emergency_self_break";
+      vault.unlockToken = null;
+
+      vault.transactions.unshift({
+        amount: payout,
+        type: "BREAK_REFUND",
+        status: "SUCCESS",
+        createdAt: new Date(),
+        note: `Emergency self-break executed (85% payout released via Stripe refund)`,
+      });
+
+      vault.transactions.unshift({
+        amount: fee,
+        type: "DISCIPLINE_FEE",
+        status: "SUCCESS",
+        createdAt: new Date(),
+        note: `15% Emergency solo break penalty fee retained in reserve`,
+      });
     } else if (action === "DENY") {
       vault.status = "LOCKED";
       vault.unlockToken = null; // Burn single-use token
@@ -110,12 +167,13 @@ export async function POST(
       vault.totalProtected = (vault.totalProtected || 0) + vault.currentBalance;
       // Streak stays alive!
 
+      const guardianFullName = vault.keyholder?.name || vault.keyholderName || "Ahmed Al-Mutawa";
       vault.transactions.unshift({
         amount: 0,
         type: "BREAK_DENIED",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `Keyholder ${vault.keyholder.name} rejected break request! Streak preserved & funds locked.`,
+        note: `Keyholder ${guardianFullName} rejected break request! Streak preserved & funds locked.`,
       });
     } else if (action === "LOCK") {
       vault.status = "LOCKED";

@@ -337,24 +337,51 @@ function VaultMesh({
     const time = state.clock.getElapsedTime();
     const isDesktop = state.size.width >= 1024;
 
-    // Positioning and scale logic
+    // Check if the DOM anchor exists to position the vault precisely in its intended container
+    const anchor = typeof document !== "undefined" ? document.getElementById("vault-3d-anchor") : null;
     let vaultX = 0;
     let vaultY = 0;
     let vaultScale = 0.92;
 
-    if (isDesktop) {
-      // Positioned exactly in the end column of the 1100px hero container
-      const containerWidth = Math.min(state.size.width, 1100);
-      const columnOffsetPx = containerWidth / 4;
-      const pixelsPerUnit = state.size.height / viewport.height;
-      vaultX = (columnOffsetPx / Math.max(pixelsPerUnit, 1)) * (isRTL ? -1 : 1);
-      vaultY = 0;
-      vaultScale = Math.min(0.92, viewport.height * 0.25);
+    if (anchor && state.gl.domElement) {
+      const canvasRect = state.gl.domElement.getBoundingClientRect();
+      const anchorRect = anchor.getBoundingClientRect();
+
+      // Convert anchor center to canvas coordinate space
+      const anchorCenterX = anchorRect.left + anchorRect.width / 2 - canvasRect.left;
+      const anchorCenterY = anchorRect.top + anchorRect.height / 2 - canvasRect.top;
+
+      // Normalized Device Coordinates (-1 to 1)
+      const ndcX = (anchorCenterX / canvasRect.width) * 2 - 1;
+      const ndcY = -((anchorCenterY / canvasRect.height) * 2 - 1);
+
+      // World units at z = 0
+      vaultX = ndcX * (viewport.width / 2);
+      vaultY = ndcY * (viewport.height / 2);
+
+      const pixelsPerUnit = canvasRect.height / viewport.height;
+      if (isDesktop) {
+        // Desktop: sized nicely inside the end column (approx 290px safe body)
+        const targetPx = Math.min(anchorRect.width * 0.72, 300);
+        vaultScale = targetPx / (2.5 * pixelsPerUnit);
+      } else {
+        // Mobile phone / tablet: compact, elegant safe body (approx 135px - 145px)
+        const targetPx = Math.min(anchorRect.width * 0.38, 140);
+        vaultScale = targetPx / (2.5 * pixelsPerUnit);
+      }
     } else {
-      // Mobile phone & tablet: Centered horizontally, situated cleanly in the lower half of hero
-      vaultX = 0;
-      vaultY = -viewport.height * 0.18;
-      vaultScale = Math.min(0.48, viewport.width * 0.132);
+      if (isDesktop) {
+        const containerWidth = Math.min(state.size.width, 1100);
+        const columnOffsetPx = containerWidth / 4;
+        const pixelsPerUnit = state.size.height / viewport.height;
+        vaultX = (columnOffsetPx / Math.max(pixelsPerUnit, 1)) * (isRTL ? -1 : 1);
+        vaultY = 0;
+        vaultScale = Math.min(0.92, viewport.height * 0.25);
+      } else {
+        vaultX = 0;
+        vaultY = -viewport.height * 0.22;
+        vaultScale = 0.24;
+      }
     }
 
     if (vaultRef.current) {
@@ -445,7 +472,7 @@ function VaultMesh({
 
     // Orbiting Minted Coins
     const sweepDirection = isRTL ? 1 : -1;
-    const coinScale = isDesktop ? 1.0 : 0.62;
+    const coinScale = isDesktop ? 0.95 : vaultScale * 1.05;
 
     COINS.forEach((config, index) => {
       const coin = coinRefs.current[index];
@@ -462,10 +489,12 @@ function VaultMesh({
         coin.position.y = vaultY + Math.sin(angle) * config.radiusY;
         coin.position.z = Math.sin(angle) * config.zAmp;
       } else {
-        // Mobile: Coins orbit closely around the lower-half vault, framing it without touching text!
-        coin.position.x = vaultX + Math.cos(angle) * config.radiusXPhone;
-        coin.position.y = vaultY + Math.sin(angle) * config.radiusYPhone;
-        coin.position.z = Math.sin(angle) * 0.7;
+        // Mobile: Coins orbit tightly around the vault, never clipping screen borders!
+        const orbitRadiusX = vaultScale * (1.30 + (index % 3) * 0.12);
+        const orbitRadiusY = vaultScale * (0.42 + (index % 2) * 0.08);
+        coin.position.x = vaultX + Math.cos(angle) * orbitRadiusX;
+        coin.position.y = vaultY + Math.sin(angle) * orbitRadiusY;
+        coin.position.z = Math.sin(angle) * 0.45;
       }
 
       // Three-axis coin tumble

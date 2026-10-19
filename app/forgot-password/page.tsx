@@ -17,34 +17,34 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md bg-surface border border-line rounded-card p-6 sm:p-8 shadow-card space-y-6">
+      <div className="w-full max-w-md card-hard bg-surface p-6 sm:p-8 shadow-[4px_4px_0_var(--ink)] space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-raised border border-line mx-auto flex items-center justify-center shadow-violetSubtle">
-            <Lock className="w-6 h-6 text-accent" />
+          <div className="w-12 h-12 rounded-2xl bg-lime border-2 border-ink mx-auto flex items-center justify-center shadow-[2px_2px_0_var(--ink)]">
+            <Lock className="w-6 h-6 text-ink" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-text tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight font-heading">
             {t("auth.forgotPasswordTitle")}
           </h1>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted font-medium">
             {t("auth.forgotPasswordDesc")}
           </p>
         </div>
 
         {submitted ? (
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-mint/10 border border-mint/30 text-mint text-xs flex items-start gap-3">
-              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-2xl bg-mint/20 border-2 border-ink text-ink text-xs flex items-start gap-3 shadow-[2px_2px_0_var(--ink)]">
+              <CheckCircle2 className="w-5 h-5 text-mint shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-bold">Request Logged</p>
+                <p className="font-bold text-sm">Request Logged</p>
                 <p className="text-muted leading-relaxed">
-                  If an account exists for <span className="font-mono text-text">{email}</span>, our team will assist you via your registered WhatsApp contact.
+                  If an account exists for <span className="font-mono text-ink font-bold">{email}</span>, our team will assist you via your registered WhatsApp contact.
                 </p>
               </div>
             </div>
 
             <Link
               href="/login"
-              className="w-full tactile-btn py-3 px-6 rounded-btn bg-raised hover:bg-surface border border-line text-text font-bold text-xs flex items-center justify-center gap-2"
+              className="btn-hard w-full py-3.5 px-6 bg-surface hover:bg-bg border-2 border-ink text-ink font-extrabold text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0_var(--ink)] cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
               <span>{t("auth.backToLogin")}</span>
@@ -53,7 +53,7 @@ export default function ForgotPasswordPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-text block">
+              <label className="text-xs font-bold text-ink block">
                 {t("auth.emailLabel")}
               </label>
               <div className="relative">
@@ -63,20 +63,20 @@ export default function ForgotPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t("auth.emailPlaceholder")}
-                  className="w-full bg-raised border border-line text-text placeholder:text-muted/40 rounded-xl ps-10 pe-4 py-3 text-sm focus:outline-none focus:border-violet focus:ring-2 focus:ring-violet/20 transition-all font-mono"
+                  className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl ps-10 pe-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-medium"
                 />
                 <Mail className="w-4 h-4 text-muted absolute inset-y-0 start-3 my-auto pointer-events-none" />
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-raised border border-line text-xs text-muted leading-relaxed flex items-start gap-2.5">
-              <MessageSquare className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-bg border-2 border-ink/20 text-xs text-muted leading-relaxed flex items-start gap-2.5">
+              <MessageSquare className="w-4 h-4 text-violet shrink-0 mt-0.5" />
               <span>{t("auth.forgotPasswordNotice")}</span>
             </div>
 
             <button
               type="submit"
-              className="w-full tactile-btn py-3.5 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
+              className="btn-hard w-full py-3.5 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer"
             >
               <span>Submit Request</span>
             </button>
@@ -84,7 +84,7 @@ export default function ForgotPasswordPage() {
             <div className="pt-2 text-center">
               <Link
                 href="/login"
-                className="text-xs font-semibold text-muted hover:text-text transition-colors inline-flex items-center gap-1.5"
+                className="text-xs font-bold text-violet hover:underline inline-flex items-center gap-1.5"
               >
                 <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" />
                 <span>{t("auth.backToLogin")}</span>

@@ -71,7 +71,7 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { action } = body;
+    const { action, pin } = body;
 
     if (!["APPROVE", "DENY"].includes(action)) {
       return NextResponse.json(
@@ -81,6 +81,20 @@ export async function POST(
     }
 
     if (action === "APPROVE") {
+      const expectedPin = String(vault.keyholderPin || "123456").trim();
+      const enteredPin = String(pin || "").trim();
+
+      if (!enteredPin || enteredPin !== expectedPin) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid 6-digit authorization PIN.",
+            invalidPin: true,
+          },
+          { status: 400 }
+        );
+      }
+
       const totalAmount = vault.currentBalance;
       const fee = Math.round(totalAmount * 0.05 * 1000) / 1000;
       const payout = Math.round((totalAmount - fee) * 1000) / 1000;
@@ -102,14 +116,17 @@ export async function POST(
 
       vault.currentBalance = 0;
       vault.status = "UNLOCKED";
+      vault.unlockMethod = "friend_approved";
       vault.unlockToken = null; // Burn token permanently
+
+      const guardianFullName = vault.keyholder?.name || vault.keyholderName || "Ahmed Al-Mutawa";
 
       vault.transactions.unshift({
         amount: payout,
         type: "BREAK_REFUND",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `Keyholder ${vault.keyholder.name} approved break (95% payout via Stripe refund)`,
+        note: `Keyholder ${guardianFullName} authorized break with PIN (95% payout via Stripe refund)`,
       });
 
       vault.transactions.unshift({
@@ -126,12 +143,13 @@ export async function POST(
       vault.totalProtected = (vault.totalProtected || 0) + vault.currentBalance;
       // Streak stays alive!
 
+      const guardianFullName = vault.keyholder?.name || vault.keyholderName || "Ahmed Al-Mutawa";
       vault.transactions.unshift({
         amount: 0,
         type: "BREAK_DENIED",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `Keyholder ${vault.keyholder.name} kept the vault locked! Streak alive & funds protected.`,
+        note: `Keyholder ${guardianFullName} kept the vault locked! Streak alive & funds protected.`,
       });
     }
 
