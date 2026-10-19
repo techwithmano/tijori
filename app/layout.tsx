@@ -1,47 +1,74 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { Bricolage_Grotesque, DM_Sans, Readex_Pro } from "next/font/google";
 import "./globals.css";
-import Link from "next/link";
-import { Shield, Sparkles, Lock, PlusCircle } from "lucide-react";
-
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { I18nProvider, Language } from "@/lib/i18n";
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  weight: ["600", "800"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const readex = Readex_Pro({
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-arabic",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Tijori (تِجوري) | Anti-Impulse Micro-Savings & Keyholder Protocol",
+  title: "Tijori (تِجوري) | Anti-Impulse Micro-Savings",
   description:
-    "Behavioral anti-impulse micro-savings web platform for GCC youth. Automated recurring micro-pulls with time-locked vaults and peer social friction.",
+    "Lock micro-savings from your monthly allowance or salary. When impulse urges strike, your trusted Keyholder helps keep your hands off the vault.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const langCookie = cookieStore.get("tijori_lang")?.value;
+  const lang: Language = langCookie === "ar" ? "ar" : "en";
+  const dir = lang === "ar" ? "rtl" : "ltr";
+
   return (
-    <html lang="en">
-      <body className="bg-tijori-bg text-tijori-primary min-h-screen flex flex-col selection:bg-amber-500/20 selection:text-amber-900">
-        {/* Ambient Top Glow */}
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-64 bg-gradient-to-b from-amber-500/10 via-emerald-500/5 to-transparent blur-3xl pointer-events-none -z-10" />
+    <html
+      lang={lang}
+      dir={dir}
+      className={`${bricolage.variable} ${dmSans.variable} ${readex.variable}`}
+    >
+      <body className="bg-bg text-text min-h-screen flex flex-col antialiased selection:bg-accent/20 selection:text-accent font-sans relative">
+        {/* Subtle Animated Gradient Mesh Background */}
+        <div className="mesh-bg-canvas" aria-hidden="true">
+          <div className="mesh-blob-violet" />
+          <div className="mesh-blob-lime" />
+          <div className="mesh-blob-bottom" />
+        </div>
 
-        {/* Dynamic Global or Keyholder Navigation Header */}
-        <Header />
+        <I18nProvider initialLang={lang}>
+          {/* Global Header */}
+          <Header />
 
-        {/* Main Content Area */}
-        <main className="flex-1 w-full">
-          {children}
-        </main>
+          {/* Main Content Area */}
+          <main className="flex-1 w-full relative z-0">
+            {children}
+          </main>
 
-        {/* Minimal Footer */}
-        <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500 bg-white/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5 text-amber-600" />
-              <span className="text-slate-600 font-medium">Tijori (تِجوري) &bull; Behavioral Anti-Impulse Micro-Savings Protocol</span>
-            </div>
-            <div className="font-mono text-[11px] text-slate-500">
-              Currency: KWD (Kuwaiti Dinar) &bull; GCC Banking Friction Layer
-            </div>
-          </div>
-        </footer>
+          {/* Footer */}
+          <Footer />
+        </I18nProvider>
       </body>
     </html>
   );

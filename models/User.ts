@@ -8,6 +8,10 @@ export interface IUser extends Document {
   phone?: string;
   allowanceDay: number; // default: 25 (Kuwait MoHE student allowance day)
   preferredLang: "en" | "ar";
+  stripeCustomerId?: string;
+  defaultPaymentMethodId?: string;
+  cardLast4?: string;
+  cardBrand?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +49,23 @@ const UserSchema = new Schema<IUser>(
       type: String,
       enum: ["en", "ar"],
       default: "en",
+    },
+    stripeCustomerId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    defaultPaymentMethodId: {
+      type: String,
+      default: null,
+    },
+    cardLast4: {
+      type: String,
+      default: null,
+    },
+    cardBrand: {
+      type: String,
+      default: null,
     },
   },
   {

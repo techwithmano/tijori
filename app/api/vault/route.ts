@@ -1,98 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { Vault } from "@/models/Vault";
+import { User } from "@/models/User";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
-    const { User } = await import("@/models/User");
     const session = await getCurrentUser(req);
 
-    let vault = null;
-    let user = null;
-
-    if (session?.userId) {
-      vault = await Vault.findOne({ userId: session.userId }).sort({ createdAt: -1 });
-      user = await User.findById(session.userId).select("-password");
-    }
-
-    // Default to the official demo user vault if not logged in
-    if (!vault) {
-      const demoUser = await User.findOne({ email: "demo@tijori.app" });
-      if (demoUser) {
-        vault = await Vault.findOne({ userId: demoUser._id }).sort({ createdAt: -1 });
-        if (!user) user = demoUser;
-      }
-    }
-
-    // Auto-seed default demo vault if still none exists in the database
-    if (!vault) {
-      const now = Date.now();
-      vault = await Vault.create({
-        userId: session?.userId || undefined,
-        title: "Japan Summer Trip 🇯🇵",
-        targetAmount: 500,
-        currentBalance: 125,
-        pullAmount: 25,
-        cadence: "weekly",
-        allowanceDay: 25,
-        status: "LOCKED",
-        totalProtected: 380,
-        streakCount: 18,
-        keyholder: {
-          name: "Fahad Al-Mutawa",
-          phone: "+965 9988 7766",
-          relationship: "Brother",
-        },
-        targetDate: new Date("2027-06-15T00:00:00.000Z"),
-        transactions: [
-          {
-            amount: 25,
-            type: "SCHEDULED_PULL",
-            status: "SUCCESS",
-            createdAt: new Date(now - 3 * 24 * 60 * 60 * 1000),
-            note: "Allowance Tuck (Day-25 Auto-Save) 🚀",
-          },
-          {
-            amount: 20,
-            type: "STRIPE_DEPOSIT",
-            status: "SUCCESS",
-            createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
-            note: "KNET / Card Deposit (+20 KWD)",
-          },
-          {
-            amount: 25,
-            type: "SCHEDULED_PULL",
-            status: "SUCCESS",
-            createdAt: new Date(now - 1 * 24 * 60 * 60 * 1000),
-            note: "Weekly Discipline Tuck ⚡",
-          },
-          {
-            amount: 55,
-            type: "SIMULATED_PULL",
-            status: "SUCCESS",
-            createdAt: new Date(),
-            note: "Mid-Month Shielded Micro-Pull 🛡️",
-          },
-        ],
+    if (!session?.userId) {
+      return NextResponse.json({
+        success: true,
+        vault: null,
+        user: null,
       });
-      console.log("Seeded default demo vault:", vault._id);
     }
 
-    if (session?.userId && !user) {
-      const { User } = await import("@/models/User");
-      user = await User.findById(session.userId).select("-password");
-    }
+    const user = await User.findById(session.userId).select("-password");
+    const vault = await Vault.findOne({ userId: session.userId }).sort({ createdAt: -1 });
 
     return NextResponse.json({
       success: true,
-      vault,
+      vault: vault || null,
       user: user || {
-        name: session?.name || "Abdulrahman Haramain",
-        email: session?.email || "demo@tijori.app",
+        id: session.userId,
+        name: session.name,
+        email: session.email,
         allowanceDay: 25,
-        preferredLang: "en",
       },
     });
   } catch (error: any) {
@@ -108,8 +43,15 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
     const session = await getCurrentUser(req);
-    const body = await req.json();
 
+    if (!session?.userId) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to create a vault" },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
     const {
       title,
       targetAmount,
@@ -120,42 +62,47 @@ export async function POST(req: NextRequest) {
       keyholder,
     } = body;
 
-    if (!title || !targetAmount || !pullAmount || !targetDate || !keyholder?.name || !keyholder?.phone) {
+    if (!title || !targetAmount || !pullAmount || !keyholder?.name || !keyholder?.phone) {
       return NextResponse.json(
         { success: false, error: "Missing required vault parameters" },
         { status: 400 }
       );
     }
 
+    // Default target date to 6 months from now if omitted
+    const calculatedTargetDate = targetDate
+      ? new Date(targetDate)
+      : new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+
+    // Calculate initial next pull date
+    const initialNextPull = new Date();
+    if (cadence === "daily") initialNextPull.setDate(initialNextPull.getDate() + 1);
+    else if (cadence === "biweekly") initialNextPull.setDate(initialNextPull.getDate() + 14);
+    else if (cadence === "monthly") initialNextPull.setMonth(initialNextPull.getMonth() + 1);
+    else initialNextPull.setDate(initialNextPull.getDate() + 7);
+
     const newVault = await Vault.create({
-      userId: session?.userId || undefined,
-      title,
+      userId: session.userId,
+      title: title.trim(),
       targetAmount: Number(targetAmount),
       currentBalance: 0,
       pullAmount: Number(pullAmount),
       cadence,
-      allowanceDay: Number(allowanceDay),
+      allowanceDay: Number(allowanceDay) || 25,
       status: "LOCKED",
-      targetDate: new Date(targetDate),
+      targetDate: calculatedTargetDate,
+      nextPullAt: initialNextPull,
+      needsAttention: false,
+      processedPaymentIntents: [],
+      totalProtected: 0,
+      streakCount: 0,
       keyholder: {
-        name: keyholder.name,
-        phone: keyholder.phone,
-        relationship: keyholder.relationship || "Guardian",
+        name: keyholder.name.trim(),
+        phone: keyholder.phone.trim(),
+        relationship: keyholder.relationship?.trim() || "Friend",
       },
-      transactions: [
-        {
-          amount: Number(pullAmount),
-          type: "SCHEDULED_PULL",
-          status: "SUCCESS",
-          createdAt: new Date(),
-          note: "Initial Tuck - Welcome to Tijori",
-        },
-      ],
+      transactions: [],
     });
-
-    // Also update current balance to initial deposit
-    newVault.currentBalance = Number(pullAmount);
-    await newVault.save();
 
     return NextResponse.json({ success: true, vault: newVault }, { status: 201 });
   } catch (error: any) {

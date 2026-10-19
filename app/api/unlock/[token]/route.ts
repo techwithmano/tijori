@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { Vault } from "@/models/Vault";
+import { stripe, kwdToUsdCents } from "@/lib/stripe";
 
 export async function GET(
   req: NextRequest,
@@ -24,8 +25,8 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error:
-            "This single-use Keyholder link has already been used, expired, or is invalid.",
+          error: "This link was already used or has expired.",
+          alreadyUsed: true,
         },
         { status: 404 }
       );
@@ -35,7 +36,7 @@ export async function GET(
   } catch (error: any) {
     console.error("GET /api/unlock/[token] error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to retrieve tokenized vault" },
+      { success: false, error: error.message || "Failed to retrieve clearance request" },
       { status: 500 }
     );
   }
@@ -62,8 +63,8 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          error:
-            "This single-use decision link is no longer valid or has already been submitted.",
+          error: "This link was already used or has expired.",
+          alreadyUsed: true,
         },
         { status: 404 }
       );
@@ -80,28 +81,57 @@ export async function POST(
     }
 
     if (action === "APPROVE") {
+      const totalAmount = vault.currentBalance;
+      const fee = Math.round(totalAmount * 0.05 * 1000) / 1000;
+      const payout = Math.round((totalAmount - fee) * 1000) / 1000;
+
+      // Issue Stripe test-mode refund against most recent charges
+      if (vault.processedPaymentIntents && vault.processedPaymentIntents.length > 0) {
+        const latestPi = vault.processedPaymentIntents[vault.processedPaymentIntents.length - 1];
+        try {
+          const refundCents = kwdToUsdCents(payout);
+          await stripe.refunds.create({
+            payment_intent: latestPi,
+            amount: refundCents,
+            reason: "requested_by_customer",
+          });
+        } catch (stripeErr: any) {
+          console.warn("Stripe refund in token route:", stripeErr.message);
+        }
+      }
+
+      vault.currentBalance = 0;
       vault.status = "UNLOCKED";
-      vault.unlockToken = null; // Invalidate single-use token immediately
+      vault.unlockToken = null; // Burn token permanently
 
       vault.transactions.unshift({
-        amount: vault.currentBalance,
-        type: "WITHDRAWAL",
+        amount: payout,
+        type: "BREAK_REFUND",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `Keyholder ${vault.keyholder.name} authorized release`,
+        note: `Keyholder ${vault.keyholder.name} approved break (95% payout via Stripe refund)`,
+      });
+
+      vault.transactions.unshift({
+        amount: fee,
+        type: "DISCIPLINE_FEE",
+        status: "SUCCESS",
+        createdAt: new Date(),
+        note: `5% Discipline penalty fee retained in reserve`,
       });
     } else if (action === "DENY") {
       vault.status = "LOCKED";
-      vault.unlockToken = null; // Invalidate single-use token immediately
-      // Accumulate protected savings
-      vault.totalProtected = (vault.totalProtected || 0) + (vault.currentBalance || 0);
+      vault.unlockToken = null; // Burn token permanently
+      vault.denialsCount = (vault.denialsCount || 0) + 1;
+      vault.totalProtected = (vault.totalProtected || 0) + vault.currentBalance;
+      // Streak stays alive!
 
       vault.transactions.unshift({
         amount: 0,
-        type: "SIMULATED_PULL",
+        type: "BREAK_DENIED",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `Keyholder ${vault.keyholder.name} rejected impulse break! 🛡️ Savings safe`,
+        note: `Keyholder ${vault.keyholder.name} kept the vault locked! Streak alive & funds protected.`,
       });
     }
 
@@ -111,8 +141,8 @@ export async function POST(
       success: true,
       message:
         action === "DENY"
-          ? "Impulse withdrawal blocked! Funds remain locked and protected."
-          : "Withdrawal approved. Funds have been unlocked.",
+          ? "Decision recorded: Kept locked! Funds remain protected and streak is alive."
+          : "Decision recorded: Approved. Payout released (minus 5% fee).",
       vault,
     });
   } catch (error: any) {

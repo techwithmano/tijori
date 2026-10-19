@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { Vault } from "@/models/Vault";
-import { ai } from "@/lib/gemini";
+import { stripe, kwdToUsdCents } from "@/lib/stripe";
 import crypto from "crypto";
 
 export async function POST(
@@ -21,12 +21,12 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { action = "REQUEST", reason, excuse, realityCheck: incomingRoast } = body;
-    const finalReason = excuse || reason || "Impulse withdrawal request";
+    const { action = "REQUEST", reason, excuse, realityCheck: incomingRoast, lang = "en" } = body;
+    const finalReason = excuse || reason || "Impulse spending urge";
 
     if (!["REQUEST", "APPROVE", "DENY", "LOCK"].includes(action)) {
       return NextResponse.json(
-        { success: false, error: "Invalid action. Must be REQUEST, APPROVE, or DENY" },
+        { success: false, error: "Invalid action. Must be REQUEST, APPROVE, DENY, or LOCK" },
         { status: 400 }
       );
     }
@@ -42,76 +42,80 @@ export async function POST(
       vault.unlockToken = token;
       vault.unlockReason = finalReason;
       vault.breakExcuse = finalReason;
-
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-      unlockUrl = `${appUrl}/unlock/${token}`;
-
-      // Generate Gemini reality check roast if not already supplied
-      if (!realityCheck) {
-        const keyholderFirstName = vault.keyholder?.name ? vault.keyholder.name.split(" ")[0] : "Fahad";
-        const cleanGoal = vault.title.replace(/🇯🇵/g, "").trim() || "Japan Summer Trip";
-        const applicantName = "Abdulrahman";
-
-        try {
-          if (process.env.GEMINI_API_KEY) {
-            const prompt = `You are writing an alert to ${keyholderFirstName}, whose friend ${applicantName} is trying to break his savings vault for "${cleanGoal}" (current balance: ${vault.currentBalance} KWD). ${applicantName}'s excuse: "${finalReason}". Tell ${keyholderFirstName} why ${applicantName}'s excuse is ridiculous and tell ${keyholderFirstName} to do his job as Keyholder and deny the request. Keep it strictly to 2 short, punchy sentences in Gulf-flavored English with touches of Arabic/Arabizi (e.g., "Wallah", "ya rayal", "habibi"). Use "KWD", never "KD".`;
-
-            const aiRes = await ai.models.generateContent({
-              model: "gemini-3.8-flash",
-              contents: prompt,
-            });
-            realityCheck = aiRes.text?.trim() || "";
-          }
-        } catch (err: any) {
-          console.warn("Gemini call in unlock route failed, using fallback:", err.message);
-        }
-
-        if (!realityCheck) {
-          const fallbacks = [
-            `Wallah ${applicantName} wants to blow ${vault.currentBalance} KWD on sneakers at 360 Mall instead of going to ${cleanGoal || "Tokyo"}? Do your job as his brother, ${keyholderFirstName}—hit Deny and save him from himself.`,
-            `Ya rayal, ${applicantName} really thinks "${finalReason}" justifies raiding his ${cleanGoal} savings right before salary day? Lock it down, ${keyholderFirstName}, don't let him slip into regret.`,
-            `Habibi ${keyholderFirstName}, ${applicantName}'s excuse of "${finalReason}" is pure impulse talking over his ${vault.currentBalance} KWD fund. Hit Deny right now and protect his discipline.`,
-          ];
-          realityCheck = fallbacks[Math.floor(Math.random() * fallbacks.length)];
-        }
-      }
-
       vault.realityCheck = realityCheck;
 
-      whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
-        `Salam ${vault.keyholder.name.split(" ")[0]}! I am trying to break my Tijori savings vault for ${vault.title}. My reason: "${finalReason}". Approve or block me here: ${unlockUrl}`
-      )}`;
+      const origin = req.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      unlockUrl = `${origin}/unlock/${token}`;
 
       const guardianFirstName = vault.keyholder?.name ? vault.keyholder.name.split(" ")[0] : "Fahad";
+
+      if (lang === "ar") {
+        const arMsg = `سلام ${guardianFirstName}! طلبت فك تِجوري لهدف (${vault.title}). عذري: "${finalReason}". الرابط بيدك تقرر: ${unlockUrl}`;
+        whatsappUrl = `https://wa.me/?text=${encodeURIComponent(arMsg)}`;
+      } else {
+        const enMsg = `Salam ${guardianFirstName}! I requested to break my Tijori savings vault for "${vault.title}". My reason: "${finalReason}". Decide here: ${unlockUrl}`;
+        whatsappUrl = `https://wa.me/?text=${encodeURIComponent(enMsg)}`;
+      }
+
       vault.transactions.unshift({
         amount: 0,
         type: "BREAK_REQUEST",
         status: "PENDING",
         createdAt: new Date(),
-        note: `🚨 Break Requested (Pending ${guardianFirstName}'s Approval)`,
+        note: `Break Requested (Waiting on ${guardianFirstName})`,
       });
     } else if (action === "APPROVE") {
+      const totalAmount = vault.currentBalance;
+      const fee = Math.round(totalAmount * 0.05 * 1000) / 1000;
+      const payout = Math.round((totalAmount - fee) * 1000) / 1000;
+
+      // Issue Stripe test-mode refund against most recent charges
+      if (vault.processedPaymentIntents && vault.processedPaymentIntents.length > 0) {
+        const latestPi = vault.processedPaymentIntents[vault.processedPaymentIntents.length - 1];
+        try {
+          const refundCents = kwdToUsdCents(payout);
+          await stripe.refunds.create({
+            payment_intent: latestPi,
+            amount: refundCents,
+            reason: "requested_by_customer",
+          });
+        } catch (stripeErr: any) {
+          console.warn("Stripe test mode refund note:", stripeErr.message);
+        }
+      }
+
+      vault.currentBalance = 0;
       vault.status = "UNLOCKED";
-      vault.unlockToken = null; // Invalidate single-use token
+      vault.unlockToken = null; // Burn single-use token
 
       vault.transactions.unshift({
-        amount: vault.currentBalance,
-        type: "WITHDRAWAL",
+        amount: payout,
+        type: "BREAK_REFUND",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `Keyholder ${vault.keyholder.name} authorized release`,
+        note: `Break approved (95% payout released via Stripe refund)`,
+      });
+
+      vault.transactions.unshift({
+        amount: fee,
+        type: "DISCIPLINE_FEE",
+        status: "SUCCESS",
+        createdAt: new Date(),
+        note: `5% Discipline fee retained in reserve`,
       });
     } else if (action === "DENY") {
       vault.status = "LOCKED";
-      vault.unlockToken = null; // Invalidate single-use token
-      vault.totalProtected = (vault.totalProtected || 0) + (vault.currentBalance || 0);
+      vault.unlockToken = null; // Burn single-use token
+      vault.denialsCount = (vault.denialsCount || 0) + 1;
+      vault.totalProtected = (vault.totalProtected || 0) + vault.currentBalance;
+      // Streak stays alive!
 
       vault.transactions.unshift({
         amount: 0,
-        type: "SIMULATED_PULL",
+        type: "BREAK_DENIED",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `Keyholder ${vault.keyholder.name} blocked withdrawal! 🛡️ Savings safe`,
+        note: `Keyholder ${vault.keyholder.name} rejected break request! Streak preserved & funds locked.`,
       });
     } else if (action === "LOCK") {
       vault.status = "LOCKED";

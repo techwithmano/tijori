@@ -1,45 +1,41 @@
 "use client";
 
-import React, { useState, useEffect, Suspense, useMemo } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import {
   Lock,
   Unlock,
-  Shield,
-  ShieldCheck,
-  ShieldAlert,
-  Zap,
   CreditCard,
   ExternalLink,
   Flame,
   Clock,
-  Coins,
-  TrendingUp,
-  Copy,
-  Check,
-  CheckCircle2,
-  AlertTriangle,
-  Share2,
-  LogOut,
-  Globe,
   Sparkles,
-  PlusCircle,
-  MessageSquare,
   ArrowRight,
-  RefreshCw,
-  Award,
+  X,
+  Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  Share2,
+  Copy,
+  LogOut,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
-import { formatKWD, cn } from "@/lib/utils";
+import { formatKWD, formatDate, cn } from "@/lib/utils";
 import GoalTitle from "@/components/GoalTitle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useT } from "@/lib/i18n";
+import StripeCardForm from "@/components/StripeCardForm";
 
 interface ITransaction {
   _id?: string;
   amount: number;
-  type: "SCHEDULED_PULL" | "SIMULATED_PULL" | "STRIPE_DEPOSIT" | "WITHDRAWAL" | "BREAK_REQUEST";
-  status: "SUCCESS" | "FAILED" | "PENDING";
+  type: string;
+  status: string;
   note?: string;
+  stripePaymentIntentId?: string;
   createdAt: string | Date;
 }
 
@@ -57,10 +53,14 @@ interface IVault {
   currentBalance: number;
   totalProtected: number;
   streakCount: number;
+  denialsCount?: number;
   cadence: "daily" | "weekly" | "biweekly" | "monthly";
   pullAmount: number;
   allowanceDay: number;
   targetDate: string;
+  nextPullAt?: string | Date;
+  needsAttention?: boolean;
+  needsAttentionReason?: string | null;
   status: "LOCKED" | "UNLOCK_PENDING" | "UNLOCKED";
   keyholder: IKeyholder;
   unlockToken?: string | null;
@@ -70,296 +70,201 @@ interface IVault {
 }
 
 interface IUser {
+  id: string;
   name: string;
   email: string;
   phone?: string;
   allowanceDay: number;
-  preferredLang: "en" | "ar";
+  cardBrand?: string | null;
+  cardLast4?: string | null;
+  hasPaymentMethod?: boolean;
 }
-
-// Bilingual Dictionary for GCC Young Adults
-const DICTIONARY = {
-  en: {
-    brandWordmark: "Tijori",
-    arabicBadge: "تِجوري",
-    heroStat: "380 KWD Saved from Impulse Breaks (3 Denials by Fahad)",
-    salam: "Salam",
-    logout: "Exit",
-    newVault: "New Vault",
-    simulateTuck: "⚡ Simulate Day-25 Tuck (+25 KWD)",
-    quickBoost: "💳 Card Boost (+20 KWD)",
-    openKeyholderLink: "🔗 Open Keyholder Link ↗",
-    unbrokenStreak: "Day Streak",
-    daysRemaining: "days remaining",
-    targetLocked: "Time-Locked Goal",
-    funded: "Saved",
-    currentBalance: "Current Balance",
-    targetGoal: "Target Goal",
-    leftToSave: "Left to Save",
-    cadenceTuck: "Cadence Tuck",
-    pacingTitle: "Allowance Pacing Curve (4-Week Cycle)",
-    pacingSubtitle: "Calibrated to Day-25 student allowance / salary refill",
-    week: "Week",
-    postAllowance: "Post-Allowance Surge",
-    steadyDiscipline: "Steady Discipline",
-    midMonthLean: "Mid-Month Lean",
-    preAllowanceCushion: "Pre-Allowance Cushion",
-    disciplineTaxWarning: "5% Discipline Tax Applied on Early Break",
-    disciplineTaxSub:
-      "Early withdrawal forfeit: 5% (6.250 KWD) is redirected to your designated savings charity buffer unless Fahad approves.",
-    requestEarlyBreak: "🚨 Request Early Break",
-    keyholderProtocol: "Vault Guardian",
-    designatedGuardian: "Designated Keyholder",
-    armedAndGuarding: "Guarded by Fahad 🛡️",
-    breakRequested: "Break Requested ⚠️",
-    pingWhatsApp: "Ping Fahad on WhatsApp 💬",
-    auditLedger: "Live Anti-Impulse Ledger",
-    noTransactions: "No ledger transactions recorded yet.",
-    breakModalTitle: "Emergency Break Request",
-    breakModalSubtitle:
-      "Tijori introduces behavioral friction. You must state your excuse and face AI reality check before your Keyholder receives this link.",
-    excuseLabel: "What is your emergency excuse for breaking early?",
-    excusePlaceholder: "e.g. Flash sneaker drop at 360 Mall, urgent chalet split...",
-    cancelKeepLocked: "Keep Vault Locked 🛡️",
-    submitBreakRequest: "Request Early Break 🚨",
-    realityCheckTitle: "Tijori AI Reality Check 🔥",
-    keyholderTokenGenerated: "Keyholder Verification Active!",
-    sendToKeyholderNotice: "Send this single-use link to your Keyholder:",
-    shareWhatsApp: "Share to Fahad on WhatsApp 💬",
-    openDirectly: "Open Decision Link Directly ↗",
-    done: "Close",
-    loadingVault: "Synchronizing Tijori Vault Engine...",
-    noVaultFound: "No active savings vault found. Launching a new vault...",
-  },
-  ar: {
-    brandWordmark: "تِجوري",
-    arabicBadge: "Tijori",
-    heroStat: "تم توفير 380 د.ك من الكسر المبكر (3 اعتراضات من فهد)",
-    salam: "مرحباً",
-    logout: "تسجيل خروج",
-    newVault: "خزينة جديدة",
-    simulateTuck: "⚡ محاكاة اقتطاع يوم 25 (+25 د.ك)",
-    quickBoost: "💳 شحن بطاقة (+20 د.ك)",
-    openKeyholderLink: "🔗 فتح رابط الحارس ↗",
-    unbrokenStreak: "يوم التزام",
-    daysRemaining: "يوم متبقي",
-    targetLocked: "هدف مقفل زمنياً",
-    funded: "تم ادخاره",
-    currentBalance: "الرصيد الحالي",
-    targetGoal: "المبلغ المستهدف",
-    leftToSave: "المتبقي للهدف",
-    cadenceTuck: "اقتطاع الدورة",
-    pacingTitle: "منحنى وتيرة المكافأة (دورة 4 أسابيع)",
-    pacingSubtitle: "مضبوط على موعد نزول إعانة الطلاب والرواتب في يوم 25",
-    week: "الأسبوع",
-    postAllowance: "طفرة بعد الإعانة",
-    steadyDiscipline: "التزام مستمر",
-    midMonthLean: "توفير منتصف الشهر",
-    preAllowanceCushion: "تأمين ما قبل الراتب",
-    disciplineTaxWarning: "ضريبة انضباط 5% تُطبق عند الكسر المبكر",
-    disciplineTaxSub:
-      "خسارة السحب المبكر: 5% (6.250 د.ك) تُحوّل لصندوق الادخار الخيري ما لم يعتمد فهد طلبك كحالة طارئة.",
-    requestEarlyBreak: "🚨 طلب كسر الخزينة مبكراً",
-    keyholderProtocol: "حارس الخزينة",
-    designatedGuardian: "حارس الخزينة المعتمد",
-    armedAndGuarding: "تحت حماية فهد 🛡️",
-    breakRequested: "طلب كسر معلّق ⚠️",
-    pingWhatsApp: "تنبيه فهد عبر واتساب 💬",
-    auditLedger: "سجل الادخار الحي ضد الاندفاع",
-    noTransactions: "لا توجد معاملات مسجلة حتى الآن.",
-    breakModalTitle: "طلب كسر الخزينة في حالة الطوارئ",
-    breakModalSubtitle:
-      "تِجوري يضع حاجزاً نفسياً أمام الاندفاع. يجب كتابة العذر ومواجهة تنبيه الذكاء الاصطناعي قبل إرسال الرابط لحارسك.",
-    excuseLabel: "ما هو عذرك الطارئ لكسر الخزينة مبكراً؟",
-    excusePlaceholder: "مثلاً: سنيكرز نزل بـ 360 مول، قطية شاليه طارئة...",
-    cancelKeepLocked: "إبقاء الخزينة مقفلة 🛡️",
-    submitBreakRequest: "طلب كسر الخزينة 🚨",
-    realityCheckTitle: "تنبيه تِجوري الذكي ضد الصرف 🔥",
-    keyholderTokenGenerated: "تم تفعيل رابط الحارس أحادي الاستخدام!",
-    sendToKeyholderNotice: "أرسل رابط المصادقة أحادي الاستخدام لحارس الخزينة:",
-    shareWhatsApp: "إرسال إلى فهد عبر واتساب 💬",
-    openDirectly: "فتح رابط الإذن مباشرة ↗",
-    done: "إغلاق",
-    loadingVault: "جاري مزامنة محرك خزينة تِجوري...",
-    noVaultFound: "لم يتم العثور على خزينة نشطة. جاري إنشاء خزينة...",
-  },
-};
 
 function DashboardContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const { t, lang } = useT();
+  const isArabic = lang === "ar";
 
   const [vault, setVault] = useState<IVault | null>(null);
   const [user, setUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lang, setLang] = useState<"en" | "ar">("en");
 
-  // Interaction States
-  const [pulling, setPulling] = useState(false);
-  const [boosting, setBoosting] = useState(false);
+  // Top Up Modal State (Task 3)
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState<number>(20);
+  const [customAmount, setCustomAmount] = useState<string>("");
+  const [topUpLoading, setTopUpLoading] = useState(false);
+  const [topUpError, setTopUpError] = useState<string | null>(null);
+  const [topUpSuccess, setTopUpSuccess] = useState<string | null>(null);
 
-  // Break Modal States
-  const [showBreakModal, setShowBreakModal] = useState(false);
-  const [excuseText, setExcuseText] = useState("");
+  // Card Modal State
+  const [showCardModal, setShowCardModal] = useState(false);
+
+  // Break Sheet States (Task 5)
+  const [showBreakSheet, setShowBreakSheet] = useState(false);
+  const [breakStep, setBreakStep] = useState<"reason" | "roast" | "share">("reason");
+  const [reasonText, setReasonText] = useState("");
+  const [roastText, setRoastText] = useState("");
+  const [loadingRoast, setLoadingRoast] = useState(false);
   const [submittingBreak, setSubmittingBreak] = useState(false);
-  const [breakResult, setBreakResult] = useState<{
-    realityCheck: string;
-    token: string;
-    whatsappUrl: string;
-  } | null>(null);
+  const [unlockUrl, setUnlockUrl] = useState("");
+  const [whatsappUrl, setWhatsappUrl] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const t = DICTIONARY[lang];
+  // Initial Fetch
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const [meRes, vaultRes] = await Promise.all([
+          fetch("/api/auth/me"),
+          fetch("/api/vault"),
+        ]);
 
-  // Fetch live Vault & User data from MongoDB
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await fetch("/api/vault");
-      const data = await res.json();
-
-      if (data.success && data.vault) {
-        setVault(data.vault);
-        if (data.user) {
-          setUser(data.user);
-          if (data.user.preferredLang) {
-            setLang(data.user.preferredLang);
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData.success && meData.user) {
+            setUser(meData.user);
           }
         }
-      } else {
-        // Fallback: seed demo vault if empty
-        const seedRes = await fetch("/api/seed", { method: "POST" });
-        const seedData = await seedRes.json();
-        if (seedData.success && seedData.vault) {
-          setVault(seedData.vault);
-          if (seedData.user) setUser(seedData.user);
-        } else {
-          setError(data.error || "Unable to fetch vault data");
-        }
-      }
-    } catch (err: any) {
-      setError(err.message || "Network error loading dashboard");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    fetchDashboardData();
+        if (vaultRes.ok) {
+          const vaultData = await vaultRes.json();
+          if (vaultData.success && vaultData.vault) {
+            setVault(vaultData.vault);
+          }
+        }
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
   }, []);
 
-  // Handle Stripe deposit return query parameters
-  useEffect(() => {
-    const depositStatus = searchParams.get("deposit");
-    const amountParam = searchParams.get("amount");
-
-    if (depositStatus === "success" && vault) {
-      confetti({
-        particleCount: 100,
-        spread: 80,
-        origin: { y: 0.4 },
-        colors: ["#10B981", "#F59E0B", "#3B82F6", "#FFFFFF"],
-      });
-
-      // Post update to ledger if not already recorded
-      const depositAmount = Number(amountParam) || 20;
-      fetch(`/api/vault/${vault._id}/pull`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: depositAmount }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success && data.vault) {
-            setVault(data.vault);
-          }
-        })
-        .catch((e) => console.warn("Failed to record Stripe deposit:", e));
-
-      // Clean URL params to prevent double triggers
-      router.replace("/dashboard");
-    }
-  }, [searchParams, vault?._id]);
-
-  // Simulate Day-25 Tuck
-  const handleSimulateTuck = async () => {
-    if (!vault) return;
+  const handleLogout = async () => {
     try {
-      setPulling(true);
-      const res = await fetch(`/api/vault/${vault._id}/pull`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ simulate: true }),
-      });
-      const data = await res.json();
-      if (data.success && data.vault) {
-        setVault(data.vault);
-        confetti({
-          particleCount: 75,
-          spread: 60,
-          origin: { y: 0.35 },
-          colors: ["#D97706", "#F59E0B", "#10B981", "#34D399"],
-        });
-      }
-    } catch (err: any) {
-      console.error("Tuck error:", err);
-    } finally {
-      setPulling(false);
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+      router.refresh();
+    } catch (err) {
+      console.error("Logout error:", err);
     }
   };
 
-  // Quick KNET / Card Boost via Stripe Checkout
-  const handleStripeBoost = async () => {
-    if (!vault) return;
-    try {
-      setBoosting(true);
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vaultId: vault._id, amount: 20 }),
-      });
-      const data = await res.json();
-      if (data.success && (data.checkoutUrl || data.url)) {
-        window.location.href = data.checkoutUrl || data.url;
-      } else {
-        alert(data.error || "Failed to initialize Stripe checkout session");
-      }
-    } catch (err: any) {
-      alert(err.message || "Failed to launch payment checkout");
-    } finally {
-      setBoosting(false);
-    }
-  };
-
-  // Emergency Break Request
-  const handleSubmitBreakRequest = async (e: React.FormEvent) => {
+  // Top Up Handler
+  const handleTopUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!vault || !excuseText.trim()) return;
+    if (!vault) return;
+    const finalAmount = customAmount ? parseFloat(customAmount) : topUpAmount;
+    if (isNaN(finalAmount) || finalAmount <= 0) {
+      setTopUpError(isArabic ? "يرجى تحديد مبلغ صالح" : "Please enter a valid amount");
+      return;
+    }
 
+    try {
+      setTopUpLoading(true);
+      setTopUpError(null);
+      setTopUpSuccess(null);
+
+      const res = await fetch("/api/vault/topup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vaultId: vault._id, amountKwd: finalAmount }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        if (data.requiresPaymentMethod) {
+          setShowTopUpModal(false);
+          setShowCardModal(true);
+          return;
+        }
+        setTopUpError(data.error || "Top-up failed");
+        return;
+      }
+
+      setVault(data.vault);
+      setTopUpSuccess(data.message || t("dashboard.topUpSuccess"));
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ["#C6FF3D", "#7C5CFF", "#3DFFB0", "#FFFFFF"],
+      });
+      setTimeout(() => {
+        setShowTopUpModal(false);
+        setTopUpSuccess(null);
+        setCustomAmount("");
+      }, 1800);
+    } catch (err: any) {
+      setTopUpError(err.message || "Network error processing payment");
+    } finally {
+      setTopUpLoading(false);
+    }
+  };
+
+  // Step 1 -> Step 2: Fetch AI Reality Check addressed to the user
+  const handleFetchRoast = async () => {
+    if (!vault || reasonText.trim().length < 10) return;
+    try {
+      setLoadingRoast(true);
+      const res = await fetch("/api/ai/reality-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          excuse: reasonText.trim(),
+          goal: vault.title,
+          currentBalance: vault.currentBalance,
+          targetAmount: vault.targetAmount,
+          keyholderName: vault.keyholder?.name || "Fahad",
+          lang,
+        }),
+      });
+
+      const data = await res.json();
+      setRoastText(data.realityCheck || "");
+      setBreakStep("roast");
+    } catch {
+      setRoastText(
+        isArabic
+          ? "يا صاحبي اذكر الله وفكر بهدفك قبل لا تطير فلوسك وتضيع تعبك!"
+          : "Bro, think about your goal before blowing your savings on impulse spending!"
+      );
+      setBreakStep("roast");
+    } finally {
+      setLoadingRoast(false);
+    }
+  };
+
+  // Step 2 -> Step 3: User clicks "Still sending it" -> create single-use token & open WhatsApp
+  const handleConfirmBreakRequest = async () => {
+    if (!vault) return;
     try {
       setSubmittingBreak(true);
       const res = await fetch(`/api/vault/${vault._id}/unlock`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ excuse: excuseText }),
+        body: JSON.stringify({
+          action: "REQUEST",
+          excuse: reasonText.trim(),
+          realityCheck: roastText,
+          lang,
+        }),
       });
+
       const data = await res.json();
       if (data.success && data.vault) {
         setVault(data.vault);
-        setBreakResult({
-          realityCheck:
-            data.realityCheck ||
-            `Breaking your ${vault.title} for "${excuseText}" is an impulse slip. Let's see if ${vault.keyholder.name} agrees.`,
-          token: data.token || data.vault.unlockToken || "",
-          whatsappUrl: data.whatsappUrl || "",
-        });
+        setUnlockUrl(data.unlockUrl || "");
+        setWhatsappUrl(data.whatsappUrl || "");
+        setBreakStep("share");
       } else {
-        alert(data.error || "Failed to submit early break request");
+        alert(data.error || "Failed to submit clearance request");
       }
     } catch (err: any) {
-      alert(err.message || "Network error submitting break request");
+      alert(err.message || "Failed to create request");
     } finally {
       setSubmittingBreak(false);
     }
@@ -368,800 +273,794 @@ function DashboardContent() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
-
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
-      router.refresh();
-    } catch (e) {
-      router.push("/login");
-    }
-  };
-
-  // Math & Gauges
-  const percentFunded = useMemo(() => {
-    if (!vault || !vault.targetAmount) return 0;
-    return Math.min(100, Math.round(((vault.currentBalance || 0) / vault.targetAmount) * 100));
-  }, [vault?.currentBalance, vault?.targetAmount]);
-
-  const leftToSave = useMemo(() => {
-    if (!vault) return 0;
-    return Math.max(0, vault.targetAmount - (vault.currentBalance || 0));
-  }, [vault?.targetAmount, vault?.currentBalance]);
-
-  const daysRemaining = useMemo(() => {
-    if (!vault?.targetDate) return 90;
-    const diff = new Date(vault.targetDate).getTime() - Date.now();
-    return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-  }, [vault?.targetDate]);
-
-  // Dynamic 4-Week Pacing Curve
-  const pacingWeeks = useMemo(() => {
-    const base = vault?.pullAmount || 25;
-    return [
-      {
-        week: 1,
-        title: t.postAllowance,
-        amount: Math.round(base * 1.6),
-        percent: 100,
-        color: "from-amber-500 to-amber-600",
-        timing: `Day ${vault?.allowanceDay || 25} Deposit`,
-      },
-      {
-        week: 2,
-        title: t.steadyDiscipline,
-        amount: base,
-        percent: 65,
-        color: "from-emerald-500 to-emerald-600",
-        timing: "Mid-Cadence",
-      },
-      {
-        week: 3,
-        title: t.midMonthLean,
-        amount: Math.max(5, Math.round(base * 0.7)),
-        percent: 45,
-        color: "from-slate-400 to-slate-500",
-        timing: "Social Outing Week",
-      },
-      {
-        week: 4,
-        title: t.preAllowanceCushion,
-        amount: Math.max(5, Math.round(base * 0.5)),
-        percent: 32,
-        color: "from-rose-400 to-rose-500",
-        timing: "Pre-Refill Buffer",
-      },
-    ];
-  }, [vault?.pullAmount, vault?.allowanceDay, t]);
 
   // Loading Screen
   if (loading) {
     return (
-      <div className="min-h-[75vh] flex flex-col items-center justify-center">
-        <div className="w-12 h-12 rounded-full border-3 border-amber-500/30 border-t-amber-500 animate-spin" />
-        <p className="mt-4 text-xs font-mono font-medium text-slate-500 tracking-wide">
-          {t.loadingVault}
+      <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-4 text-text">
+        <div className="w-12 h-12 rounded-full border-3 border-line border-t-accent animate-spin" />
+        <p className="text-sm font-mono text-muted tracking-wide">
+          {isArabic ? "جاري مزامنة بيانات الخزينة..." : "Syncing Tijori Vault..."}
         </p>
       </div>
     );
   }
 
-  // Error / No Vault State
-  if (error || !vault) {
+  // Empty State: New User with 0 Vaults
+  if (!vault) {
     return (
-      <div className="max-w-md mx-auto my-16 p-8 bg-white rounded-3xl border border-slate-200 shadow-card text-center">
-        <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-4">
-          <ShieldAlert className="w-6 h-6 text-amber-600" />
-        </div>
-        <h2 className="text-lg font-bold text-slate-900 mb-2">Vault Not Loaded</h2>
-        <p className="text-xs text-slate-600 mb-6">{error || t.noVaultFound}</p>
-        <button
-          onClick={fetchDashboardData}
-          className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all inline-flex items-center gap-2"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>Reload Dashboard</span>
-        </button>
+      <div className="min-h-screen bg-bg text-text">
+        <header className="border-b border-line bg-surface/80 backdrop-blur-md sticky top-0 z-40">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center shadow-violetSubtle">
+                <Lock className="w-5 h-5 text-accent" />
+              </div>
+              <span className="font-extrabold text-lg text-text">Tijori</span>
+            </Link>
+            <div className="flex items-center gap-3">
+              <LanguageSwitcher />
+              <button
+                onClick={handleLogout}
+                className="py-1.5 px-3 rounded-btn bg-surface hover:bg-raised border border-line text-xs font-medium text-muted hover:text-text transition-colors flex items-center gap-1.5"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>{isArabic ? "خروج" : "Log out"}</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-xl mx-auto px-4 py-20 text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-raised border border-line mx-auto flex items-center justify-center shadow-violetSubtle">
+            <Lock className="w-8 h-8 text-accent" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-text">
+              {t("dashboard.emptyState.title")}
+            </h1>
+            <p className="text-sm text-muted max-w-md mx-auto">
+              {t("dashboard.emptyState.subtitle")}
+            </p>
+          </div>
+          <Link
+            href="/onboarding"
+            className="tactile-btn inline-flex items-center gap-2 px-8 py-3.5 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow"
+          >
+            <span>{t("dashboard.emptyState.action")}</span>
+            <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+          </Link>
+        </main>
       </div>
     );
   }
 
-  const radius = 120;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percentFunded / 100) * circumference;
+  // Computed Values
+  const percentFunded = Math.min(
+    100,
+    Math.round(((vault.currentBalance || 0) / (vault.targetAmount || 1)) * 100)
+  );
 
-  const keyholderPendingUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/unlock/${vault.unlockToken || vault._id}`
-      : `/unlock/${vault.unlockToken || vault._id}`;
+  const keyholderFirstName = vault.keyholder?.name
+    ? vault.keyholder.name.split(" ")[0]
+    : isArabic ? "فهد" : "Fahad";
+
+  const isPendingBreak = vault.status === "UNLOCK_PENDING";
+
+  // Sorted Transactions (Newest first, real timestamps)
+  const sortedTransactions = [...(vault.transactions || [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  // Proportional 4-Week Pacing Bars (renders full height immediately)
+  const basePull = vault.pullAmount || 25;
+  const pacingWeeks = [
+    { week: 1, label: isArabic ? "الأسبوع ١" : "Week 1", amount: Math.round(basePull * 1.5), note: isArabic ? "أول الشهر" : "Salary Tuck" },
+    { week: 2, label: isArabic ? "الأسبوع ٢" : "Week 2", amount: basePull, note: isArabic ? "توفير دوري" : "Auto-Save" },
+    { week: 3, label: isArabic ? "الأسبوع ٣" : "Week 3", amount: basePull, note: isArabic ? "توفير دوري" : "Auto-Save" },
+    { week: 4, label: isArabic ? "الأسبوع ٤" : "Week 4", amount: Math.max(5, Math.round(basePull * 0.4)), note: isArabic ? "حصة أمان" : "Buffer" },
+  ];
+  const maxPacingAmount = Math.max(...pacingWeeks.map((w) => w.amount), 1);
+
+  // Next Save formatted string
+  const nextDateFormatted = vault.nextPullAt
+    ? formatDate(vault.nextPullAt, lang)
+    : isArabic ? "الأحد القادم" : "Sunday";
 
   return (
-    <div
-      dir={lang === "ar" ? "rtl" : "ltr"}
-      className="min-h-screen bg-[#F8FAFC] text-[#0F172A] pb-6 selection:bg-amber-100 selection:text-amber-900"
-    >
-      {/* 1. TOP NAVIGATION BAR */}
-      <header className="border-b border-slate-200/90 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
-          {/* Brand Wordmark + Arabic Badge */}
+    <div className="min-h-screen bg-bg text-text selection:bg-accent/20 selection:text-accent pb-16">
+      {/* ── 1. TOP BAR: Greeting + Language Switcher + Avatar ── */}
+      <header className="border-b border-line bg-surface/90 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          {/* Logo & Greeting */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform">
-                <Lock className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center shadow-violetSubtle group-hover:border-accent/40 transition-colors">
+                <Lock className="w-4 h-4 text-accent" />
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-lg tracking-tight text-slate-900">
-                  {t.brandWordmark}
-                </span>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-semibold font-mono">
-                  {t.arabicBadge}
-                </span>
-              </div>
+              <span className="font-extrabold text-base tracking-tight text-text">Tijori</span>
             </Link>
+
+            {user && (
+              <div className="flex items-center gap-1.5 ms-2 ps-3 border-s border-line text-xs font-semibold text-text">
+                <span className="text-muted">{isArabic ? "حيّاك،" : "Salam,"}</span>
+                <span className="font-bold">{user.name.split(" ")[0]}</span>
+              </div>
+            )}
           </div>
 
-          {/* Centered Shield Hero Stat: 🛡️ 380 KWD Saved from Impulse Breaks (3 Denials by Fahad) */}
-          <div className="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 font-semibold shadow-2xs">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>{t.heroStat}</span>
-          </div>
-
-          {/* Controls: Language Switcher + User Profile + Logout */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            {/* Language Switcher [ EN | العربية ] */}
-            <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-semibold">
-              <button
-                onClick={() => setLang("en")}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg transition-all",
-                  lang === "en"
-                    ? "bg-white text-slate-900 shadow-xs font-bold"
-                    : "text-slate-500 hover:text-slate-800"
+          {/* Right: Language Switcher + Saved Card + Avatar */}
+          <div className="flex items-center gap-3">
+            {/* Card chip */}
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-btn bg-raised border border-line text-xs text-muted">
+              <CreditCard className="w-3.5 h-3.5 text-accent" />
+              <span>
+                {user?.cardLast4 ? (
+                  `${user.cardBrand || "Visa"} •••• ${user.cardLast4}`
+                ) : (
+                  <button onClick={() => setShowCardModal(true)} className="text-accent hover:underline">
+                    {t("dashboard.linkCard")}
+                  </button>
                 )}
-              >
-                EN
-              </button>
-              <button
-                onClick={() => setLang("ar")}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg transition-all",
-                  lang === "ar"
-                    ? "bg-white text-slate-900 shadow-xs font-bold font-sans"
-                    : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                العربية
-              </button>
+              </span>
             </div>
 
-            {/* User Greeting & Log Out */}
-            <div className="flex items-center gap-2 pl-1">
-              <div className="hidden lg:flex flex-col text-right">
-                <span className="text-xs font-bold text-slate-900">
-                  {t.salam}, {user?.name ? user.name.split(" ")[0] : "Abdulrahman"}
-                </span>
-                <span className="text-[10px] font-mono text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
-                  Day-{vault.allowanceDay || 25} Cycle
-                </span>
+            <LanguageSwitcher />
+
+            {/* Avatar & Logout */}
+            <div className="flex items-center gap-2">
+              <div
+                className="w-9 h-9 rounded-full bg-accent text-accent-foreground font-extrabold text-xs flex items-center justify-center shadow-limeGlow"
+                title={user?.name}
+              >
+                {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
               </div>
 
-              <Link
-                href="/create"
-                className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all shadow-xs"
-              >
-                <PlusCircle className="w-3.5 h-3.5 text-amber-600" />
-                <span>{t.newVault}</span>
-              </Link>
-
               <button
+                type="button"
                 onClick={handleLogout}
-                title="Log Out"
-                className="p-2 rounded-xl text-slate-500 hover:text-rose-700 hover:bg-rose-50 border border-slate-200 transition-all text-xs flex items-center gap-1.5"
+                aria-label="Log out"
+                className="p-2 rounded-btn bg-surface hover:bg-raised border border-line text-muted hover:text-text transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline text-[11px] font-medium">{t.logout}</span>
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-3">
-        {/* Mobile Shield Stat Banner */}
-        <div className="md:hidden flex items-center justify-between p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="font-semibold">{t.heroStat}</span>
+      {/* ── MAIN DASHBOARD CONTAINER (Phone-First, Desktop 2-Column) ── */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* ATTENTION REQUIRED BANNER (if charge failed) */}
+        {vault.needsAttention && (
+          <div className="p-4 rounded-2xl bg-coral/10 border border-coral/30 text-coral flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-card">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-coral/20 border border-coral/30 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-coral" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-sm text-text">
+                  {t("dashboard.needsAttentionBanner")}
+                </h4>
+                <p className="text-xs text-coral/90 mt-0.5">
+                  {vault.needsAttentionReason || "Card charge failed. Please update your card."}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCardModal(true)}
+              className="py-2 px-4 rounded-btn bg-coral text-white font-bold text-xs shrink-0 self-end sm:self-center"
+            >
+              {t("dashboard.changeCard")}
+            </button>
           </div>
-          <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-full">
-            Active Guard
-          </span>
-        </div>
+        )}
 
-        {/* 2. MAIN 2-COLUMN GRID (65% Left Vault Core / 35% Right Live Audit Sidebar) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
-          {/* LEFT COLUMN: 65% VAULT CORE (lg:col-span-8) */}
-          <div className="lg:col-span-8 space-y-3">
-            {/* Header: Goal title, Target, and Gamified Streak Badge */}
-            <div className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-card pb-0 overflow-hidden">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-200/90">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* ── LEFT COLUMN (lg:col-span-7): HERO VAULT CARD + ACTIONS ── */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* VAULT HERO CARD */}
+            <div
+              className={cn(
+                "rounded-[28px] p-6 sm:p-8 transition-all relative overflow-hidden border shadow-card",
+                isPendingBreak
+                  ? "bg-coral/10 border-coral/50 shadow-coralGlow"
+                  : "bg-surface border-line shadow-violetSubtle"
+              )}
+            >
+              {/* SINGLE PENDING STATE BANNER (Shown ONCE, not in four places) */}
+              {isPendingBreak && (
+                <div className="mb-6 p-3.5 rounded-2xl bg-coral/15 border border-coral/40 text-coral flex items-center justify-between gap-3 animate-pulse">
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-coral shrink-0" />
+                    <span className="font-extrabold text-xs sm:text-sm">
+                      {isArabic
+                        ? `بانتظار موافقة ${keyholderFirstName}`
+                        : `Waiting on ${keyholderFirstName}`}
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono font-bold bg-coral/20 px-2.5 py-0.5 rounded-btn">
+                    {isArabic ? "طلب كسر معلّق" : "Clearance Pending"}
+                  </span>
+                </div>
+              )}
+
+              {/* Card Header: Goal Title & Small Flame Streak Counter */}
+              <div className="flex items-center justify-between gap-3 pb-6 border-b border-line/60">
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-black text-text tracking-tight">
                     <GoalTitle title={vault.title} />
                   </h1>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Target: {formatKWD(vault.targetAmount)} KWD &bull; Guarded by {vault.keyholder?.name || "Fahad Al-Mutawa"}
+                  <p className="text-xs text-muted mt-0.5">
+                    {isArabic ? "حارس القفل:" : "Guarded by"} {vault.keyholder?.name}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* Gamified Streak Badge: 🔥 [streakCount]-Day Streak */}
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border border-amber-200/80 text-amber-950 font-bold text-xs shadow-2xs">
-                    <Flame className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
-                    <span>
-                      {vault.streakCount || 18} {t.unbrokenStreak}
-                    </span>
-                  </div>
-
-                  {/* Vault Status Badge */}
-                  <div
-                    className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold text-xs border shadow-2xs",
-                      vault.status === "UNLOCK_PENDING"
-                        ? "bg-rose-50 border-rose-200 text-rose-800 animate-pulse"
-                        : "bg-emerald-50 border-emerald-200 text-emerald-800"
-                    )}
-                  >
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>{vault.status === "UNLOCK_PENDING" ? "Break Pending ⏳" : "Locked 🔒"}</span>
-                  </div>
+                {/* Flame Streak Counter */}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-btn bg-raised border border-line text-accent font-extrabold text-xs font-mono shadow-sm">
+                  <Flame className="w-4 h-4 text-accent fill-accent" />
+                  <span>
+                    {vault.streakCount || 0} {isArabic ? "يوم التزام" : "days"}
+                  </span>
                 </div>
               </div>
 
-              {/* PHYSICAL VAULT DIAL COMPONENT (Star of the stage: 280px diameter) */}
-              <div className="py-2.5 sm:py-3.5 flex flex-col items-center justify-center relative">
-                <div className="relative w-64 h-64 sm:w-[280px] sm:h-[280px] flex items-center justify-center">
+              {/* 3D VAULT DIAL (Smaller, Center Hero with huge saved amount) */}
+              <div className="py-8 flex flex-col items-center justify-center relative select-none">
+                {/* SVG Progress Dial */}
+                <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 280 280">
                     <defs>
-                      <linearGradient id="honeyToEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#D97706" />
-                        <stop offset="50%" stopColor="#F59E0B" />
-                        <stop offset="100%" stopColor="#10B981" />
+                      <linearGradient id="limeDialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#7C5CFF" />
+                        <stop offset="100%" stopColor="#C6FF3D" />
+                      </linearGradient>
+                      <linearGradient id="coralDialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#FF5C7A" />
+                        <stop offset="100%" stopColor="#FFA07A" />
                       </linearGradient>
                     </defs>
 
-                    {/* Track ring */}
+                    {/* Dark Steel Outer Track */}
                     <circle
                       cx="140"
                       cy="140"
-                      r={radius}
-                      stroke="#E2E8F0"
-                      strokeWidth="16"
+                      r="120"
+                      stroke="#1E1B2B"
+                      strokeWidth="14"
                       fill="transparent"
                       strokeLinecap="round"
                     />
 
-                    {/* Dynamic Gauge Stroke */}
+                    {/* Neon Progress Arc */}
                     <circle
                       cx="140"
                       cy="140"
-                      r={radius}
-                      stroke="url(#honeyToEmerald)"
-                      strokeWidth="16"
+                      r="120"
+                      stroke={isPendingBreak ? "url(#coralDialGradient)" : "url(#limeDialGradient)"}
+                      strokeWidth="14"
                       fill="transparent"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={strokeDashoffset}
+                      strokeDasharray={2 * Math.PI * 120}
+                      strokeDashoffset={2 * Math.PI * 120 * (1 - percentFunded / 100)}
                       strokeLinecap="round"
-                      className="transition-all duration-1000 ease-out"
+                      className="transition-all duration-700 ease-out"
                     />
                   </svg>
 
-                  {/* Center Dial Content (Readable from 10m on stage) */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3">
-                    {/* Animated Padlock Glyph */}
-                    <div
-                      className={cn(
-                        "w-10 h-10 rounded-2xl flex items-center justify-center mb-1.5 shadow-2xs transition-transform duration-300",
-                        vault.status === "UNLOCK_PENDING"
-                          ? "bg-rose-50 border border-rose-200 text-rose-600 animate-bounce"
-                          : vault.status === "UNLOCKED"
-                          ? "bg-amber-50 border border-amber-200 text-amber-600"
-                          : "bg-emerald-50 border border-emerald-200 text-emerald-600"
-                      )}
-                    >
-                      {vault.status === "UNLOCKED" ? (
-                        <Unlock className="w-5 h-5 stroke-[2.5]" />
-                      ) : (
-                        <Lock className="w-5 h-5 stroke-[2.5]" />
-                      )}
-                    </div>
+                  {/* Center Hub & Huge Numbers */}
+                  <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-[#12101E] via-[#171524] to-[#1E1B2E] border border-line/80 flex flex-col items-center justify-center text-center p-6 shadow-inner">
+                    <span className="text-xs text-muted font-medium mb-1">
+                      {isArabic ? "المبلغ المحفوظ" : "Saved so far"}
+                    </span>
 
-                    {/* Large Bold Tabular Monetary Display */}
-                    <div className="font-extrabold text-3xl sm:text-4xl font-mono text-slate-900 tracking-tight tabular-nums">
-                      {formatKWD(vault.currentBalance)}
-                      <span className="text-xl sm:text-2xl font-bold text-slate-500 font-sans ml-1">
-                        KWD
+                    <div className="flex items-baseline justify-center gap-1.5">
+                      <span className="text-4xl sm:text-5xl font-black text-text tracking-tight tabular-nums">
+                        {formatKWD(vault.currentBalance)}
+                      </span>
+                      <span className="text-sm font-bold text-accent">
+                        {isArabic ? "د.ك" : "KWD"}
                       </span>
                     </div>
 
-                    <div className="text-xs sm:text-sm font-semibold text-slate-500 font-sans mt-0.5">
-                      Target: {formatKWD(vault.targetAmount)} KWD
-                    </div>
-
-                    {/* Percentage Funded */}
-                    <div className="mt-1.5 text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-3 py-0.5 rounded-full border border-emerald-200">
-                      {percentFunded}% {t.funded}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sub-Metrics Cards below Dial */}
-                <div className="grid grid-cols-3 gap-2.5 sm:gap-3 w-full max-w-lg mt-2">
-                  <div className="p-2.5 sm:p-3 rounded-2xl bg-slate-50 border border-slate-200/90 text-center">
-                    <span className="text-xs text-slate-500 font-medium block">
-                      {t.currentBalance}
-                    </span>
-                    <span className="text-sm sm:text-base font-extrabold text-slate-900 font-mono mt-0.5 block tabular-nums">
-                      {formatKWD(vault.currentBalance)} KWD
-                    </span>
-                  </div>
-
-                  <div className="p-2.5 sm:p-3 rounded-2xl bg-slate-50 border border-slate-200/90 text-center">
-                    <span className="text-xs text-slate-500 font-medium block">
-                      {t.leftToSave}
-                    </span>
-                    <span className="text-sm sm:text-base font-extrabold text-amber-700 font-mono mt-0.5 block tabular-nums">
-                      {formatKWD(leftToSave)} KWD
-                    </span>
-                  </div>
-
-                  <div className="p-2.5 sm:p-3 rounded-2xl bg-slate-50 border border-slate-200/90 text-center">
-                    <span className="text-xs text-slate-500 font-medium block">
-                      {t.cadenceTuck}
-                    </span>
-                    <span className="text-sm sm:text-base font-extrabold text-emerald-700 font-mono mt-0.5 block tabular-nums">
-                      +{formatKWD(vault.pullAmount)} KWD
+                    <span className="text-xs text-muted mt-2 font-mono">
+                      {isArabic ? "الهدف:" : "Goal:"} {formatKWD(vault.targetAmount)} ({percentFunded}%)
                     </span>
                   </div>
                 </div>
 
-                {/* Integrated Action Controls directly under the dial */}
-                <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-lg mt-2.5">
-                  <button
-                    id="simulate-tuck-btn"
-                    onClick={handleSimulateTuck}
-                    disabled={pulling}
-                    className="tactile-btn flex-1 py-2 px-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs shadow-xs active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                  >
-                    {pulling ? (
-                      <div className="w-3.5 h-3.5 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
-                    ) : (
-                      <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                    )}
-                    <span>{t.simulateTuck}</span>
-                  </button>
-
-                  <button
-                    id="stripe-boost-btn"
-                    onClick={handleStripeBoost}
-                    disabled={boosting}
-                    className="tactile-btn py-2 px-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-bold text-xs shadow-xs active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                  >
-                    {boosting ? (
-                      <div className="w-3.5 h-3.5 border-2 border-slate-600/30 border-t-slate-800 rounded-full animate-spin" />
-                    ) : (
-                      <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-                    )}
-                    <span>{t.quickBoost}</span>
-                  </button>
-
-                  {vault.status === "UNLOCK_PENDING" && (
-                    <Link
-                      id="open-keyholder-link"
-                      href={`/unlock/${vault.unlockToken || vault._id}`}
-                      target="_blank"
-                      className="tactile-btn py-2 px-3.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-bold text-xs shadow-xs transition-all animate-pulse flex items-center justify-center gap-1.5"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5 text-rose-600" />
-                      <span>{t.openKeyholderLink}</span>
-                    </Link>
-                  )}
+                {/* One Status Line Under the Dial */}
+                <div className="mt-4 text-center">
+                  <p className="text-xs sm:text-sm text-muted font-medium flex items-center justify-center gap-2">
+                    <Clock className="w-4 h-4 text-accent" />
+                    <span>
+                      {isArabic
+                        ? `التوفير القادم: ${formatKWD(vault.pullAmount)} د.ك في ${nextDateFormatted}`
+                        : `Next save: ${formatKWD(vault.pullAmount)} KWD on ${nextDateFormatted}`}
+                    </span>
+                  </p>
                 </div>
               </div>
 
-              {/* RELOCATED EARLY BREAK TRIGGER DIRECTLY INSIDE VAULT CORE CARD */}
-              <div className="mt-3 -mx-4 sm:-mx-5 p-2.5 sm:px-4 bg-rose-50/70 border-t border-rose-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-rose-100 border border-rose-200 flex items-center justify-center shrink-0">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-rose-950 block leading-tight">
-                      {t.disciplineTaxWarning}
+              {/* Real Denials Pill (Only shown if real denials exist in DB) */}
+              {(vault.denialsCount ?? 0) > 0 && (
+                <div className="pt-2 text-center">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-btn bg-raised border border-line text-xs text-muted">
+                    <ShieldCheck className="w-3.5 h-3.5 text-accent" />
+                    <span>
+                      {isArabic
+                        ? `تم تجنب ${vault.denialsCount} محاولات كسر (${formatKWD(vault.totalProtected)} د.ك محمية)`
+                        : `${vault.denialsCount} breaks avoided (${formatKWD(vault.totalProtected)} KWD protected)`}
                     </span>
-                    <span className="text-[11px] text-rose-700 block leading-tight">
-                      {t.disciplineTaxSub}
-                    </span>
-                  </div>
+                  </span>
                 </div>
-
-                <button
-                  id="request-break-btn"
-                  onClick={() => {
-                    setShowBreakModal(true);
-                    setBreakResult(null);
-                    setExcuseText("");
-                  }}
-                  className="tactile-btn px-3 py-1.5 rounded-xl border border-rose-300 bg-white hover:bg-rose-50 text-rose-700 font-bold text-xs shadow-2xs active:scale-95 transition-all shrink-0 self-end sm:self-center"
-                >
-                  {t.requestEarlyBreak}
-                </button>
-              </div>
+              )}
             </div>
 
-            {/* ALLOWANCE PACING 4-WEEK BAR CHART */}
-            <div className="p-3 sm:p-3.5 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{t.pacingTitle}</span>
-                  </h3>
-                  <p className="text-[10px] text-slate-500 mt-0.2">{t.pacingSubtitle}</p>
-                </div>
-              </div>
+            {/* ── TWO ACTIONS ONLY BELOW HERO ── */}
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              {/* Primary Lime: Add money */}
+              <button
+                type="button"
+                onClick={() => setShowTopUpModal(true)}
+                className="tactile-btn w-full sm:flex-1 py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm sm:text-base shadow-limeGlow flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+              >
+                <span>{t("dashboard.addMoneyAction")}</span>
+                <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+              </button>
 
-              {/* 4-Week Dynamic Visual Bars */}
-              <div className="grid grid-cols-4 gap-2.5 sm:gap-3 items-end pt-0.5">
-                {pacingWeeks.map((item) => (
-                  <div key={item.week} className="flex flex-col items-center group">
-                    <span className="text-[10px] font-mono font-bold text-slate-900 mb-1 tabular-nums">
-                      +{item.amount} KWD
-                    </span>
-                    <div className="w-full bg-slate-100 rounded-xl h-18 flex items-end p-1 border border-slate-200/80">
-                      <div
-                        style={{ height: `${item.percent}%` }}
-                        className={cn(
-                          "w-full rounded-lg bg-gradient-to-t shadow-xs transition-all duration-700 ease-out group-hover:opacity-90",
-                          item.color
-                        )}
-                      />
-                    </div>
-                    <div className="text-center mt-1">
-                      <span className="text-[10px] font-extrabold text-slate-900 block">
-                        {t.week} {item.week}
-                      </span>
-                      <span className="text-[9px] text-slate-500 font-medium block truncate max-w-[80px] sm:max-w-none">
-                        {item.title}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {/* Secondary Ghost: I need to break it */}
+              <button
+                type="button"
+                onClick={() => {
+                  setBreakStep("reason");
+                  setReasonText("");
+                  setShowBreakSheet(true);
+                }}
+                className="w-full sm:flex-1 py-4 px-6 rounded-btn border border-line bg-surface hover:bg-raised text-muted hover:text-text font-bold text-sm sm:text-base transition-colors flex items-center justify-center gap-2"
+              >
+                <span>{t("dashboard.breakAction")}</span>
+              </button>
             </div>
           </div>
 
-          {/* RIGHT COLUMN: 35% LIVE AUDIT SIDEBAR (lg:col-span-4) */}
-          <div className="lg:col-span-4 space-y-3">
-            {/* KEYHOLDER PROTOCOL CARD */}
-            <div className="p-4 sm:p-4.5 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/90 mb-2.5">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-amber-600" />
-                  <h3 className="text-xs font-bold text-slate-900">
-                    {t.keyholderProtocol}
-                  </h3>
-                </div>
-                <span
-                  className={cn(
-                    "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                    vault.status === "UNLOCK_PENDING"
-                      ? "bg-rose-100 text-rose-800 border border-rose-200 animate-pulse"
-                      : "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                  )}
-                >
-                  {vault.status === "UNLOCK_PENDING" ? t.breakRequested : t.armedAndGuarding}
-                </span>
+          {/* ── RIGHT COLUMN (lg:col-span-5): WEEKLY PACING + LEDGER ── */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* WEEKLY PACING: Clean 4-bar chart rendering at full height immediately */}
+            <div className="bg-surface border border-line rounded-card p-6 shadow-card space-y-4">
+              <div>
+                <h3 className="font-extrabold text-base text-text">
+                  {t("dashboard.pacingTitle")}
+                </h3>
+                <p className="text-xs text-muted mt-0.5">
+                  {t("dashboard.pacingSubtitle")}
+                </p>
               </div>
 
-              <div className="space-y-2.5">
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/90">
-                  <span className="text-xs text-slate-500 font-medium block">
-                    {t.designatedGuardian}
-                  </span>
-                  <div className="text-sm font-bold text-slate-900 mt-0.5">
-                    {vault.keyholder.name}
-                  </div>
-                  <div className="text-xs text-slate-600 font-mono mt-0.5">
-                    {vault.keyholder.phone} &bull; {vault.keyholder.relationship}
-                  </div>
-                </div>
+              {/* 4 Clean Proportional Bars */}
+              <div className="h-36 pt-4 flex items-end justify-between gap-3 px-2 border-b border-line pb-3">
+                {pacingWeeks.map((w, idx) => {
+                  const barHeightPercent = Math.max(
+                    18,
+                    Math.round((w.amount / maxPacingAmount) * 100)
+                  );
+                  const isCurrentWeek = idx === 0;
 
-                {/* Direct WhatsApp Ping Button */}
-                <a
-                  href={`https://wa.me/${vault.keyholder.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                    `Salam ${vault.keyholder.name}! Checking in on my Tijori savings vault for "${vault.title}". Keep guarding my funds!`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="tactile-btn w-full py-2 px-3.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs transition-all"
-                >
-                  <MessageSquare className="w-3.5 h-3.5 text-slate-950" />
-                  <span>{t.pingWhatsApp}</span>
-                </a>
+                  return (
+                    <div key={w.week} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                      {/* Amount above bar */}
+                      <span className="text-xs font-mono font-bold text-muted tabular-nums">
+                        {w.amount}
+                      </span>
+
+                      {/* Bar (Renders at full height immediately, NO delayed animation) */}
+                      <div className="w-full max-w-[48px] bg-raised rounded-t-xl overflow-hidden flex flex-col justify-end h-24">
+                        <div
+                          style={{ height: `${barHeightPercent}%` }}
+                          className={cn(
+                            "w-full rounded-t-xl transition-none",
+                            isCurrentWeek
+                              ? "bg-accent shadow-limeGlow"
+                              : "bg-violet/70"
+                          )}
+                        />
+                      </div>
+
+                      {/* Label below bar */}
+                      <span className="text-xs text-muted font-medium">
+                        {w.label}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* AUDIT & ANTI-IMPULSE LEDGER */}
-            <div className="p-4 sm:p-4.5 rounded-3xl bg-white border border-slate-200/90 shadow-card">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-200/90 mb-2.5">
-                <div className="flex items-center gap-2">
-                  <Coins className="w-4 h-4 text-amber-600" />
-                  <h3 className="text-xs font-bold text-slate-900">
-                    {t.auditLedger}
-                  </h3>
-                </div>
+            {/* ACTIVITY LEDGER: Simple list, newest first, real timestamps, no clipped rows */}
+            <div className="bg-surface border border-line rounded-card p-6 shadow-card space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-line">
+                <h3 className="font-extrabold text-base text-text">
+                  {t("dashboard.recentActivity")}
+                </h3>
+                <span className="text-xs font-mono text-muted">
+                  {sortedTransactions.length} {isArabic ? "حركات" : "entries"}
+                </span>
               </div>
 
-              {/* Transactions List with clean explicit height preventing slicing */}
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                {vault.transactions && vault.transactions.length > 0 ? (
-                  vault.transactions.map((tx, idx) => {
-                    const isBreakRequest =
-                      tx.type === "BREAK_REQUEST" ||
-                      (tx.amount === 0 && tx.note?.includes("Break Requested"));
-
-                    const isPositive =
+              {sortedTransactions.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted">
+                  {t("dashboard.noActivity")}
+                </div>
+              ) : (
+                <div className="max-h-72 overflow-y-auto space-y-3 pe-1 scrollbar-thin">
+                  {sortedTransactions.map((tx, idx) => {
+                    const isCredit =
+                      tx.type === "TOP_UP" ||
                       tx.type === "SCHEDULED_PULL" ||
-                      tx.type === "SIMULATED_PULL" ||
                       tx.type === "STRIPE_DEPOSIT";
-
-                    // International date format: 18 Oct, 21:45
-                    const formattedDate = new Date(tx.createdAt).toLocaleDateString(
-                      lang === "ar" ? "ar-KW" : "en-GB",
-                      {
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    );
-
-                    if (isBreakRequest) {
-                      return (
-                        <div
-                          key={tx._id || idx}
-                          className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80 transition-colors flex items-center justify-between gap-2.5 text-xs"
-                        >
-                          <div className="min-w-0">
-                            <div className="font-bold text-amber-950 truncate flex items-center gap-1.5">
-                              <span>🚨 Break Requested</span>
-                            </div>
-                            <div className="text-[10px] text-amber-800 font-mono mt-0.5">
-                              {formattedDate} &bull; Pending Fahad&apos;s Approval
-                            </div>
-                          </div>
-
-                          <div className="text-right shrink-0">
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                              Pending
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    }
+                    const isDebit =
+                      tx.type === "WITHDRAWAL" ||
+                      tx.type === "BREAK_REFUND" ||
+                      tx.type === "DISCIPLINE_FEE";
 
                     return (
                       <div
                         key={tx._id || idx}
-                        className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 transition-colors flex items-center justify-between gap-3 text-xs"
+                        className="p-3 rounded-2xl bg-raised/70 border border-line flex items-center justify-between gap-3 text-xs"
                       >
-                        <div className="min-w-0">
-                          <div className="font-semibold text-slate-900 truncate">
-                            {tx.note ||
-                              (tx.type === "SIMULATED_PULL"
-                                ? "Allowance Tuck"
-                                : tx.type === "STRIPE_DEPOSIT"
-                                ? "Card Deposit"
-                                : tx.type === "WITHDRAWAL"
-                                ? "Early Break Withdrawal"
-                                : "Disciplined Micro-Pull")}
-                          </div>
-                          <div className="text-[10px] text-slate-500 font-mono mt-0.5">
-                            {formattedDate} &bull; {tx.type}
-                          </div>
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-text">
+                            {tx.note || tx.type.replace(/_/g, " ")}
+                          </p>
+                          <p className="text-xs text-muted font-mono">
+                            {formatDate(tx.createdAt, lang)}
+                          </p>
                         </div>
 
-                        <div className="text-right shrink-0">
+                        <div className="text-end shrink-0">
                           <span
                             className={cn(
-                              "font-mono font-extrabold text-xs block tabular-nums",
-                              isPositive ? "text-emerald-700" : "text-rose-700"
+                              "font-mono font-extrabold text-xs sm:text-sm tabular-nums",
+                              isCredit
+                                ? "text-accent"
+                                : isDebit
+                                ? "text-coral"
+                                : "text-muted"
                             )}
                           >
-                            {isPositive ? "+" : "-"}
-                            {formatKWD(tx.amount)} KWD
-                          </span>
-                          <span
-                            className={cn(
-                              "text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase",
-                              tx.status === "SUCCESS"
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-rose-100 text-rose-800"
-                            )}
-                          >
-                            {tx.status}
+                            {isCredit ? "+" : isDebit ? "-" : ""}
+                            {formatKWD(tx.amount)} {isArabic ? "د.ك" : "KWD"}
                           </span>
                         </div>
                       </div>
                     );
-                  })
-                ) : (
-                  <div className="text-center py-8 text-xs text-slate-400">
-                    {t.noTransactions}
-                  </div>
-                )}
-              </div>
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </main>
 
-      {/* 3. EMERGENCY BREAK FRICTION MODAL */}
-      {showBreakModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-lg w-full bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-2xl relative overflow-hidden">
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-200 mb-5">
-              <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center shrink-0">
-                <ShieldAlert className="w-5 h-5 text-rose-600" />
-              </div>
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
-                  {t.breakModalTitle}
-                </h3>
-                <p className="text-xs text-rose-600 font-medium font-mono">
-                  Guarded by Fahad Al-Mutawa
-                </p>
-              </div>
-            </div>
+      {/* ── BREAK FLOW BOTTOM SHEET / MODAL (The core of the product) ── */}
+      {showBreakSheet && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg bg-surface border border-line rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-8 space-y-4 sm:space-y-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowBreakSheet(false)}
+              className="absolute top-5 end-5 p-2 rounded-full hover:bg-raised text-muted hover:text-text transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
-            {!breakResult ? (
-              <form onSubmit={handleSubmitBreakRequest} className="space-y-4">
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {t.breakModalSubtitle}
-                </p>
-
-                {/* 5% Tax Warning */}
-                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-950 flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="block font-bold mb-0.5">5% Discipline Tax:</strong>
-                    <span className="text-rose-800 leading-snug block">
-                      {t.disciplineTaxSub}
-                    </span>
+            {/* STEP 1: Reason Input */}
+            {breakStep === "reason" && (
+              <div className="space-y-3.5 sm:space-y-5">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-btn bg-coral/15 border border-coral/30 text-coral text-xs font-bold">
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>{t("dashboard.breakSheetTitle")}</span>
                   </div>
+                  <h2 className="text-xl sm:text-2xl font-black text-text">
+                    {t("dashboard.reasonLabel")}
+                  </h2>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                    {t.excuseLabel}
-                  </label>
+                {/* Plain 1-Sentence Discipline Fee Notice */}
+                <div className="p-3.5 rounded-2xl bg-raised border border-line text-xs text-muted leading-relaxed">
+                  {t("dashboard.breakSheetFeeNotice")}
+                </div>
+
+                <div className="space-y-2">
                   <textarea
                     rows={3}
-                    required
-                    value={excuseText}
-                    onChange={(e) => setExcuseText(e.target.value)}
-                    placeholder={t.excusePlaceholder}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-colors"
+                    value={reasonText}
+                    onChange={(e) => setReasonText(e.target.value)}
+                    placeholder={t("dashboard.reasonPlaceholder")}
+                    className="w-full px-4 py-3 rounded-2xl bg-bg border border-line focus:border-accent text-sm text-text placeholder:text-muted/60 resize-none outline-hidden"
                   />
+                  <div className="flex justify-between text-xs text-muted font-mono">
+                    <span>
+                      {reasonText.trim().length >= 10
+                        ? isArabic ? "العذر كافي" : "Reason long enough"
+                        : isArabic ? "١٠ أحرف على الأقل" : "10 characters min"}
+                    </span>
+                    <span>{reasonText.trim().length} / 10</span>
+                  </div>
                 </div>
 
-                {/* Primary Button: Keep Vault Locked 🛡️ | Secondary: Request Early Break */}
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  {/* Primary Lime: Keep it locked */}
                   <button
                     type="button"
-                    onClick={() => setShowBreakModal(false)}
-                    className="flex-1 py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
+                    onClick={() => setShowBreakSheet(false)}
+                    className="tactile-btn flex-1 py-3.5 px-5 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow"
                   >
-                    <ShieldCheck className="w-4 h-4 text-white" />
-                    <span>{t.cancelKeepLocked}</span>
+                    {t("dashboard.keepLockedBtn")}
                   </button>
+
+                  {/* Secondary: Send to Keyholder */}
                   <button
-                    type="submit"
-                    disabled={submittingBreak}
-                    className="tactile-btn py-3 px-4 rounded-xl border border-slate-300 hover:border-rose-300 hover:bg-rose-50 text-rose-700 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    type="button"
+                    disabled={reasonText.trim().length < 10 || loadingRoast}
+                    onClick={handleFetchRoast}
+                    className="flex-1 py-3.5 px-5 rounded-btn border border-line bg-surface hover:bg-raised text-text font-bold text-sm disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
                   >
-                    {submittingBreak ? (
-                      <div className="w-4 h-4 border-2 border-rose-600/30 border-t-rose-600 rounded-full animate-spin" />
+                    {loadingRoast ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-accent" />
                     ) : (
-                      <span>{t.submitBreakRequest}</span>
+                      <span>
+                        {isArabic
+                          ? `أرسل لـ ${keyholderFirstName}`
+                          : `Send to ${keyholderFirstName}`}
+                      </span>
                     )}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="space-y-4">
-                {/* Gemini AI Reality Check Callout */}
-                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 shadow-xs">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-800 mb-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-600" />
-                    <span>{t.realityCheckTitle}</span>
-                  </div>
-                  <p className="text-xs text-amber-950 italic leading-relaxed font-sans">
-                    &ldquo;{breakResult.realityCheck}&rdquo;
-                  </p>
-                </div>
-
-                {/* Token Generated Notice */}
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-2.5">
-                  <div className="flex items-center gap-2 text-rose-600 font-semibold">
-                    <Clock className="w-4 h-4" />
-                    <span>{t.keyholderTokenGenerated}</span>
-                  </div>
-                  <p className="text-slate-600 text-[11px] leading-relaxed">
-                    {t.sendToKeyholderNotice} <strong>{vault.keyholder.name}</strong>
-                  </p>
-
-                  <div className="flex items-center gap-2">
-                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 font-mono text-[11px] text-amber-800 break-all select-all shadow-xs flex-1">
-                      {keyholderPendingUrl}
-                    </div>
-                    <button
-                      onClick={() => copyToClipboard(keyholderPendingUrl)}
-                      className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors shrink-0"
-                      title="Copy link"
-                    >
-                      {copiedLink ? (
-                        <Check className="w-4 h-4 text-emerald-600" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                  {copiedLink && (
-                    <span className="text-[10px] text-emerald-600 font-mono block">
-                      ✓ Copied to clipboard
-                    </span>
-                  )}
-                </div>
-
-                {/* Green WhatsApp Share Button */}
-                <a
-                  href={
-                    breakResult.whatsappUrl ||
-                    `https://wa.me/?text=${encodeURIComponent(
-                      `Salam Fahad! I am trying to break my Tijori savings vault for "${vault.title}". My reason: "${excuseText}". Approve or block me here: ${keyholderPendingUrl}`
-                    )}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="tactile-btn w-full py-3.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/15 transition-all flex items-center justify-center gap-2"
-                >
-                  <Share2 className="w-4 h-4 text-slate-950" />
-                  <span>{t.shareWhatsApp}</span>
-                </a>
-
-                <div className="flex items-center gap-3">
-                  <Link
-                    href={`/unlock/${breakResult.token || vault.unlockToken || vault._id}`}
-                    target="_blank"
-                    className="tactile-btn flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs text-center border border-slate-200 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <span>{t.openDirectly}</span>
-                  </Link>
-                  <button
-                    onClick={() => setShowBreakModal(false)}
-                    className="py-3 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold"
-                  >
-                    {t.done}
                   </button>
                 </div>
               </div>
             )}
+
+            {/* STEP 2: Intense AI Reality Check (Addressed TO THE USER) */}
+            {breakStep === "roast" && (
+              <div className="space-y-4 sm:space-y-6">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-btn bg-violet/20 border border-violet/40 text-[#E3DAFC] text-xs font-bold">
+                    <Sparkles className="w-3.5 h-3.5 text-accent" />
+                    <span>{t("dashboard.roastHeading")}</span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black text-text">
+                    {t("dashboard.roastSub")}
+                  </h2>
+                </div>
+
+                {/* Intense Roast Box */}
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-[#201830] to-[#161226] border border-violet/40 shadow-violetSubtle relative">
+                  <blockquote className="text-sm sm:text-base text-text font-semibold italic leading-relaxed">
+                    &ldquo;{roastText}&rdquo;
+                  </blockquote>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  {/* Primary Lime: You're right, keep it locked */}
+                  <button
+                    type="button"
+                    onClick={() => setShowBreakSheet(false)}
+                    className="tactile-btn flex-1 py-3.5 px-5 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow"
+                  >
+                    {t("dashboard.keepLockedRoastBtn")}
+                  </button>
+
+                  {/* Secondary Destructive: Still sending it */}
+                  <button
+                    type="button"
+                    disabled={submittingBreak}
+                    onClick={handleConfirmBreakRequest}
+                    className="flex-1 py-3.5 px-5 rounded-btn border border-coral/50 bg-coral/10 hover:bg-coral/20 text-coral font-bold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-40"
+                  >
+                    {submittingBreak ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <span>{t("dashboard.stillSendingBtn")}</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Share with Keyholder via WhatsApp */}
+            {breakStep === "share" && (
+              <div className="space-y-4 sm:space-y-6 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-coral/15 border border-coral/30 flex items-center justify-center mx-auto text-coral">
+                  <ShieldAlert className="w-7 h-7" />
+                </div>
+
+                <div className="space-y-1">
+                  <h2 className="text-xl sm:text-2xl font-black text-text">
+                    {isArabic
+                      ? `بانتظار موافقة ${keyholderFirstName}`
+                      : `Waiting on ${keyholderFirstName}`}
+                  </h2>
+                  <p className="text-xs text-muted max-w-sm mx-auto leading-relaxed">
+                    {isArabic
+                      ? `تم إنشاء رابط الفتح ذو الاستخدام الواحد. أرسل الرسالة لفهد عبر واتساب ليقرر.`
+                      : `Your single-use clearance link is ready. Send it to ${keyholderFirstName} on WhatsApp for his decision.`}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {/* WhatsApp button */}
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="tactile-btn w-full py-4 px-6 rounded-btn bg-[#25D366] hover:bg-[#20BE5B] text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-md"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>
+                      {isArabic
+                        ? `إرسال عبر واتساب لـ ${keyholderFirstName}`
+                        : `Send WhatsApp to ${keyholderFirstName}`}
+                    </span>
+                  </a>
+
+                  {/* Copy Link Button */}
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(unlockUrl)}
+                    className="w-full py-3 px-4 rounded-btn border border-line bg-surface hover:bg-raised text-xs text-muted hover:text-text font-mono flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>
+                      {copiedLink
+                        ? t("dashboard.linkCopied")
+                        : t("dashboard.copyClearanceLink")}
+                    </span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowBreakSheet(false)}
+                  className="text-xs text-muted hover:text-text underline pt-1"
+                >
+                  {isArabic ? "الرجوع للخزينة" : "Back to Vault"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── TOP UP MODAL (Task 3 Real Payments) ── */}
+      {showTopUpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-surface border border-line rounded-[28px] p-6 sm:p-8 space-y-6 shadow-2xl relative">
+            <button
+              onClick={() => setShowTopUpModal(false)}
+              className="absolute top-5 end-5 p-2 rounded-full hover:bg-raised text-muted hover:text-text transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <h2 className="text-xl sm:text-2xl font-black text-text">
+                {t("dashboard.topUpTitle")}
+              </h2>
+              <p className="text-xs text-muted">
+                {t("dashboard.topUpSubtitle")}
+              </p>
+            </div>
+
+            {topUpError && (
+              <div className="p-3.5 rounded-xl bg-coral/10 border border-coral/30 text-coral text-xs">
+                {topUpError}
+              </div>
+            )}
+
+            {topUpSuccess && (
+              <div className="p-3.5 rounded-xl bg-accent/15 border border-accent/40 text-accent font-bold text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{topUpSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleTopUpSubmit} className="space-y-5">
+              {/* Preset Chips */}
+              <div className="grid grid-cols-4 gap-2">
+                {[5, 10, 20, 50].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => {
+                      setTopUpAmount(amt);
+                      setCustomAmount("");
+                    }}
+                    className={cn(
+                      "py-2.5 rounded-btn font-mono font-bold text-xs border transition-colors",
+                      topUpAmount === amt && !customAmount
+                        ? "bg-accent text-accent-foreground border-accent shadow-limeGlow"
+                        : "bg-raised border-line text-muted hover:text-text"
+                    )}
+                  >
+                    +{amt} {isArabic ? "د.ك" : "KWD"}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Amount */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted">
+                  {isArabic ? "أو اكتب مبلغ مخصص:" : "Or custom amount:"}
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="1"
+                    placeholder="e.g. 25"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    className="w-full px-4 py-3 rounded-btn bg-bg border border-line focus:border-accent text-sm text-text font-mono outline-hidden"
+                  />
+                  <span className="absolute end-4 top-3 text-xs text-muted font-bold">
+                    {isArabic ? "د.ك" : "KWD"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={topUpLoading}
+                className="tactile-btn w-full py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {topUpLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <span>
+                    {isArabic
+                      ? `تأكيد إضافة ${customAmount || topUpAmount} د.ك`
+                      : `Confirm Add ${customAmount || topUpAmount} KWD`}
+                  </span>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── CARD SETUP MODAL (Stripe Elements) ── */}
+      {showCardModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-surface border border-line rounded-[28px] p-6 sm:p-8 space-y-6 shadow-2xl relative">
+            <button
+              onClick={() => setShowCardModal(false)}
+              className="absolute top-5 end-5 p-2 rounded-full hover:bg-raised text-muted hover:text-text transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <h2 className="text-xl sm:text-2xl font-black text-text">
+                {t("dashboard.linkCard")}
+              </h2>
+              <p className="text-xs text-muted">
+                {t("dashboard.topUpSubtitle")}
+              </p>
+            </div>
+
+            <StripeCardForm
+              onSuccess={() => {
+                setShowCardModal(false);
+                // Refresh user state
+                fetch("/api/auth/me")
+                  .then((r) => r.json())
+                  .then((d) => d.user && setUser(d.user));
+              }}
+            />
           </div>
         </div>
       )}
@@ -1173,11 +1072,8 @@ export default function DashboardPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[75vh] flex flex-col items-center justify-center">
-          <div className="w-12 h-12 rounded-full border-3 border-amber-500/30 border-t-amber-500 animate-spin" />
-          <p className="mt-4 text-xs font-mono font-medium text-slate-500 tracking-wide">
-            Loading Tijori Command Center...
-          </p>
+        <div className="min-h-screen bg-bg flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full border-3 border-line border-t-accent animate-spin" />
         </div>
       }
     >

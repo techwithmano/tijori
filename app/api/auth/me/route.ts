@@ -30,6 +30,9 @@ export async function GET(req: NextRequest) {
         email: user.email,
         phone: user.phone,
         allowanceDay: user.allowanceDay,
+        cardLast4: user.cardLast4 || null,
+        cardBrand: user.cardBrand || null,
+        hasPaymentMethod: Boolean(user.defaultPaymentMethodId),
       },
     });
   } catch (error: any) {

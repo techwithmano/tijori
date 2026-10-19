@@ -3,108 +3,158 @@
 @tailwind utilities;
 
 :root {
-  --background: #F8FAFC;
-  --foreground: #0F172A;
-  --gold-glow: rgba(217, 119, 6, 0.15);
-  --emerald-glow: rgba(5, 150, 105, 0.15);
-  --rose-glow: rgba(225, 29, 72, 0.15);
+  --bg: #0B0A14;
+  --surface: #15131F;
+  --raised: #1E1B2B;
+  --line: #2A2639;
+  --text: #F5F3FF;
+  --muted: #A29DB8;
+  --accent: #C6FF3D;
+  --accent-foreground: #0B0A14;
+  --violet: #7C5CFF;
+  --coral: #FF5C7A;
+  --mint: #3DFFB0;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  background-color: var(--bg);
+  color: var(--text);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
 
-/* Custom Scrollbar for Ledger */
+/* Automatic Font Stack Selection based on Language */
+html[lang="ar"],
+html[lang="ar"] body,
+html[lang="ar"] h1,
+html[lang="ar"] h2,
+html[lang="ar"] h3,
+html[lang="ar"] h4,
+html[lang="ar"] h5,
+html[lang="ar"] h6,
+html[lang="ar"] button,
+html[lang="ar"] input,
+html[lang="ar"] textarea {
+  font-family: var(--font-arabic), system-ui, sans-serif;
+}
+
+html[lang="en"],
+html[lang="en"] body {
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+html[lang="en"] h1,
+html[lang="en"] h2,
+html[lang="en"] h3,
+html[lang="en"] h4,
+html[lang="en"] h5,
+html[lang="en"] h6 {
+  font-family: var(--font-heading), system-ui, sans-serif;
+}
+
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F8FAFC;
+  background: var(--bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: var(--line);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: var(--violet);
 }
 
-/* Glassmorphism & Card helpers with Calm Trust light depth */
-.glass-panel {
-  background: #FFFFFF;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(226, 232, 240, 0.8);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.glass-panel:hover {
-  border-color: rgba(217, 119, 6, 0.35);
-  box-shadow: 0 14px 35px -5px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(217, 119, 6, 0.3);
-}
-
-.ring-glow {
-  filter: drop-shadow(0 4px 14px rgba(217, 119, 6, 0.2));
-}
-
-.ring-glow-danger {
-  filter: drop-shadow(0 4px 14px rgba(225, 29, 72, 0.2));
-}
-
-.ring-glow-success {
-  filter: drop-shadow(0 4px 14px rgba(5, 150, 105, 0.2));
-}
-
-.glass-panel-gold {
-  background: #FFFBEB;
-  border: 1px solid #FDE68A;
-  box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.08);
-}
-
-.glass-panel-emerald {
-  background: #ECFDF5;
-  border: 1px solid #A7F3D0;
-  box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.08);
-}
-
-.glass-panel-danger {
-  background: #FFF1F2;
-  border: 1px solid #FECDD3;
-  box-shadow: 0 10px 25px -5px rgba(225, 29, 72, 0.08);
-}
-
-/* Subtle background grid pattern for light mode */
-.bg-grid-pattern {
-  background-size: 32px 32px;
-  background-image: 
-    linear-gradient(to right, rgba(148, 163, 184, 0.07) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
-}
-
-/* Smooth spring animations */
-@keyframes pulseSubtle {
+/* Animated Gradient Mesh Behind All Pages */
+@keyframes meshPulse1 {
   0%, 100% {
-    transform: scale(1);
-    opacity: 1;
+    transform: translate(0, 0) scale(1);
+    opacity: 0.7;
   }
   50% {
-    transform: scale(1.02);
+    transform: translate(35px, 25px) scale(1.1);
     opacity: 0.9;
   }
 }
 
-.animate-pulse-subtle {
-  animation: pulseSubtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+@keyframes meshPulse2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-30px, -35px) scale(1.08);
+    opacity: 0.85;
+  }
 }
 
-/* Gamified tactile button press styles */
+.mesh-bg-canvas {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -10;
+  background-color: var(--bg);
+}
+
+.mesh-blob-violet {
+  position: absolute;
+  top: -10%;
+  inset-inline-start: 12%;
+  width: 55vw;
+  height: 55vw;
+  max-width: 650px;
+  max-height: 650px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(124, 92, 255, 0.16) 0%, rgba(124, 92, 255, 0) 70%);
+  filter: blur(80px);
+  animation: meshPulse1 20s ease-in-out infinite;
+}
+
+.mesh-blob-lime {
+  position: absolute;
+  top: 40%;
+  inset-inline-end: 8%;
+  width: 45vw;
+  height: 45vw;
+  max-width: 520px;
+  max-height: 520px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(198, 255, 61, 0.07) 0%, rgba(198, 255, 61, 0) 70%);
+  filter: blur(90px);
+  animation: meshPulse2 24s ease-in-out infinite;
+}
+
+.mesh-blob-bottom {
+  position: absolute;
+  bottom: -15%;
+  inset-inline-start: 25%;
+  width: 50vw;
+  height: 50vw;
+  max-width: 600px;
+  max-height: 600px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(124, 92, 255, 0.1) 0%, rgba(124, 92, 255, 0) 70%);
+  filter: blur(85px);
+  animation: meshPulse1 18s ease-in-out infinite reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-blob-violet,
+  .mesh-blob-lime,
+  .mesh-blob-bottom {
+    animation: none !important;
+  }
+}
+
+/* Button & Tactile Interaction Styles */
 .tactile-btn {
   transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
 }

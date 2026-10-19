@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { User } from "@/models/User";
-import { Vault } from "@/models/Vault";
 import { hashPassword, createSession } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
     const body = await req.json();
-    const { name, email, password, phone, allowanceDay } = body;
+    const { name, email, password } = body;
 
     if (!name || !email || !password) {
       return NextResponse.json(
-        { success: false, error: "Name, email, and password are required" },
+        { success: false, error: "First name, email, and password are required" },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        { success: false, error: "Password must be at least 6 characters long" },
         { status: 400 }
       );
     }
@@ -27,57 +33,29 @@ export async function POST(req: NextRequest) {
     }
 
     const hashedPassword = await hashPassword(password);
+
+    // Create Stripe Customer
+    let stripeCustomerId: string | null = null;
+    try {
+      if (process.env.STRIPE_SECRET_KEY) {
+        const { stripe } = await import("@/lib/stripe");
+        const customer = await stripe.customers.create({
+          name: name.trim(),
+          email: cleanEmail,
+          metadata: { app: "tijori" },
+        });
+        stripeCustomerId = customer.id;
+      }
+    } catch (stripeErr) {
+      console.error("Failed to create Stripe customer during signup:", stripeErr);
+    }
+
     const user = await User.create({
       name: name.trim(),
       email: cleanEmail,
       password: hashedPassword,
-      phone: phone ? phone.trim() : "",
-      allowanceDay: Number(allowanceDay) || 25,
-    });
-
-    // Seed an initial starter vault for immediate testability
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 90);
-
-    await Vault.create({
-      userId: user._id,
-      title: "Japan Summer Trip 🇯🇵",
-      targetAmount: 600,
-      currentBalance: 75,
-      pullAmount: 25,
-      cadence: "weekly",
-      allowanceDay: user.allowanceDay || 25,
-      targetDate: futureDate,
-      status: "LOCKED",
-      totalProtected: 50,
-      keyholder: {
-        name: "Fahad Al-Mutawa",
-        phone: "+965 9988 7766",
-        relationship: "Best Friend / Diwaniya Bro",
-      },
-      transactions: [
-        {
-          amount: 25,
-          type: "SCHEDULED_PULL",
-          status: "SUCCESS",
-          createdAt: new Date(),
-          note: "Weekly micro-pull deposit #3",
-        },
-        {
-          amount: 25,
-          type: "SCHEDULED_PULL",
-          status: "SUCCESS",
-          createdAt: new Date(Date.now() - 7 * 86400000),
-          note: "Weekly micro-pull deposit #2",
-        },
-        {
-          amount: 25,
-          type: "SCHEDULED_PULL",
-          status: "SUCCESS",
-          createdAt: new Date(Date.now() - 14 * 86400000),
-          note: "Initial Tuck - Welcome to Tijori",
-        },
-      ],
+      allowanceDay: 25,
+      stripeCustomerId,
     });
 
     const response = NextResponse.json({

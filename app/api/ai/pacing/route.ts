@@ -70,28 +70,28 @@ Output strictly a valid JSON array of 4 objects with this exact structure, with 
       schedule = [
         {
           week: 1,
-          label: "Post-Allowance Surge 🚀",
+          label: "Post-Allowance Surge",
           amount: Math.round(base * 1.6),
           phase: "SURGE",
           rationale: `Allowance hits on day ${allowanceDay}. Capture maximum surplus while bank balance is fresh.`,
         },
         {
           week: 2,
-          label: "Steady Discipline ⚡",
+          label: "Steady Discipline",
           amount: base,
           phase: "STEADY",
           rationale: "Predictable automated cadence maintaining steady savings momentum.",
         },
         {
           week: 3,
-          label: "Mid-Month Lean 🛡️",
+          label: "Mid-Month Lean",
           amount: Math.max(5, Math.round(base * 0.7)),
           phase: "LEAN",
           rationale: "Easing pressure as social weekend outings and dining peak.",
         },
         {
           week: 4,
-          label: "Pre-Allowance Cushion 🌱",
+          label: "Pre-Allowance Cushion",
           amount: Math.max(5, Math.round(base * 0.5)),
           phase: "CUSHION",
           rationale: "Micro-commitments keep the habit alive before next month's salary refill.",

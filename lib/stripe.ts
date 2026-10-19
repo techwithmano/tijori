@@ -1,13 +1,56 @@
 import Stripe from "stripe";
+import { User, IUser } from "@/models/User";
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
 
-if (!stripeSecretKey) {
-  throw new Error("STRIPE_SECRET_KEY is not defined in environment variables.");
-}
-
-export const stripe = new Stripe(stripeSecretKey, {
+export const stripe = new Stripe(stripeSecretKey || "sk_test_placeholder_for_build", {
+  apiVersion: "2025-02-24.acacia",
   typescript: true,
 });
+
+/**
+ * Currency configuration:
+ * As verified via Stripe API check on account acct_1UQrWeRWDBcPMWBH (US account):
+ * KWD is not directly supported as a charge currency on standard US Stripe accounts.
+ * Therefore, charges are processed in USD using a fixed rate constant, while all UI,
+ * ledger records, and vault balances remain strictly in Kuwaiti Dinar (KWD).
+ */
+export const KWD_TO_USD_RATE = 3.26; // 1 KWD = 3.26 USD
+
+export const isStripeTestMode = !process.env.STRIPE_SECRET_KEY?.startsWith("sk_live");
+
+export function kwdToUsdCents(kwdAmount: number): number {
+  return Math.max(50, Math.round(kwdAmount * KWD_TO_USD_RATE * 100)); // Minimum 50 cents for Stripe
+}
+
+export function usdCentsToKwd(cents: number): number {
+  return Number((cents / (KWD_TO_USD_RATE * 100)).toFixed(3));
+}
+
+/**
+ * Ensures a user has a Stripe Customer ID, creating and saving one if missing.
+ */
+export async function getOrCreateStripeCustomer(user: IUser): Promise<string> {
+  if (user.stripeCustomerId) {
+    return user.stripeCustomerId;
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error("STRIPE_SECRET_KEY is not configured.");
+  }
+
+  const customer = await stripe.customers.create({
+    name: user.name,
+    email: user.email,
+    metadata: {
+      userId: user._id.toString(),
+      app: "tijori",
+    },
+  });
+
+  user.stripeCustomerId = customer.id;
+  await User.findByIdAndUpdate(user._id, { stripeCustomerId: customer.id });
+  return customer.id;
+}
 
 export default stripe;

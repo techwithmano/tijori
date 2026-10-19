@@ -1,5 +1,5 @@
-import AuthPage from "@/app/login/page";
+import SignUpPage from "@/app/signup/page";
 
 export default function RegisterPage() {
-  return <AuthPage />;
+  return <SignUpPage />;
 }

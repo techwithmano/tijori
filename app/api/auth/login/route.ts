@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { User } from "@/models/User";
-import { Vault } from "@/models/Vault";
-import { hashPassword, comparePassword, createSession } from "@/lib/auth";
+import { comparePassword, createSession } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,63 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    let user = await User.findOne({ email: cleanEmail });
-
-    // Auto-provision demo account if judge uses demo credentials
-    if (!user && cleanEmail === "demo@tijori.app" && password === "password123") {
-      const hashedPassword = await hashPassword("password123");
-      user = await User.create({
-        name: "Abdulrahman Al-Mutawa",
-        email: "demo@tijori.app",
-        password: hashedPassword,
-        phone: "+965 9988 7766",
-        allowanceDay: 25,
-      });
-
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 90);
-
-      await Vault.create({
-        userId: user._id,
-        title: "Japan Summer Trip 🇯🇵",
-        targetAmount: 600,
-        currentBalance: 75,
-        pullAmount: 25,
-        cadence: "weekly",
-        allowanceDay: 25,
-        targetDate: futureDate,
-        status: "LOCKED",
-        totalProtected: 50,
-        keyholder: {
-          name: "Fahad Al-Mutawa",
-          phone: "+965 9988 7766",
-          relationship: "Best Friend / Diwaniya Bro",
-        },
-        transactions: [
-          {
-            amount: 25,
-            type: "SCHEDULED_PULL",
-            status: "SUCCESS",
-            createdAt: new Date(),
-            note: "Weekly micro-pull deposit #3",
-          },
-          {
-            amount: 25,
-            type: "SCHEDULED_PULL",
-            status: "SUCCESS",
-            createdAt: new Date(Date.now() - 7 * 86400000),
-            note: "Weekly micro-pull deposit #2",
-          },
-          {
-            amount: 25,
-            type: "SCHEDULED_PULL",
-            status: "SUCCESS",
-            createdAt: new Date(Date.now() - 14 * 86400000),
-            note: "Initial Tuck - Welcome to Tijori",
-          },
-        ],
-      });
-    }
+    const user = await User.findOne({ email: cleanEmail });
 
     if (!user || !user.password) {
       return NextResponse.json(

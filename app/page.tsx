@@ -1,236 +1,361 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import confetti from "canvas-confetti";
 import {
   Lock,
-  Shield,
-  Zap,
   ArrowRight,
-  TrendingUp,
-  Coins,
-  CheckCircle2,
-  Sparkles,
-  Flame,
-  Clock,
   ShieldAlert,
-  Share2,
+  Sparkles,
+  Target,
+  KeyRound,
+  Check,
+  X,
+  ShieldCheck,
+  CheckCircle2,
 } from "lucide-react";
-import { formatKWD } from "@/lib/utils";
-import GoalTitle from "@/components/GoalTitle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import VaultContainer from "@/components/VaultContainer";
+import { useT } from "@/lib/i18n";
 
 export default function LandingPage() {
-  const router = useRouter();
-  const [seeding, setSeeding] = useState(false);
+  const { t, lang } = useT();
+  const isArabic = lang === "ar";
+  const [user, setUser] = useState<{ id: string; name: string } | null>(null);
+  const [mockupDecision, setMockupDecision] = useState<"pending" | "approved" | "rejected">("pending");
 
-  // Interactive Simulator State
-  const [allowance, setAllowance] = useState(750);
-  const [savingsRate, setSavingsRate] = useState(15);
-  const [durationMonths, setDurationMonths] = useState(6);
-
-  // Live Calculations
-  const monthlyTuck = Math.round((allowance * savingsRate) / 100);
-  const totalProjected = monthlyTuck * durationMonths;
-  const impulsesAvoided = Math.max(3, Math.round(totalProjected / 20));
-
-  const handleLaunchDemo = async () => {
-    try {
-      setSeeding(true);
-      const res = await fetch("/api/seed", { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        confetti({
-          particleCount: 80,
-          spread: 60,
-          origin: { y: 0.3 },
-          colors: ["#F59E0B", "#10B981", "#3B82F6", "#FFFFFF"],
-        });
-        router.push("/dashboard");
-      } else {
-        router.push("/login");
-      }
-    } catch {
-      router.push("/dashboard");
-    } finally {
-      setSeeding(false);
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            setUser(data.user);
+          }
+        }
+      } catch {}
     }
-  };
+    checkAuth();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] selection:bg-amber-100 selection:text-amber-900">
-      {/* Top Navigation */}
-      <header className="border-b border-slate-200/90 bg-white/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div className="min-h-screen text-text selection:bg-accent/20 selection:text-accent">
+      {/* ── Top Navigation ── */}
+      <header className="border-b border-line bg-surface/90 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform duration-200">
-              <Lock className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+            <div className="w-10 h-10 rounded-2xl bg-surface border border-line flex items-center justify-center shadow-violetSubtle group-hover:border-accent/40 transition-colors">
+              <Lock className="w-5 h-5 text-accent" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-lg tracking-tight text-slate-900 group-hover:text-amber-600 transition-colors">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-lg tracking-tight text-text group-hover:text-accent transition-colors">
                   Tijori
                 </span>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-semibold font-mono">
+                <span className="text-xs px-2 py-0.5 rounded-btn bg-raised border border-line text-muted font-medium font-sans">
                   تِجوري
                 </span>
               </div>
-              <p className="text-xs text-slate-500 -mt-0.5">
-                GCC Anti-Impulse Micro-Savings
+              <p className="text-xs text-muted -mt-0.5">
+                {t("common.appTagline")}
               </p>
             </div>
           </Link>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-xs font-semibold text-slate-700 hover:text-slate-900 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors"
-            >
-              Sign In
-            </Link>
+            <LanguageSwitcher />
 
-            <button
-              onClick={handleLaunchDemo}
-              disabled={seeding}
-              className="tactile-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-50"
-            >
-              {seeding ? (
-                <div className="w-3.5 h-3.5 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
-              ) : (
-                <Zap className="w-3.5 h-3.5 fill-slate-950" />
-              )}
-              <span>Launch Live Demo</span>
-            </button>
+            {user ? (
+              <Link
+                href="/dashboard"
+                className="tactile-btn inline-flex items-center gap-2 px-5 py-2 rounded-btn bg-accent text-accent-foreground font-extrabold text-xs shadow-limeGlow"
+              >
+                <span>{t("landing.dashboardBtn")}</span>
+                <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+              </Link>
+            ) : (
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Link
+                  href="/login"
+                  className="hidden sm:inline-flex text-xs font-semibold text-text hover:text-accent px-3 sm:px-4 py-2 rounded-btn hover:bg-raised transition-colors"
+                >
+                  {t("landing.ctaLogin")}
+                </Link>
+                <Link
+                  href="/signup"
+                  className="tactile-btn inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-btn bg-accent text-accent-foreground font-extrabold text-xs shadow-limeGlow"
+                >
+                  <span>{t("landing.ctaStart")}</span>
+                  <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative pt-12 pb-16 sm:pt-20 sm:pb-24 overflow-hidden">
+      {/* ── Section 1: Hero ── */}
+      <section className="relative overflow-hidden py-16 sm:py-24 lg:py-28 border-b border-line/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Column: Proposition */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.1]">
-                Stop blowing your savings on{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-rose-600">
-                  temporary urges.
-                </span>
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-8">
+            {/* Left Column (Right in RTL): Text + CTAs */}
+            <div className="w-full lg:w-1/2 space-y-6 text-center lg:text-start">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-btn bg-raised/80 border border-line text-muted text-xs font-medium">
+                <ShieldCheck className="w-4 h-4 text-accent" />
+                <span>{t("landing.engineBadge")}</span>
+              </div>
+
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08] text-text">
+                {t("landing.heroTitle")}
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                Tijori (تِجوري) automatically locks micro-savings aligned with your monthly student allowance or salary deposit. Protected by genuine social friction with your trusted Keyholder.
+              <p className="text-base sm:text-lg text-muted max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                {t("landing.heroSubtitle")}
               </p>
 
-              {/* Dual Action CTAs */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5 pt-2">
-                <button
-                  id="launch-demo-btn"
-                  onClick={handleLaunchDemo}
-                  disabled={seeding}
-                  className="tactile-btn w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-extrabold text-sm shadow-lg shadow-amber-500/25 active:scale-95 transition-all disabled:opacity-50"
-                >
-                  {seeding ? (
-                    <div className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
-                  ) : (
-                    <Zap className="w-4 h-4 fill-slate-950" />
-                  )}
-                  <span>⚡ Launch Live Demo (1-Click)</span>
-                </button>
-
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
                 <Link
-                  href="/login?tab=register"
-                  className="tactile-btn w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200 shadow-card transition-all"
+                  href={user ? "/dashboard" : "/signup"}
+                  className="tactile-btn w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm sm:text-base shadow-limeGlow"
                 >
-                  <span>Create Account</span>
-                  <ArrowRight className="w-4 h-4 text-slate-400" />
+                  <span>{user ? t("landing.dashboardBtn") : t("landing.ctaStart")}</span>
+                  <ArrowRight className="w-4 h-4 rtl:rotate-180" />
                 </Link>
+
+                {!user && (
+                  <Link
+                    href="/login"
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-7 py-4 rounded-btn border border-line bg-surface hover:bg-raised text-text hover:text-accent font-semibold text-sm sm:text-base transition-colors"
+                  >
+                    {t("landing.ctaLogin")}
+                  </Link>
+                )}
               </div>
             </div>
 
-            {/* Right Column: Physical Vault Dial Teaser */}
-            <div className="lg:col-span-5 flex justify-center">
-              <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-card relative overflow-hidden">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-bold text-slate-800">
-                      Auto-Save Active &bull; Locked 🔒
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                    🔥 18-Day Streak
-                  </span>
+            {/* Right Column (Left in RTL): 3D Vault */}
+            <div className="w-full lg:w-1/2 flex items-center justify-center relative">
+              <VaultContainer />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Section 2: How It Works (Horizontal Scroll) ── */}
+      <section id="how-it-works" className="py-20 sm:py-28 border-b border-line/60">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+          <div className="space-y-3">
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-text">
+              {t("landing.howItWorksHeading")}
+            </h2>
+            <p className="text-base text-muted max-w-xl">
+              {t("landing.howItWorksSub")}
+            </p>
+          </div>
+
+          {/* Horizontal scroll track */}
+          <div className="flex gap-6 overflow-x-auto pb-6 pt-2 scrollbar-none snap-x snap-mandatory">
+            {/* Step 1 */}
+            <div className="min-w-[280px] sm:min-w-[340px] lg:min-w-[360px] flex-1 bg-surface border border-line rounded-[24px] p-8 space-y-6 snap-start shadow-violetSubtle hover:border-violet/40 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold tracking-wider px-3 py-1 rounded-btn bg-raised border border-line text-accent">
+                  {t("landing.step1Tag")}
+                </span>
+                <div className="w-10 h-10 rounded-2xl bg-raised border border-line flex items-center justify-center text-accent">
+                  <Target className="w-5 h-5" />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-extrabold text-text">
+                  {t("landing.step1Title")}
+                </h3>
+                <p className="text-sm text-muted leading-relaxed">
+                  {t("landing.step1Desc")}
+                </p>
+              </div>
+            </div>
 
-                <div className="text-center mb-6">
-                  <span className="text-xs uppercase font-mono text-slate-500 font-semibold tracking-wider">
-                    Target Goal
-                  </span>
-                  <h3 className="text-xl font-bold text-slate-900 mt-0.5">
-                    <GoalTitle title="Japan Summer Trip 🇯🇵" />
-                  </h3>
+            {/* Step 2 */}
+            <div className="min-w-[280px] sm:min-w-[340px] lg:min-w-[360px] flex-1 bg-surface border border-line rounded-[24px] p-8 space-y-6 snap-start shadow-violetSubtle hover:border-accent/40 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold tracking-wider px-3 py-1 rounded-btn bg-raised border border-line text-accent">
+                  {t("landing.step2Tag")}
+                </span>
+                <div className="w-10 h-10 rounded-2xl bg-raised border border-line flex items-center justify-center text-accent">
+                  <Sparkles className="w-5 h-5" />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-extrabold text-text">
+                  {t("landing.step2Title")}
+                </h3>
+                <p className="text-sm text-muted leading-relaxed">
+                  {t("landing.step2Desc")}
+                </p>
+              </div>
+            </div>
 
-                {/* Circular Gauge Graphic */}
-                <div className="relative w-52 h-52 mx-auto flex items-center justify-center">
-                  <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 200 200">
-                    <circle
-                      cx="100"
-                      cy="100"
-                      r="80"
-                      stroke="#E2E8F0"
-                      strokeWidth="14"
-                      fill="transparent"
-                    />
-                    <circle
-                      cx="100"
-                      cy="100"
-                      r="80"
-                      stroke="url(#dialGrad)"
-                      strokeWidth="14"
-                      strokeDasharray="502.65"
-                      strokeDashoffset="376.99"
-                      strokeLinecap="round"
-                      fill="transparent"
-                      className="transition-all duration-1000 ease-out"
-                    />
-                    <defs>
-                      <linearGradient id="dialGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#F59E0B" />
-                        <stop offset="100%" stopColor="#059669" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 mb-1">
-                      <Lock className="w-4 h-4 stroke-[2.5]" />
-                    </div>
-                    <span className="text-2xl font-extrabold text-slate-900 font-mono">
-                      25%
-                    </span>
-                    <span className="text-xs font-mono font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 mt-1">
-                      125 / 500 KWD
-                    </span>
-                  </div>
+            {/* Step 3 */}
+            <div className="min-w-[280px] sm:min-w-[340px] lg:min-w-[360px] flex-1 bg-surface border border-line rounded-[24px] p-8 space-y-6 snap-start shadow-violetSubtle hover:border-coral/40 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold tracking-wider px-3 py-1 rounded-btn bg-raised border border-line text-coral">
+                  {t("landing.step3Tag")}
+                </span>
+                <div className="w-10 h-10 rounded-2xl bg-raised border border-line flex items-center justify-center text-coral">
+                  <KeyRound className="w-5 h-5" />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-extrabold text-text">
+                  {t("landing.step3Title")}
+                </h3>
+                <p className="text-sm text-muted leading-relaxed">
+                  {t("landing.step3Desc")}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-                {/* Keyholder Status Card */}
-                <div className="mt-6 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center">
-                      <Shield className="w-4 h-4 text-emerald-700" />
+      {/* ── Section 3: Live HTML Phone Mockup (Friend-Approval Moment) ── */}
+      <section className="py-20 sm:py-28 border-b border-line/60 bg-surface/30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-text">
+              {t("landing.approvalHeading")}
+            </h2>
+            <p className="text-base text-muted">
+              {t("landing.approvalSub")}
+            </p>
+          </div>
+
+          {/* Pure HTML Phone Mockup */}
+          <div className="relative max-w-[370px] sm:max-w-[400px] mx-auto">
+            {/* Ambient Phone Glow */}
+            <div className="absolute inset-0 bg-violet/20 blur-3xl -z-10 rounded-[48px]" />
+
+            {/* Chassis */}
+            <div className="bg-[#171524] border-4 border-[#2C273F] rounded-[48px] shadow-2xl p-3.5 select-none">
+              {/* Dynamic Island / Notch */}
+              <div className="relative mx-auto w-28 h-5 bg-[#0B0A14] rounded-full mb-3 flex items-center justify-center">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#1A1828] ms-8" />
+              </div>
+
+              {/* Inner Screen */}
+              <div className="bg-[#0D0C18] rounded-[36px] overflow-hidden border border-line/50 text-text text-start">
+                {/* Chat Top Bar */}
+                <div className="bg-[#141B18] border-b border-[#213028] px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center text-accent font-extrabold text-xs">
+                      F
                     </div>
                     <div>
-                      <div className="font-bold text-slate-900">Keyholder: Fahad Al-Mutawa</div>
-                      <div className="text-xs text-slate-500">Brother &bull; Guarded by Fahad 🛡️</div>
+                      <p className="font-extrabold text-xs text-text">
+                        {t("landing.mockupContact")}
+                      </p>
+                      <p className="text-xs text-[#3DFFB0]">online</p>
                     </div>
                   </div>
-                  <span className="text-xs text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-medium">
-                    Guarded
-                  </span>
+                  <div className="w-2 h-2 rounded-full bg-[#3DFFB0] shadow-sm" />
+                </div>
+
+                {/* Chat Conversation Scroll Area */}
+                <div className="p-4 space-y-4">
+                  {/* WhatsApp-Style Message Bubble */}
+                  <div className="bg-[#1A2820] border border-[#2B4034] rounded-2xl rounded-ss-sm p-3.5 space-y-2.5 shadow-sm">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-extrabold text-[#3DFFB0]">
+                        {t("landing.mockupSender")}
+                      </span>
+                      <span className="text-muted">09:41</span>
+                    </div>
+
+                    <p className="text-xs text-text font-medium leading-relaxed">
+                      {t("landing.mockupAlertBody")}
+                    </p>
+
+                    <div className="bg-[#0F1813] rounded-xl p-2.5 border border-[#23352B] space-y-1">
+                      <p className="text-xs text-muted">
+                        {t("landing.mockupExcuseLabel")}:
+                      </p>
+                      <p className="text-xs font-semibold text-text">
+                        &ldquo;{t("landing.mockupExcuseText")}&rdquo;
+                      </p>
+                    </div>
+
+                    <div className="bg-[#241A30] rounded-xl p-2.5 border border-[#3E2954] space-y-1">
+                      <div className="flex items-center gap-1.5 text-accent text-xs font-bold">
+                        <Sparkles className="w-3 h-3 text-accent" />
+                        <span>{t("landing.mockupAiLabel")}</span>
+                      </div>
+                      <p className="text-xs text-[#E3DAFC] italic">
+                        &ldquo;{t("landing.mockupAiText")}&rdquo;
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Integrated Clearance Card Screen */}
+                  <div className="bg-surface border border-line rounded-2xl p-3.5 space-y-3 shadow-md">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted">
+                        Japan Summer Trip
+                      </span>
+                      <span className="text-xs font-mono font-extrabold text-accent">
+                        125.000 KWD
+                      </span>
+                    </div>
+
+                    {mockupDecision === "pending" ? (
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setMockupDecision("rejected")}
+                          className="px-3 py-2 rounded-btn border border-coral/40 bg-coral/10 hover:bg-coral/20 text-coral font-bold text-xs flex items-center justify-center gap-1 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>{t("landing.mockupReject")}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMockupDecision("approved")}
+                          className="px-3 py-2 rounded-btn bg-[#3DFFB0] hover:bg-[#34E09B] text-[#0B0A14] font-extrabold text-xs flex items-center justify-center gap-1 transition-colors shadow-sm"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>{t("landing.mockupApprove")}</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        className={`p-3 rounded-xl border text-center space-y-1.5 transition-all ${
+                          mockupDecision === "rejected"
+                            ? "bg-coral/10 border-coral/30 text-coral"
+                            : "bg-[#3DFFB0]/10 border-[#3DFFB0]/30 text-[#3DFFB0]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-center gap-1.5 text-xs font-extrabold">
+                          {mockupDecision === "rejected" ? (
+                            <ShieldAlert className="w-4 h-4 text-coral" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4 text-[#3DFFB0]" />
+                          )}
+                          <span>
+                            {mockupDecision === "rejected"
+                              ? t("landing.mockupRejectedFeedback")
+                              : t("landing.mockupApprovedFeedback")}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setMockupDecision("pending")}
+                          className="text-xs text-muted underline hover:text-text"
+                        >
+                          {isArabic ? "إعادة التجربة" : "Try again"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -238,171 +363,59 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Interactive Micro-Savings Simulator */}
-      <section className="py-16 bg-white border-y border-slate-200/90">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-mono font-semibold mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              <span>Interactive Allowance Pacing</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Calculate Your Anti-Impulse Projection
+      {/* ── Section 4: Final Big CTA ── */}
+      <section className="py-20 sm:py-28 relative overflow-hidden">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8 relative z-10">
+          <div className="space-y-4">
+            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-text leading-tight">
+              {t("landing.finalCtaHeading")}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1.5">
-              See how minor weekly micro-pulls protect you from late-night impulse shopping.
+            <p className="text-base sm:text-lg text-muted max-w-xl mx-auto">
+              {t("landing.finalCtaSub")}
             </p>
           </div>
 
-          <div className="bg-[#F8FAFC] rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-card">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {/* Slider 1: Allowance */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs font-semibold text-slate-700">
-                  <span>Monthly Allowance / Salary:</span>
-                  <span className="font-mono text-amber-800 font-bold">{allowance} KWD</span>
-                </div>
-                <input
-                  type="range"
-                  min="200"
-                  max="2000"
-                  step="50"
-                  value={allowance}
-                  onChange={(e) => setAllowance(Number(e.target.value))}
-                  className="w-full accent-amber-500 cursor-pointer"
-                />
-                <span className="text-[10px] text-slate-500 font-mono block">Day-25 Deposit Basis</span>
-              </div>
-
-              {/* Slider 2: Micro-Pull Rate */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs font-semibold text-slate-700">
-                  <span>Micro-Pull Rate:</span>
-                  <span className="font-mono text-emerald-800 font-bold">{savingsRate}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="5"
-                  max="35"
-                  step="5"
-                  value={savingsRate}
-                  onChange={(e) => setSavingsRate(Number(e.target.value))}
-                  className="w-full accent-emerald-600 cursor-pointer"
-                />
-                <span className="text-[10px] text-slate-500 font-mono block">+{monthlyTuck} KWD / Month Protected</span>
-              </div>
-
-              {/* Slider 3: Duration */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs font-semibold text-slate-700">
-                  <span>Time Lock Horizon:</span>
-                  <span className="font-mono text-slate-900 font-bold">{durationMonths} Months</span>
-                </div>
-                <input
-                  type="range"
-                  min="2"
-                  max="12"
-                  step="1"
-                  value={durationMonths}
-                  onChange={(e) => setDurationMonths(Number(e.target.value))}
-                  className="w-full accent-slate-800 cursor-pointer"
-                />
-                <span className="text-[10px] text-slate-500 font-mono block">Discipline Lock Cycle</span>
-              </div>
-            </div>
-
-            {/* Results Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200">
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 text-center">
-                <div className="text-[10px] uppercase font-mono text-slate-500 font-semibold">Total Protected Savings</div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 font-mono mt-1">
-                  +{formatKWD(totalProjected)} KWD
-                </div>
-                <span className="text-xs text-slate-500 font-medium">Locked in Tijori Vault</span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 text-center">
-                <div className="text-xs text-slate-500 font-medium">Estimated Impulse Traps Avoided</div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-amber-700 font-mono mt-1">
-                  {impulsesAvoided} Purchases
-                </div>
-                <span className="text-xs text-slate-500 font-medium">Based on ~20 KWD impulse price</span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 text-center">
-                <div className="text-xs text-slate-500 font-medium">Equivalent Lifestyle Goal</div>
-                <div className="text-base sm:text-lg font-bold text-slate-900 mt-1">
-                  {totalProjected >= 800
-                    ? "💻 MacBook M3 Max"
-                    : totalProjected >= 450
-                    ? "🇯🇵 Tokyo Flight & Stay"
-                    : totalProjected >= 200
-                    ? "👟 Grail Designer Sneakers"
-                    : "☕ 50+ Specialty Brews Saved"}
-                </div>
-                <span className="text-xs text-slate-500 font-medium">Earned Through Pure Discipline</span>
-              </div>
-            </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href={user ? "/dashboard" : "/signup"}
+              className="tactile-btn w-full sm:w-auto inline-flex items-center justify-center gap-2 px-10 py-4 rounded-btn bg-accent text-accent-foreground font-extrabold text-base shadow-limeGlow"
+            >
+              <span>{user ? t("landing.dashboardBtn") : t("landing.finalCtaButton")}</span>
+              <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* 3 Core Anti-Impulse Pillars */}
-      <section className="py-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Why Traditional Banking Fails GCC Youth
-            </h2>
-            <p className="text-sm text-slate-600 mt-2">
-              Modern banking makes spending frictionless. Tijori introduces behavioral roadblocks where you need them most.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-card space-y-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
-                <Flame className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900">Allowance Day-25 Surge</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Captures a larger micro-tuck immediately after university I&apos;ana or salary hits your bank account on day 25, tapering off during month-end lean days.
-              </p>
+      {/* ── Footer ── */}
+      <footer className="border-t border-line py-12 bg-surface/60">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-surface border border-line flex items-center justify-center">
+              <Lock className="w-4 h-4 text-accent" />
             </div>
-
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-card space-y-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
-                <Shield className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900">Keyholder Social Friction</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Appoint a real friend or sibling as your Keyholder. Any early withdrawal attempt requires their single-use WhatsApp clearance. No secret impulse breaks.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-card space-y-3">
-              <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600">
-                <ShieldAlert className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900">5% Discipline Tax Warning</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                A behavioral commitment fee and Google Gemini AI reality-check intervention roast that challenges impulse shopping before a penny is unlocked.
-              </p>
+            <div>
+              <span className="font-extrabold text-sm text-text">Tijori</span>
+              <span className="text-xs text-muted ms-2">
+                {t("landing.footerTagline")}
+              </span>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-slate-900">Tijori (تِجوري)</span>
-            <span>&bull;</span>
-            <span>GCC Anti-Impulse Micro-Savings</span>
+          <div className="flex items-center gap-6 text-xs text-muted">
+            <a href="#how-it-works" className="hover:text-accent transition-colors">
+              {t("landing.footerSecurity")}
+            </a>
+            <a href="#" className="hover:text-accent transition-colors">
+              {t("landing.footerPrivacy")}
+            </a>
+            <a href="#" className="hover:text-accent transition-colors">
+              {t("landing.footerTerms")}
+            </a>
           </div>
-          <div className="text-slate-400">
-            &copy; 2026 Tijori. Behavioral savings for GCC young adults.
+
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
           </div>
         </div>
       </footer>

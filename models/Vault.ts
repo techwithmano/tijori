@@ -3,9 +3,10 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface ITransaction {
   _id?: string;
   amount: number;
-  type: "SCHEDULED_PULL" | "SIMULATED_PULL" | "STRIPE_DEPOSIT" | "WITHDRAWAL" | "BREAK_REQUEST";
-  status: "SUCCESS" | "FAILED" | "PENDING";
+  type: "SCHEDULED_PULL" | "SIMULATED_PULL" | "STRIPE_DEPOSIT" | "WITHDRAWAL" | "BREAK_REQUEST" | "TOP_UP" | "BREAK_REFUND" | "DISCIPLINE_FEE" | "BREAK_DENIED";
+  status: "SUCCESS" | "FAILED" | "PENDING" | "COMPLETED" | "INTERVENED_PROTECTED" | "PENDING_KEYHOLDER";
   note?: string;
+  stripePaymentIntentId?: string;
   createdAt: Date;
 }
 
@@ -16,16 +17,21 @@ export interface IKeyholder {
 }
 
 export interface IVault extends Document {
-  userId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId;
   title: string;
   targetAmount: number;
   currentBalance: number;
   totalProtected: number; // Increments when Keyholder clicks "Deny & Protect"
   streakCount: number; // Days/cycles without breaking vault
+  denialsCount?: number; // Total number of times break was denied
   cadence: "daily" | "weekly" | "biweekly" | "monthly";
   pullAmount: number;
   allowanceDay: number;
   targetDate: Date;
+  nextPullAt?: Date;
+  needsAttention?: boolean;
+  needsAttentionReason?: string | null;
+  processedPaymentIntents?: string[];
   status: "LOCKED" | "UNLOCK_PENDING" | "UNLOCKED";
   keyholder: IKeyholder;
   unlockToken?: string | null;
@@ -42,11 +48,16 @@ const TransactionSchema = new Schema<ITransaction>(
     amount: { type: Number, required: true },
     type: {
       type: String,
-      enum: ["SCHEDULED_PULL", "SIMULATED_PULL", "STRIPE_DEPOSIT", "WITHDRAWAL", "BREAK_REQUEST"],
+      enum: ["SCHEDULED_PULL", "SIMULATED_PULL", "STRIPE_DEPOSIT", "WITHDRAWAL", "BREAK_REQUEST", "TOP_UP", "BREAK_REFUND", "DISCIPLINE_FEE", "BREAK_DENIED"],
       required: true,
     },
-    status: { type: String, enum: ["SUCCESS", "FAILED", "PENDING"], default: "SUCCESS" },
+    status: {
+      type: String,
+      enum: ["SUCCESS", "FAILED", "PENDING", "COMPLETED", "INTERVENED_PROTECTED", "PENDING_KEYHOLDER"],
+      default: "SUCCESS",
+    },
     note: { type: String },
+    stripePaymentIntentId: { type: String, default: null },
     createdAt: { type: Date, default: Date.now },
   },
   { _id: true }
@@ -63,16 +74,21 @@ const KeyholderSchema = new Schema<IKeyholder>(
 
 const VaultSchema = new Schema<IVault>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: false, index: true },
     title: { type: String, required: true, trim: true },
     targetAmount: { type: Number, required: true },
     currentBalance: { type: Number, default: 0 },
     totalProtected: { type: Number, default: 0 },
-    streakCount: { type: Number, default: 18 },
+    streakCount: { type: Number, default: 0 },
+    denialsCount: { type: Number, default: 0 },
     cadence: { type: String, default: "weekly" },
     pullAmount: { type: Number, required: true },
     allowanceDay: { type: Number, default: 25 },
     targetDate: { type: Date, required: true },
+    nextPullAt: { type: Date, default: null, index: true },
+    needsAttention: { type: Boolean, default: false },
+    needsAttentionReason: { type: String, default: null },
+    processedPaymentIntents: { type: [String], default: [] },
     status: {
       type: String,
       enum: ["LOCKED", "UNLOCK_PENDING", "UNLOCKED"],
