@@ -26,6 +26,7 @@ import {
 import { formatKWD, formatDate, cn } from "@/lib/utils";
 import GoalTitle from "@/components/GoalTitle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import BrandLogo from "@/components/BrandLogo";
 import { useT } from "@/lib/i18n";
 import StripeCardForm from "@/components/StripeCardForm";
 
@@ -291,20 +292,15 @@ function DashboardContent() {
   // Empty State: New User with 0 Vaults
   if (!vault) {
     return (
-      <div className="min-h-screen bg-bg text-text">
+      <div className="min-h-screen bg-bg text-text overflow-x-clip">
         <header className="border-b border-line bg-surface/80 backdrop-blur-md sticky top-0 z-40">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center shadow-violetSubtle">
-                <Lock className="w-5 h-5 text-accent" />
-              </div>
-              <span className="font-extrabold text-lg text-text">Tijori</span>
-            </Link>
-            <div className="flex items-center gap-3">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+            <BrandLogo href="/" size="sm" showTagline={false} />
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <LanguageSwitcher />
               <button
                 onClick={handleLogout}
-                className="py-1.5 px-3 rounded-btn bg-surface hover:bg-raised border border-line text-xs font-medium text-muted hover:text-text transition-colors flex items-center gap-1.5"
+                className="py-1.5 px-3 rounded-btn bg-surface hover:bg-raised border border-line text-xs font-medium text-muted hover:text-text transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>{isArabic ? "خروج" : "Log out"}</span>
@@ -370,21 +366,16 @@ function DashboardContent() {
     : isArabic ? "الأحد القادم" : "Sunday";
 
   return (
-    <div className="min-h-screen bg-bg text-text selection:bg-accent/20 selection:text-accent pb-16">
-      {/* ── 1. TOP BAR: Greeting + Language Switcher + Avatar ── */}
+    <div className="min-h-screen bg-bg text-text selection:bg-accent/20 selection:text-accent pb-16 overflow-x-clip">
+      {/* ── 1. TOP BAR: Greeting + Language Switcher + Avatar (No mobile overflow) ── */}
       <header className="border-b border-line bg-surface/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
           {/* Logo & Greeting */}
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center shadow-violetSubtle group-hover:border-accent/40 transition-colors">
-                <Lock className="w-4 h-4 text-accent" />
-              </div>
-              <span className="font-extrabold text-base tracking-tight text-text">Tijori</span>
-            </Link>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <BrandLogo href="/" size="sm" showTagline={false} />
 
             {user && (
-              <div className="flex items-center gap-1.5 ms-2 ps-3 border-s border-line text-xs font-semibold text-text">
+              <div className="hidden sm:flex items-center gap-1.5 ms-2 ps-3 border-s border-line text-xs font-semibold text-text">
                 <span className="text-muted">{isArabic ? "حيّاك،" : "Salam,"}</span>
                 <span className="font-bold">{user.name.split(" ")[0]}</span>
               </div>
@@ -392,7 +383,7 @@ function DashboardContent() {
           </div>
 
           {/* Right: Language Switcher + Saved Card + Avatar */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Card chip */}
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-btn bg-raised border border-line text-xs text-muted">
               <CreditCard className="w-3.5 h-3.5 text-accent" />
@@ -410,9 +401,9 @@ function DashboardContent() {
             <LanguageSwitcher />
 
             {/* Avatar & Logout */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <div
-                className="w-9 h-9 rounded-full bg-accent text-accent-foreground font-extrabold text-xs flex items-center justify-center shadow-limeGlow"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-accent text-accent-foreground font-extrabold text-xs flex items-center justify-center shadow-limeGlow"
                 title={user?.name}
               >
                 {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
@@ -422,7 +413,7 @@ function DashboardContent() {
                 type="button"
                 onClick={handleLogout}
                 aria-label="Log out"
-                className="p-2 rounded-btn bg-surface hover:bg-raised border border-line text-muted hover:text-text transition-colors"
+                className="p-2 rounded-btn bg-surface hover:bg-raised border border-line text-muted hover:text-text transition-colors shrink-0"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -507,28 +498,64 @@ function DashboardContent() {
                 </div>
               </div>
 
-              {/* 3D VAULT DIAL (Smaller, Center Hero with huge saved amount) */}
-              <div className="py-8 flex flex-col items-center justify-center relative select-none">
-                {/* SVG Progress Dial */}
+              {/* 3D VAULT DIAL (Tactile Metallic Vault Wheel with Luminous Progress Arc) */}
+              <div className="py-6 sm:py-8 flex flex-col items-center justify-center relative select-none">
+                {/* Vault Wheel Container */}
                 <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center">
-                  <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 280 280">
+                  {/* Subtle Background Glow behind dial */}
+                  <div
+                    className={cn(
+                      "absolute inset-0 rounded-full blur-2xl pointer-events-none transition-all duration-700",
+                      isPendingBreak ? "bg-coral/20" : "bg-accent/15"
+                    )}
+                  />
+
+                  <svg className="w-full h-full -rotate-90 transform relative z-10" viewBox="0 0 280 280">
                     <defs>
                       <linearGradient id="limeDialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#7C5CFF" />
-                        <stop offset="100%" stopColor="#C6FF3D" />
+                        <stop offset="0%" stopColor="#8B6DFF" />
+                        <stop offset="100%" stopColor="#D4FF00" />
                       </linearGradient>
                       <linearGradient id="coralDialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#FF5C7A" />
+                        <stop offset="0%" stopColor="#FF5773" />
                         <stop offset="100%" stopColor="#FFA07A" />
                       </linearGradient>
                     </defs>
 
-                    {/* Dark Steel Outer Track */}
+                    {/* Outer Bezel Rim */}
                     <circle
                       cx="140"
                       cy="140"
-                      r="120"
-                      stroke="#1E1B2B"
+                      r="124"
+                      stroke="#282637"
+                      strokeWidth="6"
+                      fill="transparent"
+                      className="opacity-70"
+                    />
+
+                    {/* Concentric Bolt Rivet Markers */}
+                    {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => {
+                      const rad = (deg * Math.PI) / 180;
+                      const x = 140 + 124 * Math.cos(rad);
+                      const y = 140 + 124 * Math.sin(rad);
+                      return (
+                        <circle
+                          key={deg}
+                          cx={x}
+                          cy={y}
+                          r="2.5"
+                          fill="#4E4A68"
+                          className="opacity-90"
+                        />
+                      );
+                    })}
+
+                    {/* Dark Steel Track */}
+                    <circle
+                      cx="140"
+                      cy="140"
+                      r="112"
+                      stroke="#1E1D2A"
                       strokeWidth="14"
                       fill="transparent"
                       strokeLinecap="round"
@@ -538,24 +565,28 @@ function DashboardContent() {
                     <circle
                       cx="140"
                       cy="140"
-                      r="120"
+                      r="112"
                       stroke={isPendingBreak ? "url(#coralDialGradient)" : "url(#limeDialGradient)"}
                       strokeWidth="14"
                       fill="transparent"
-                      strokeDasharray={2 * Math.PI * 120}
-                      strokeDashoffset={2 * Math.PI * 120 * (1 - percentFunded / 100)}
+                      strokeDasharray={2 * Math.PI * 112}
+                      strokeDashoffset={2 * Math.PI * 112 * (1 - Math.max(0.02, percentFunded / 100))}
                       strokeLinecap="round"
                       className="transition-all duration-700 ease-out"
                     />
                   </svg>
 
                   {/* Center Hub & Huge Numbers */}
-                  <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-[#12101E] via-[#171524] to-[#1E1B2E] border border-line/80 flex flex-col items-center justify-center text-center p-6 shadow-inner">
-                    <span className="text-xs text-muted font-medium mb-1">
+                  <div className="absolute inset-7 rounded-full bg-gradient-to-tr from-[#161520] via-[#1E1D2A] to-[#282637] border border-line flex flex-col items-center justify-center text-center p-6 shadow-inner z-20">
+                    {/* Subtle Crosshair Dial Spokes */}
+                    <div className="absolute w-full h-[1px] bg-line/40 pointer-events-none" />
+                    <div className="absolute h-full w-[1px] bg-line/40 pointer-events-none" />
+
+                    <span className="text-xs text-muted font-medium mb-1 relative z-10">
                       {isArabic ? "المبلغ المحفوظ" : "Saved so far"}
                     </span>
 
-                    <div className="flex items-baseline justify-center gap-1.5">
+                    <div className="flex items-baseline justify-center gap-1.5 relative z-10">
                       <span className="text-4xl sm:text-5xl font-black text-text tracking-tight tabular-nums">
                         {formatKWD(vault.currentBalance)}
                       </span>
@@ -564,7 +595,7 @@ function DashboardContent() {
                       </span>
                     </div>
 
-                    <span className="text-xs text-muted mt-2 font-mono">
+                    <span className="text-xs text-muted mt-2 font-mono relative z-10">
                       {isArabic ? "الهدف:" : "Goal:"} {formatKWD(vault.targetAmount)} ({percentFunded}%)
                     </span>
                   </div>
@@ -599,28 +630,41 @@ function DashboardContent() {
             </div>
 
             {/* ── TWO ACTIONS ONLY BELOW HERO ── */}
-            <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch gap-4 w-full">
               {/* Primary Lime: Add money */}
               <button
                 type="button"
                 onClick={() => setShowTopUpModal(true)}
-                className="tactile-btn w-full sm:flex-1 py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm sm:text-base shadow-limeGlow flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+                className="tactile-btn flex-1 py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm sm:text-base shadow-limeGlow flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
               >
                 <span>{t("dashboard.addMoneyAction")}</span>
                 <ArrowRight className="w-4 h-4 rtl:rotate-180" />
               </button>
 
-              {/* Secondary Ghost: I need to break it */}
+              {/* Secondary Ghost: I need to break it (or Pending state) */}
               <button
                 type="button"
+                disabled={isPendingBreak}
                 onClick={() => {
+                  if (isPendingBreak) return;
                   setBreakStep("reason");
                   setReasonText("");
                   setShowBreakSheet(true);
                 }}
-                className="w-full sm:flex-1 py-4 px-6 rounded-btn border border-line bg-surface hover:bg-raised text-muted hover:text-text font-bold text-sm sm:text-base transition-colors flex items-center justify-center gap-2"
+                className={cn(
+                  "flex-1 py-4 px-6 rounded-btn border font-bold text-sm sm:text-base transition-colors flex items-center justify-center gap-2",
+                  isPendingBreak
+                    ? "border-coral/40 bg-coral/10 text-coral cursor-not-allowed opacity-90"
+                    : "border-line bg-surface hover:bg-raised text-muted hover:text-text"
+                )}
               >
-                <span>{t("dashboard.breakAction")}</span>
+                <span>
+                  {isPendingBreak
+                    ? isArabic
+                      ? "طلب الكسر بانتظار الموافقة"
+                      : "Break Clearance Pending"
+                    : t("dashboard.breakAction")}
+                </span>
               </button>
             </div>
           </div>
@@ -837,9 +881,9 @@ function DashboardContent() {
                 </div>
 
                 {/* Intense Roast Box */}
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-[#201830] to-[#161226] border border-violet/40 shadow-violetSubtle relative">
-                  <blockquote className="text-sm sm:text-base text-text font-semibold italic leading-relaxed">
-                    &ldquo;{roastText}&rdquo;
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-surface to-raised border border-violet/40 shadow-violetSubtle relative">
+                  <blockquote className="text-sm sm:text-base text-text font-semibold italic leading-relaxed" dir="auto">
+                    <bdi>&ldquo;{roastText.replace(/^["“\s]+|["”\s]+$/g, "")}&rdquo;</bdi>
                   </blockquote>
                 </div>
 

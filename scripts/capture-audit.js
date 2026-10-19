@@ -124,11 +124,6 @@ async function main() {
   // Helper to capture a page state
   async function captureState(context, { url, filename, lang, viewport, actionsBeforeScreenshot }) {
     const filePath = path.join(SCREENSHOTS_DIR, filename);
-    if (fs.existsSync(filePath) && !filename.startsWith("12_") && !filename.startsWith("13_")) {
-      console.log(`  ✓ Already exists: ${filename}`);
-      capturedFiles.push(filename);
-      return;
-    }
 
     const page = await context.newPage();
     try {
@@ -241,17 +236,21 @@ async function main() {
   // 05. ONBOARDING CARD STEP (Step 4 with Stripe Elements & Test Mode Hint)
   for (const lang of ["en", "ar"]) {
     const advanceToStep4 = async (p) => {
+      try {
+        const goalInput = p.locator('input[type="text"]').first();
+        await goalInput.fill("Japan Summer Trip");
+      } catch {}
       const next1 = p.locator('button[type="submit"]');
       await next1.click();
-      await p.waitForTimeout(600);
+      await p.waitForTimeout(700);
       const next2 = p.locator('button[type="submit"]');
       await next2.click();
-      await p.waitForTimeout(600);
+      await p.waitForTimeout(700);
       await p.locator('input[type="text"]').first().fill("Fahad Al-Mutawa");
       await p.locator('input[type="tel"]').fill("99887766");
       const next3 = p.locator('button[type="submit"]');
       await next3.click();
-      await p.waitForTimeout(1000);
+      await p.waitForTimeout(1200);
     };
 
     await captureState(emptyContext, {

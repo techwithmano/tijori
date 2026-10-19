@@ -18,6 +18,7 @@ import {
 import { formatKWD } from "@/lib/utils";
 import GoalTitle from "@/components/GoalTitle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import BrandLogo from "@/components/BrandLogo";
 import { useT } from "@/lib/i18n";
 
 interface VaultData {
@@ -129,12 +130,7 @@ export default function KeyholderTokenUnlockPage({
       <div className="min-h-screen bg-bg text-text flex flex-col">
         {/* Single-line Header without overflow */}
         <header className="border-b border-line bg-surface/80 backdrop-blur-md px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-surface border border-line flex items-center justify-center shadow-violetSubtle">
-              <Lock className="w-4 h-4 text-accent" />
-            </div>
-            <span className="font-extrabold text-sm tracking-tight text-text">Tijori</span>
-          </Link>
+          <BrandLogo href="/" size="sm" showTagline={false} />
           <LanguageSwitcher />
         </header>
 
@@ -232,12 +228,7 @@ export default function KeyholderTokenUnlockPage({
     <div className="min-h-screen bg-bg text-text flex flex-col selection:bg-accent/20 selection:text-accent">
       {/* Single-line Header with NO overflow */}
       <header className="border-b border-line bg-surface/90 backdrop-blur-md px-4 py-3 flex items-center justify-between sticky top-0 z-40">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-surface border border-line flex items-center justify-center shadow-violetSubtle">
-            <Lock className="w-4 h-4 text-accent" />
-          </div>
-          <span className="font-extrabold text-sm tracking-tight text-text">Tijori</span>
-        </Link>
+        <BrandLogo href="/" size="sm" showTagline={false} />
         <LanguageSwitcher />
       </header>
 
@@ -276,8 +267,8 @@ export default function KeyholderTokenUnlockPage({
           </div>
         </div>
 
-        {/* User Excuse Quote Card */}
-        <div className="bg-[#1C182A] border border-violet/30 rounded-card p-4 space-y-2 shadow-sm">
+        {/* User Excuse Quote Card with Bidi Isolation to prevent inverted quotation marks */}
+        <div className="bg-raised border border-violet/30 rounded-card p-4 space-y-2 shadow-sm">
           <div className="flex items-center justify-between text-xs text-muted">
             <span className="font-bold text-[#E3DAFC]">
               {isArabic ? `عذر ${applicantName}:` : `${applicantName}'s stated excuse:`}
@@ -286,8 +277,8 @@ export default function KeyholderTokenUnlockPage({
               {isArabic ? "مكتوب بخط يده" : "Applicant note"}
             </span>
           </div>
-          <blockquote className="text-xs sm:text-sm font-semibold text-text italic leading-relaxed">
-            &ldquo;{excuseText}&rdquo;
+          <blockquote className="text-xs sm:text-sm font-semibold text-text italic leading-relaxed" dir="auto">
+            <bdi>&ldquo;{excuseText}&rdquo;</bdi>
           </blockquote>
         </div>
 
@@ -306,12 +297,12 @@ export default function KeyholderTokenUnlockPage({
 
         {/* Two Equal-Weight Big Buttons */}
         <div className="space-y-3 pt-2">
-          {/* 1. Keep it locked */}
+          {/* 1. Keep it locked (Consistent Signature Neon Lime) */}
           <button
             type="button"
             disabled={processingAction !== null}
             onClick={() => handleDecision("DENY")}
-            className="tactile-btn w-full py-4 px-6 rounded-btn bg-[#3DFFB0] hover:bg-[#34E09B] text-[#0B0A14] font-extrabold text-sm sm:text-base shadow-limeGlow flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+            className="tactile-btn w-full py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm sm:text-base shadow-limeGlow flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
           >
             <Lock className="w-4 h-4" />
             <span>

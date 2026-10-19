@@ -15,6 +15,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import BrandLogo from "@/components/BrandLogo";
 import VaultContainer from "@/components/VaultContainer";
 import { useT } from "@/lib/i18n";
 
@@ -40,51 +41,34 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen text-text selection:bg-accent/20 selection:text-accent">
+    <div className="min-h-screen text-text selection:bg-accent/20 selection:text-accent overflow-x-clip">
       {/* ── Top Navigation ── */}
       <header className="border-b border-line bg-surface/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-2xl bg-surface border border-line flex items-center justify-center shadow-violetSubtle group-hover:border-accent/40 transition-colors">
-              <Lock className="w-5 h-5 text-accent" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg tracking-tight text-text group-hover:text-accent transition-colors">
-                  Tijori
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded-btn bg-raised border border-line text-muted font-medium font-sans">
-                  تِجوري
-                </span>
-              </div>
-              <p className="text-xs text-muted -mt-0.5">
-                {t("common.appTagline")}
-              </p>
-            </div>
-          </Link>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+          <BrandLogo href="/" size="md" showTagline={true} />
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <LanguageSwitcher />
 
             {user ? (
               <Link
                 href="/dashboard"
-                className="tactile-btn inline-flex items-center gap-2 px-5 py-2 rounded-btn bg-accent text-accent-foreground font-extrabold text-xs shadow-limeGlow"
+                className="tactile-btn inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-btn bg-accent text-accent-foreground font-extrabold text-xs shadow-limeGlow whitespace-nowrap shrink-0"
               >
                 <span>{t("landing.dashboardBtn")}</span>
                 <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
               </Link>
             ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <Link
                   href="/login"
-                  className="hidden sm:inline-flex text-xs font-semibold text-text hover:text-accent px-3 sm:px-4 py-2 rounded-btn hover:bg-raised transition-colors"
+                  className="hidden sm:inline-flex text-xs font-semibold text-text hover:text-accent px-3 sm:px-4 py-2 rounded-btn hover:bg-raised transition-colors whitespace-nowrap"
                 >
                   {t("landing.ctaLogin")}
                 </Link>
                 <Link
                   href="/signup"
-                  className="tactile-btn inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-btn bg-accent text-accent-foreground font-extrabold text-xs shadow-limeGlow"
+                  className="tactile-btn inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-btn bg-accent text-accent-foreground font-extrabold text-xs shadow-limeGlow whitespace-nowrap shrink-0"
                 >
                   <span>{t("landing.ctaStart")}</span>
                   <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
@@ -96,7 +80,7 @@ export default function LandingPage() {
       </header>
 
       {/* ── Section 1: Hero ── */}
-      <section className="relative overflow-hidden py-16 sm:py-24 lg:py-28 border-b border-line/60">
+      <section className="relative overflow-hidden py-10 sm:py-20 lg:py-24 border-b border-line/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-8">
             {/* Left Column (Right in RTL): Text + CTAs */}

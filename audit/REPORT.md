@@ -299,3 +299,21 @@ This log tracks every completed task, status, build verification, and known issu
   - `https://tijoori.vercel.app/dashboard` -> **HTTP 200 OK**
   - `https://tijoori.vercel.app/forgot-password` -> **HTTP 200 OK**
 
+
+## TASK 8: Sub-Pixel Design & Theme Polish (52-Screen Visual Overhaul)
+- Status: DONE
+- Files created: components/BrandLogo.tsx
+- Files changed: tailwind.config.ts, app/globals.css, components/Header.tsx, components/Footer.tsx, app/page.tsx, components/Vault3D.tsx, components/StripeCardForm.tsx, app/onboarding/page.tsx, lib/i18n/en.json, lib/i18n/ar.json, app/unlock/[token]/page.tsx, app/dashboard/page.tsx, scripts/capture-audit.js, audit/REPORT.md, all 52 screenshots & 4 contact sheets
+- Build result: `npm run build` PASS, `npm run lint` PASS (0 errors, 0 warnings)
+- What I did:
+  1. **Palette Modernization**: Upgraded the design system from flat pitch-black navy (`#0B0A14`) to an executive warm slate titanium theme (`bg: #13121A`, `surface: #1E1D2A`, `raised: #282637`, `line: #343245`, `text: #F8F7FF`, `muted: #ACA7C2`, `accent: #D4FF00`), with balanced depth and subtle violet glow.
+  2. **Custom Geometric Brand Identity (`BrandLogo.tsx`)**: Replaced generic Lucide locks with a custom SVG concentric vault door wheel featuring an interactive rotating accent and side-by-side bilingual typography (`Tijori | تِجوري` in LTR, `تِجوري | Tijori` in RTL) without unsightly grey pill wrappers.
+  3. **Resolved Arabic Mobile 200px Horizontal Shift Bug**: Discovered header flex width exceeding 390px due to user greetings. Implemented responsive header hiding for user names under `< 640px` and applied strict `overflow-x: clip; max-width: 100%;` across `html`, `body`, and container roots, eliminating all horizontal displacement.
+  4. **3D Vault Framing & Frustum Calibration**: Repositioned camera from `z=3.4` to `z=4.6` with `fov=45` in `components/Vault3D.tsx`, eliminating top and bottom circular clipping and providing clean breathing room.
+  5. **Stripe Test Card Fallback Cleanup**: Removed raw `.env.local` code snippet from card fallback; fully localized all copy and button text (`ربط بطاقة تجريبية (Visa •••• 4242)`).
+  6. **Onboarding & Auth Localization**: Localized step badge (`إعداد خزينة تِجوري`), quick suggestion label (`اقتراحات سريعة:`), and currency labels (`د.ك`).
+  7. **Break Flow & Bidi Isolation**: Wrapped English and Arabic quote strings in `<blockquote dir="auto"><bdi>` to prevent punctuation flipping across mixed LTR/RTL text. Disabled "I need to break it" when a clearance request is already pending ("Break Clearance Pending" / "طلب كسر قيد الانتظار").
+  8. **All 52 Screenshots & 4 Contact Sheets Regenerated**: Re-executed `scripts/capture-audit.js` and confirmed crisp, aligned, and beautiful rendering across `SHEET_1_phone_en.png`, `SHEET_2_phone_ar.png`, `SHEET_3_desktop_en.png`, and `SHEET_4_desktop_ar.png`.
+- Known problems: none
+
+

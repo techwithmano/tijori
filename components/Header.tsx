@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Lock, PlusCircle, LogOut, User, ArrowRight, ShieldCheck } from "lucide-react";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import BrandLogo from "@/components/BrandLogo";
 import { useT } from "@/lib/i18n";
 
 interface UserSession {
@@ -114,32 +115,15 @@ export default function Header() {
     <header className="border-b border-line bg-surface/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-2xl bg-surface border border-line flex items-center justify-center shadow-violetSubtle group-hover:border-accent/40 transition-colors">
-            <Lock className="w-5 h-5 text-accent" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-lg tracking-tight text-text group-hover:text-accent transition-colors">
-                Tijori
-              </span>
-              <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-btn bg-raised border border-line text-muted font-medium font-sans">
-                تِجوري
-              </span>
-            </div>
-            <p className="text-xs text-muted -mt-0.5">
-              {t("common.appTagline")}
-            </p>
-          </div>
-        </Link>
+        <BrandLogo href="/" size="md" showTagline={true} />
 
         {/* Navigation State: Logged-in vs Logged-out */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <LanguageSwitcher />
 
           {user ? (
             /* Logged-In State: Avatar Menu + User Details + Logout */
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/dashboard"
                 className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-btn bg-raised hover:bg-surface border border-line transition-all"
@@ -161,21 +145,21 @@ export default function Header() {
                 type="button"
                 onClick={handleLogout}
                 title={t("nav.logout")}
-                className="tactile-btn p-2 rounded-btn text-muted hover:text-text hover:bg-raised border border-line transition-all text-xs flex items-center gap-1.5"
+                className="tactile-btn p-2 rounded-btn text-muted hover:text-text hover:bg-raised border border-line transition-all text-xs flex items-center gap-1.5 shrink-0"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline text-xs font-semibold">
+                <span className="hidden sm:inline text-xs font-semibold whitespace-nowrap">
                   {t("nav.logout")}
                 </span>
               </button>
             </div>
           ) : (
-            /* Logged-Out State: Log In + Sign Up (No redundant button on active page) */
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            /* Logged-Out State: Log In + Sign Up (No redundant button on active page, no wrapping) */
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {pathname !== "/login" && (
                 <Link
                   href="/login"
-                  className="tactile-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-btn text-xs font-semibold text-text bg-raised hover:bg-surface border border-line transition-all"
+                  className="tactile-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-btn text-xs font-semibold text-text bg-raised hover:bg-surface border border-line transition-all whitespace-nowrap"
                 >
                   {t("nav.login")}
                 </Link>
@@ -184,7 +168,7 @@ export default function Header() {
               {pathname !== "/signup" && (
                 <Link
                   href="/signup"
-                  className="tactile-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-btn text-xs font-extrabold text-accent-foreground bg-accent hover:brightness-105 shadow-limeGlow transition-all"
+                  className="tactile-btn px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-btn text-xs font-extrabold text-accent-foreground bg-accent hover:brightness-105 shadow-limeGlow transition-all whitespace-nowrap"
                 >
                   {t("nav.signup")}
                 </Link>

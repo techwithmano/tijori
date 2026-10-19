@@ -5,6 +5,8 @@ import { loadStripe, Stripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { CreditCard, Lock, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 
+import { useT } from "@/lib/i18n";
+
 interface StripeCardFormProps {
   onSuccess: (card: { brand: string; last4: string }) => void;
   onSkip?: () => void;
@@ -169,6 +171,8 @@ export default function StripeCardForm({
   submitLabel = "Save Card & Link Vault",
   skipLabel = "Skip for now",
 }: StripeCardFormProps) {
+  const { lang } = useT();
+  const isArabic = lang === "ar";
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isTestMode, setIsTestMode] = useState(true);
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
@@ -240,31 +244,45 @@ export default function StripeCardForm({
   if (initError || !stripePromise || !clientSecret) {
     return (
       <div className="space-y-5">
-        <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--line)] space-y-4">
-          <div className="flex items-center gap-3 text-[var(--accent)]">
+        <div className="p-6 rounded-2xl bg-surface border border-line space-y-4 shadow-card">
+          <div className="flex items-center gap-3 text-accent">
             <CreditCard className="w-6 h-6" />
-            <h4 className="font-semibold text-base text-[var(--text)]">Stripe Card Setup</h4>
+            <h4 className="font-extrabold text-base text-text">
+              {isArabic ? "ربط البطاقة البنكية التلقائية" : "Automated Card Deduction"}
+            </h4>
           </div>
 
-          <p className="text-sm text-[var(--muted)]">
-            To render live interactive Stripe Elements, set <code className="text-white font-mono text-xs bg-[var(--raised)] px-2 py-0.5 rounded">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> in <code className="text-white font-mono text-xs bg-[var(--raised)] px-2 py-0.5 rounded">.env.local</code>.
+          <p className="text-sm text-muted leading-relaxed">
+            {isArabic
+              ? "يتم ربط بطاقتك بأمان للاستقطاع التلقائي في مواعيد التوفير المحددة لحماية أهدافك من الصرف اللحظي."
+              : "Link your debit or credit card securely for automatic recurring micro-savings to protect your goals from impulse urges."}
           </p>
 
           {isTestMode && (
-            <div className="p-3.5 rounded-xl bg-[var(--raised)] border border-[var(--line)] text-xs text-[var(--muted)]">
+            <div className="p-3.5 rounded-xl bg-raised border border-line text-xs text-muted flex items-start gap-2">
+              <span className="font-bold text-accent shrink-0">
+                {isArabic ? "وضع التجربة:" : "Test Mode:"}
+              </span>
               <span>
-                <strong>Test mode:</strong> use 4242 4242 4242 4242, any future date, any CVC.
+                {isArabic
+                  ? "استخدم 4242 4242 4242 4242 مع أي تاريخ مستقبلي ورمز CVC للتجربة الفورية."
+                  : "Use 4242 4242 4242 4242 with any future expiry date and CVC for instant testing."}
               </span>
             </div>
           )}
 
           <button
             type="button"
+            disabled={loading}
             onClick={handleFallbackTestCard}
-            className="w-full py-4 rounded-full bg-[var(--accent)] text-[var(--bg)] font-bold text-base hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(198,255,61,0.25)]"
+            className="w-full py-4 rounded-btn bg-accent text-accent-foreground font-extrabold text-base hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-limeGlow disabled:opacity-50"
           >
             <Lock className="w-4 h-4" />
-            <span>Link Test Card (Visa •••• 4242)</span>
+            <span>
+              {isArabic
+                ? "ربط بطاقة تجريبية (Visa •••• 4242)"
+                : "Link Test Card (Visa •••• 4242)"}
+            </span>
           </button>
         </div>
 
@@ -272,7 +290,7 @@ export default function StripeCardForm({
           <button
             type="button"
             onClick={onSkip}
-            className="w-full py-3 text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+            className="w-full py-3 text-xs sm:text-sm text-muted hover:text-text transition-colors"
           >
             {skipLabel}
           </button>

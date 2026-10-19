@@ -214,26 +214,26 @@ export default function Vault3D() {
   }, []);
 
   return (
-    <div className="w-full h-full min-h-[420px] sm:min-h-[500px] lg:min-h-[560px] relative select-none flex items-center justify-center">
+    <div className="w-full h-[340px] sm:h-[440px] lg:h-[520px] relative select-none flex items-center justify-center">
       {/* Dynamic Background Atmosphere Glow */}
-      <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-violet/25 blur-3xl -z-10 pointer-events-none" />
-      <div className="absolute w-60 h-60 sm:w-80 sm:h-80 rounded-full bg-accent/20 blur-2xl -z-10 pointer-events-none" />
+      <div className="absolute w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full bg-violet/20 blur-3xl -z-10 pointer-events-none" />
+      <div className="absolute w-52 h-52 sm:w-72 sm:h-72 rounded-full bg-accent/15 blur-2xl -z-10 pointer-events-none" />
 
       <Canvas
         dpr={[1, 2]}
-        camera={{ position: [0, 0, 3.4], fov: 45 }}
+        camera={{ position: [0, 0, 4.6], fov: 45 }}
         gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
         className="w-full h-full"
       >
-        <ambientLight intensity={0.8} />
+        <ambientLight intensity={1.1} />
         {/* Main Key Light */}
-        <directionalLight position={[4, 6, 4]} intensity={2.2} color="#FFFFFF" />
+        <directionalLight position={[4, 6, 4]} intensity={2.6} color="#FFFFFF" />
         {/* Soft Metallic Fill Light */}
-        <directionalLight position={[-4, -3, 3]} intensity={0.9} color="#B5B0D0" />
+        <directionalLight position={[-4, -3, 3]} intensity={1.2} color="#C4BFDD" />
         {/* Violet Rim Accent */}
-        <pointLight position={[-3, 2, 2]} intensity={4.5} color="#7C5CFF" distance={8} />
+        <pointLight position={[-3, 2, 2.5]} intensity={4.5} color="#8B6DFF" distance={9} />
         {/* Lime Core Kick Light */}
-        <pointLight position={[3, -3, 2.5]} intensity={5.0} color="#C6FF3D" distance={8} />
+        <pointLight position={[3, -3, 2.5]} intensity={5.0} color="#D4FF00" distance={9} />
 
         <VaultDoorMesh scrollProgress={scrollProgress} />
       </Canvas>

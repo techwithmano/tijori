@@ -11,40 +11,40 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#0B0A14",
-        surface: "#15131F",
-        raised: "#1E1B2B",
-        line: "#2A2639",
-        text: "#F5F3FF",
-        muted: "#A29DB8",
+        bg: "#13121A",
+        surface: "#1E1D2A",
+        raised: "#282637",
+        line: "#343245",
+        text: "#F8F7FF",
+        muted: "#ACA7C2",
         accent: {
-          DEFAULT: "#C6FF3D",
-          foreground: "#0B0A14",
+          DEFAULT: "#D4FF00",
+          foreground: "#13121A",
         },
         violet: {
-          DEFAULT: "#7C5CFF",
-          glow: "rgba(124, 92, 255, 0.25)",
+          DEFAULT: "#8B6DFF",
+          glow: "rgba(139, 109, 255, 0.25)",
         },
         coral: {
-          DEFAULT: "#FF5C7A",
+          DEFAULT: "#FF5773",
         },
         mint: {
-          DEFAULT: "#3DFFB0",
+          DEFAULT: "#00E599",
         },
         // Keep tijori namespace mapped for backward compatibility while migrating
         tijori: {
-          bg: "#0B0A14",
-          surface: "#15131F",
-          subtle: "#1E1B2B",
-          border: "#2A2639",
-          borderLight: "#2A2639",
-          primary: "#F5F3FF",
-          secondary: "#A29DB8",
-          muted: "#A29DB8",
+          bg: "#13121A",
+          surface: "#1E1D2A",
+          subtle: "#282637",
+          border: "#343245",
+          borderLight: "#343245",
+          primary: "#F8F7FF",
+          secondary: "#ACA7C2",
+          muted: "#ACA7C2",
         },
       },
       borderRadius: {
-        card: "20px",
+        card: "22px",
         btn: "999px",
       },
       boxShadow: {

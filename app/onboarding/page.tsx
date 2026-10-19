@@ -40,6 +40,7 @@ const QUICK_CHIPS: QuickChip[] = [
 export default function OnboardingPage() {
   const router = useRouter();
   const { t, lang } = useT();
+  const isArabic = lang === "ar";
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [loading, setLoading] = useState(false);
@@ -168,9 +169,11 @@ export default function OnboardingPage() {
             </span>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-btn bg-raised border border-line text-xs font-semibold text-accent">
-            <Lock className="w-3 h-3" />
-            <span>Anti-Impulse Vault Setup</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-btn bg-raised border border-line text-xs font-semibold text-accent">
+            <Lock className="w-3.5 h-3.5" />
+            <span>
+              {isArabic ? "إعداد خزينة تِجوري" : "Anti-Impulse Vault Setup"}
+            </span>
           </div>
         </div>
 
@@ -208,7 +211,9 @@ export default function OnboardingPage() {
 
             {/* Quick-Pick Chips */}
             <div className="space-y-2">
-              <span className="text-xs font-semibold text-muted block">Quick suggestions:</span>
+              <span className="text-xs font-semibold text-muted block">
+                {isArabic ? "اقتراحات سريعة:" : "Quick suggestions:"}
+              </span>
               <div className="flex flex-wrap gap-2">
                 {QUICK_CHIPS.map((chip) => (
                   <button
@@ -260,7 +265,7 @@ export default function OnboardingPage() {
                   className="w-full bg-raised border border-line text-text placeholder:text-muted/40 rounded-xl px-4 py-3.5 text-2xl font-extrabold tabular-nums pe-20 focus:outline-none focus:border-violet focus:ring-2 focus:ring-violet/20 transition-all"
                 />
                 <span className="absolute inset-y-0 end-4 flex items-center text-sm font-bold text-accent pointer-events-none">
-                  KWD
+                  {isArabic ? "د.ك" : "KWD"}
                 </span>
               </div>
             </div>
