@@ -27,9 +27,15 @@ const readex = Readex_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "Tijori (تِجوري) | Anti-Impulse Micro-Savings",
+  title: "Tijori | Save before you spend it",
   description:
-    "Lock micro-savings from your monthly allowance or salary. When impulse urges strike, your trusted Keyholder helps keep your hands off the vault.",
+    "Tijori locks your money away and gives the key to your best friend.",
+  openGraph: {
+    title: "Tijori | Save before you spend it",
+    description:
+      "Tijori locks your money away and gives the key to your best friend.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -41,9 +47,9 @@ export default function RootLayout({
     <html
       lang="en"
       dir="ltr"
-      className={`${bricolage.variable} ${dmSans.variable} ${readex.variable}`}
+      className={`${bricolage.variable} ${dmSans.variable} ${readex.variable} min-h-full h-full`}
     >
-      <body className="bg-bg text-text min-h-screen flex flex-col antialiased selection:bg-lime selection:text-ink font-sans relative">
+      <body className="bg-bg text-text min-h-full flex flex-col antialiased selection:bg-lime selection:text-ink font-sans relative m-0 p-0">
         <I18nProvider>
           {/* Global Header */}
           <Header />

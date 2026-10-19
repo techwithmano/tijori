@@ -11,6 +11,9 @@
 | **Task 5** | Dashboard, vault creation, break flow | **DONE** | PASS (`npm run build`) | Central vault dial, 4-bar pacing chart, Gemini AI reality check roasts, single-use keyholder unlock flow |
 | **Task 6** | QA & Visual/Accessibility Verification | **DONE** | PASS (`npm run build` & `lint`) | Min font >=13px, 0 emojis as icons, WCAG AA contrast, 0 lint warnings/errors, clean 390px/1440px RTL symmetry |
 | **Task 7** | Visual Audit, Contact Sheets & Report | **DONE** | PASS (`npm run build`) | Automated Playwright audit, 52 individual screen captures, 4 contact sheets, comprehensive documentation |
+| **Task L1** | Landing Page & Shared Nav/Footer Rebuild | **DONE** | PASS (`npm run build`) | Neobrutalist light theme overhaul, procedural 3D vault, detached pill nav, Fahad approval demo, marquee, bento |
+| **Task L2** | Landing Page & 3D Vault Polish | **DONE** | PASS (`npm run build`) | 4-spoke wheel vault, CSS blurred ellipse shadow, sticky mini-vault graphic, 44px pill lang switcher, rhythm fix |
+
 
 ---
 
@@ -358,6 +361,59 @@ This log tracks every completed task, status, build verification, and known issu
   7. `L1_approval_en_phone.png` (390x844, EN, mobile view of mockup)
   8. `L1_full_en_desktop.png` (1440x900, EN, full-page scroll)
   9. `L1_full_ar_desktop.png` (1440x900, AR, full-page scroll)
+
+
+## TASK L2: Landing Page & 3D Vault Redesign (Task L2 Fixes)
+- Status: DONE
+- Files created:
+  - `components/MiniVaultGraphic.tsx`: Sticky SVG/CSS mini-vault graphic pinned through all 3 steps of How It Works (Step 1: Japan Summer Trip goal tag with 500 KWD target; Step 2: animated coin drop with progress ring filling 0 -> 25 -> 50 -> 75 KWD; Step 3: door closed/locked with key flying to Fahad's avatar).
+  - `scripts/capture-l2.js`: Automated Playwright test and capture script with font, 3D canvas, and animation stabilization (>2.5s wait) capturing all 10 required Task L2 screenshots, plus navbar auth state testing.
+- Files changed:
+  - `components/Vault3D.tsx`: Complete vault redesign:
+    1. Canvas: `gl={{ alpha: true, antialias: true }}`, no scene background, no fog, canvas container `overflow: visible` and 20% larger than vault. Removed `<ContactShadows>`; replaced with CSS blurred ellipse shadow (`radial-gradient(ellipse at center, rgba(20,16,43,.28), transparent 70%)`). Zero hard rectangular edges.
+    2. Tilt: Max pointer tilt 8 degrees, default rest rotation `y=-0.25 rad`, `x=0.08 rad`. Auto slow-sway of ±4 degrees on touch devices.
+    3. Redesign: Thickened door (`depth ~0.5 units`) with visible dark inset seam gap (`#14102B`). Replaced dial with chunky 4-spoke wheel handle (chrome torus ring + 4 cylinder spokes with rounded knobs on a lime disc). Removed tick marks. Added 2 vertical chrome cylinder hinges on start side, 1 horizontal locking bar on opposite side. Kept 4 corner bolts. Relocated keyhole slot below the wheel on a small lime plate.
+    4. Colors: Lime parts use `meshBasicMaterial color="#CFFF3A" toneMapped={false}` so lighting cannot dull it. Violet body `#6B4DFF`.
+    5. Coins: 6 larger coins (radius 0.35, color `#FFD23F`, emissive `#FFD23F` at 0.35 intensity) orbiting in 3D loop in front of (`z > 0.8`) and behind (`z < -0.65`) the vault without clipping.
+    6. Click/tap interaction: Spins wheel one full turn (`+2π`) and pulses the 3 sticker pills.
+    7. Lazy-loading, fallback, reduced-motion, and offscreen pause preserved.
+  - `components/VaultFallback.tsx`: High-fidelity SVG fallback updated to match the new 4-spoke wheel handle, thick door, dark seam gap, hinges, locking bar, keyhole plate, and 6 orbiting coins.
+  - `components/VaultContainer.tsx`: Added click listener to trigger wheel spin and sticker pulsing via custom event.
+  - `app/page.tsx`:
+    - Hero Stickers & Overflow: Positioned 3 floating stickers strictly inside hero container with percentage coordinates (`top-[4%] start-[2%] sm:start-[6%]`, `top-[46%] end-[2%] sm:end-[4%]`, `bottom-[6%] start-[4%] sm:start-[10%]`), no viewport edge overflow at 390px, 768px, or 1440px. Added `overflow-x: clip` on hero section (zero horizontal scrollbars).
+    - How It Works: Pinned sticky mini-vault graphic (`position: sticky; top: [22%]`) across all 3 steps. Removed "LIVE VAULT PREVIEW" label. Removed "1.", "2.", "3." from headings (step numbers displayed once in badges). Accent colors preserved even when inactive (Card 1: lime, Card 2: violet [white text], Card 3: coral) with `scale 0.96` and `opacity 0.7`. Varied card min-heights (220px, 290px, 250px).
+    - Friend Approval: Replaced typed bullets with Lucide `Check` icons in small lime circles. Amount displayed once inside phone card (`125.000 KWD`) with duplicate removed from header. Added small circular avatar "F" for Fahad at top of phone card. Renamed "Neutral AI Briefing" to "Quick heads-up" (EN) / "تنبيه سريع" (AR). Renamed tag to "Friend approval" / "موافقة الربع".
+    - Page Rhythm: Continuous `--bg` lilac background with soft warm radial glows behind hero and CTA. Removed per-section background colors and hairline dividers. Clamped section vertical padding `clamp(64px, 8vw, 112px)` and removed extra empty gaps. Fixed empty lilac band under footer (`html, body` `min-h-full`, footer `mt-auto m-0` with `bg-surface border-t-2 border-ink`).
+  - `components/Header.tsx`: Language button upgraded to pill (height 44px, min-width 64px, padding 0 16px, border 2px ink, Readex Pro 16px, line-height 1.4) ensuring Arabic text "عربي" never clips or touches borders. Auth states handled: LOGGED OUT shows "Log in" (text) + "Start saving" (lime button, hidden while hero CTA visible); LOGGED IN shows "Dashboard" as an ink-outlined pill button (`btn-hard bg-surface text-ink`).
+  - `components/Footer.tsx`: Language button updated to match 44px pill specification. Fixed trailing margin/padding to eliminate gap below footer.
+  - `components/LanguageSwitcher.tsx`: Updated with `h-[44px] min-w-[64px] px-4 font-heading text-[16px] leading-[1.4] border-2 border-ink rounded-full` styling.
+  - `app/layout.tsx`: Updated `<title>` and metadata:
+    - EN: "Tijori | Save before you spend it"
+    - AR: "تجوري | وفّر قبل ما تصرفها"
+    - Purged "Anti-Impulse Micro-Savings" from metadata and openGraph.
+  - `lib/i18n/index.tsx`, `lib/i18n/en.json`, `lib/i18n/ar.json`:
+    - Updated copy: "Your friend is harder to convince than you are." / "إقناع رفيقك أصعب من إقناع نفسك."
+    - Updated copy: "Made for how you actually spend." / "مصمم لطريقتك الحقيقية بالصرف."
+    - Updated copy: "Lock your first 25 KWD today." / "اقفل أول ٢٥ د.ك اليوم."
+    - Added "Quick heads-up" / "تنبيه سريع" and "Friend approval" / "موافقة الربع".
+- Files deleted: none
+- Build result: PASS (`npm run build` 28/28 static pages generated; `npm run lint` 0 warnings, 0 errors)
+- Auth state test results: Both states verified in Playwright test runner. Logged Out displays "Log in" and "Start saving"; Logged In displays "Dashboard" pill button (`btn-hard bg-surface text-ink`).
+- JS size added: < 2 kB (Total `/` First Load JS is 125 kB, well below the 180 kB budget)
+- What I did NOT finish: None. All requirements of TASK L2 completed.
+- Known problems: None.
+- Master Screenshot Inventory for Task L2 (in `/audit/screenshots/`):
+  1. `L2_hero_en_desktop.png` (1440x900, EN desktop hero with new 4-spoke wheel vault, lime disc, bolts, hinges, keyhole plate, CSS blurred ellipse shadow, and internal stickers)
+  2. `L2_hero_ar_desktop.png` (1440x900, AR desktop hero mirrored with Arabic pill language switcher and stickers)
+  3. `L2_hero_en_phone.png` (390x844, EN mobile hero with vault stacked above headline, zero horizontal overflow)
+  4. `L2_hero_ar_phone.png` (390x844, AR mobile hero with RTL vault stacking and zero horizontal overflow)
+  5. `L2_howitworks_step1.png` (1440x900, EN desktop How It Works Step 1: "Japan Summer Trip" 500 KWD goal tag popped in)
+  6. `L2_howitworks_step2.png` (1440x900, EN desktop How It Works Step 2: coins dropping in, progress ring filling, counter animating)
+  7. `L2_howitworks_step3.png` (1440x900, EN desktop How It Works Step 3: vault locked, key flying to Fahad avatar)
+  8. `L2_approval_en_phone.png` (390x844, EN phone view of Friend Approval section with Fahad avatar "F", Lucide check list, single amount display)
+  9. `L2_full_en_desktop.png` (1440x900, EN desktop full page scroll, continuous lilac background, warm radial glows, flush footer with zero bottom gap)
+  10. `L2_full_ar_desktop.png` (1440x900, AR desktop full page scroll, RTL continuous background, flush footer)
+
 
 
 

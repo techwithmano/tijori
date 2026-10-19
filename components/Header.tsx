@@ -114,42 +114,45 @@ export default function Header() {
 
           {/* Desktop End Controls */}
           <div className="hidden md:flex items-center gap-3 shrink-0">
-            {/* Language toggle: single round button showing other language */}
+            {/* Language toggle: 44px pill showing other language */}
             <LanguageSwitcher />
 
-            {/* Login or Dashboard link */}
+            {/* Auth States: LOGGED OUT = "Log in" (text) + "Start saving" (lime button). LOGGED IN = "Dashboard" ink-outlined pill button */}
             {user ? (
               <Link
                 href="/dashboard"
-                className="text-sm font-bold text-ink hover:text-violet px-3 py-2 transition-colors whitespace-nowrap"
+                className="btn-hard bg-surface text-ink font-extrabold text-sm px-5 py-2.5 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 border-2 border-ink shadow-[2px_2px_0_var(--ink)]"
               >
-                {isArabic ? "لوحة التحكم" : "Dashboard"}
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="text-sm font-bold text-ink hover:text-violet px-3 py-2 transition-colors whitespace-nowrap"
-              >
-                {isArabic ? "تسجيل الدخول" : "Log in"}
-              </Link>
-            )}
-
-            {/* "Start saving" lime button - fades in after scrolling past hero CTA */}
-            <div
-              className={`transition-all duration-300 ease-out overflow-hidden ${
-                showNavCta
-                  ? "opacity-100 max-w-[160px] translate-y-0"
-                  : "opacity-0 max-w-0 -translate-y-1 pointer-events-none"
-              }`}
-            >
-              <Link
-                href="/signup"
-                className="btn-hard bg-lime text-ink font-extrabold text-sm px-5 py-2.5 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
-              >
-                <span>{isArabic ? "ابدأ التوفير" : "Start saving"}</span>
+                <span>{isArabic ? "لوحة التحكم" : "Dashboard"}</span>
                 <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
               </Link>
-            </div>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm font-bold text-ink hover:text-violet px-3 py-2 transition-colors whitespace-nowrap"
+                >
+                  {isArabic ? "تسجيل الدخول" : "Log in"}
+                </Link>
+
+                {/* "Start saving" lime button - fades in after scrolling past hero CTA */}
+                <div
+                  className={`transition-all duration-300 ease-out overflow-hidden ${
+                    showNavCta
+                      ? "opacity-100 max-w-[160px] translate-y-0"
+                      : "opacity-0 max-w-0 -translate-y-1 pointer-events-none"
+                  }`}
+                >
+                  <Link
+                    href="/signup"
+                    className="btn-hard bg-lime text-ink font-extrabold text-sm px-5 py-2.5 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                  >
+                    <span>{isArabic ? "ابدأ التوفير" : "Start saving"}</span>
+                    <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Mobile Right Controls (< 768px): Language + Hamburger */}

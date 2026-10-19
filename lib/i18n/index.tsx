@@ -59,6 +59,7 @@ export function I18nProvider({
       }
       document.documentElement.lang = lang;
       document.documentElement.dir = dir;
+      document.title = lang === "ar" ? "تجوري | وفّر قبل ما تصرفها" : "Tijori | Save before you spend it";
     }
   }, [lang, dir]);
 
@@ -68,6 +69,7 @@ export function I18nProvider({
       document.cookie = `tijori_lang=${newLang}; path=/; max-age=31536000; SameSite=Lax`;
       document.documentElement.lang = newLang;
       document.documentElement.dir = newLang === "ar" ? "rtl" : "ltr";
+      document.title = newLang === "ar" ? "تجوري | وفّر قبل ما تصرفها" : "Tijori | Save before you spend it";
     }
     startTransition(() => {
       router.refresh();

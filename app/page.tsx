@@ -14,15 +14,23 @@ import {
   SlidersHorizontal,
   KeyRound,
   CalendarCheck,
-  CheckCircle2,
   AlertCircle,
 } from "lucide-react";
 import VaultContainer from "@/components/VaultContainer";
+import MiniVaultGraphic from "@/components/MiniVaultGraphic";
 import { useT } from "@/lib/i18n";
 
 export default function LandingPage() {
   const { t, lang } = useT();
   const isArabic = lang === "ar";
+
+  // Vault Click / Sticker Pulse State
+  const [stickersPulsing, setStickersPulsing] = useState(false);
+
+  const handleVaultClick = () => {
+    setStickersPulsing(true);
+    setTimeout(() => setStickersPulsing(false), 700);
+  };
 
   // Friend Approval Interactive Mockup State
   const [mockupState, setMockupState] = useState<"pending" | "locked" | "unlocked">("pending");
@@ -44,7 +52,7 @@ export default function LandingPage() {
           }
         });
       },
-      { rootMargin: "-20% 0px -40% 0px", threshold: 0.2 }
+      { rootMargin: "-25% 0px -35% 0px", threshold: 0.25 }
     );
 
     if (step1Ref.current) observer.observe(step1Ref.current);
@@ -96,10 +104,34 @@ export default function LandingPage() {
         "Graduation gift",
       ];
 
+  const sectionPaddingStyle = {
+    paddingTop: "clamp(64px, 8vw, 112px)",
+    paddingBottom: "clamp(64px, 8vw, 112px)",
+  };
+
   return (
-    <div className="w-full text-ink overflow-x-clip selection:bg-lime selection:text-ink">
+    <div className="w-full text-ink overflow-x-clip selection:bg-lime selection:text-ink relative">
+      {/* ─── Continuous Background with Soft Warm Radial Glow behind Hero & CTA ─── */}
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1200px] h-[700px] pointer-events-none -z-10"
+        style={{
+          background:
+            "radial-gradient(circle at 60% 30%, rgba(255, 244, 227, 0.75) 0%, rgba(246, 242, 255, 0) 70%)",
+        }}
+      />
+      <div
+        className="absolute bottom-[200px] left-1/2 -translate-x-1/2 w-full max-w-[1100px] h-[600px] pointer-events-none -z-10"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 50%, rgba(255, 244, 227, 0.6) 0%, rgba(246, 242, 255, 0) 70%)",
+        }}
+      />
+
       {/* ─── 1. HERO SECTION ─── */}
-      <section className="relative pt-6 sm:pt-12 pb-16 sm:pb-24 px-4 sm:px-6 max-w-[1100px] mx-auto">
+      <section
+        className="relative px-4 sm:px-6 max-w-[1100px] mx-auto overflow-x-clip"
+        style={{ paddingTop: "clamp(32px, 5vw, 64px)", paddingBottom: "clamp(48px, 7vw, 88px)" }}
+      >
         <div className="flex flex-col-reverse lg:flex-row items-center justify-between gap-10 lg:gap-14">
           {/* Start Column: Headline, Sticker, Sub, CTAs */}
           <div className="w-full lg:w-1/2 space-y-6 text-center lg:text-start">
@@ -111,7 +143,7 @@ export default function LandingPage() {
             </div>
 
             {/* H1 Headline: 56-88px desktop / 40px phone, weight 800 */}
-            <h1 className="text-[40px] sm:text-6xl lg:text-[72px] font-extrabold tracking-tight leading-[1.06] text-ink">
+            <h1 className="text-[40px] sm:text-6xl lg:text-[72px] font-extrabold tracking-tight leading-[1.06] text-ink font-heading">
               {t("landing.heroTitle")}
             </h1>
 
@@ -140,22 +172,24 @@ export default function LandingPage() {
               </a>
             </div>
 
-            {/* Works with existing card note (No fake stats anywhere) */}
+            {/* Works with existing card note */}
             <p className="text-sm font-medium text-muted">
               {t("landing.worksWithCard")}
             </p>
           </div>
 
           {/* End Column: 3D Vault with 3 Floating Bobbing HTML Stickers */}
-          <div className="w-full lg:w-1/2 flex items-center justify-center relative min-h-[300px] sm:min-h-[460px]">
+          <div className="w-full lg:w-1/2 flex items-center justify-center relative min-h-[300px] sm:min-h-[460px] overflow-visible">
             {/* The 3D Vault Container */}
-            <div className="w-full max-w-[340px] sm:max-w-[440px] h-[300px] sm:h-[460px]">
-              <VaultContainer />
+            <div className="w-full max-w-[340px] sm:max-w-[440px] h-[300px] sm:h-[460px] overflow-visible">
+              <VaultContainer onVaultClick={handleVaultClick} />
             </div>
 
-            {/* Sticker A: Lime (+25 KWD locked) */}
+            {/* Sticker A: Lime (+25 KWD locked) - positioned strictly inside container */}
             <div
-              className="absolute top-4 sm:top-8 -start-2 sm:-start-6 z-10 animate-sticker-bob-1 pointer-events-none"
+              className={`absolute top-[4%] start-[2%] sm:start-[6%] z-10 animate-sticker-bob-1 pointer-events-none transition-transform duration-300 ${
+                stickersPulsing ? "scale-110" : ""
+              }`}
               style={{ "--rot": "-3deg" } as React.CSSProperties}
             >
               <div className="px-3.5 py-1.5 rounded-full bg-lime border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none">
@@ -164,9 +198,11 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Sticker B: Coral (Fahad said no) */}
+            {/* Sticker B: Coral (Fahad said no) - positioned strictly inside container */}
             <div
-              className="absolute top-1/2 -end-2 sm:-end-6 z-10 animate-sticker-bob-2 pointer-events-none"
+              className={`absolute top-[46%] end-[2%] sm:end-[4%] z-10 animate-sticker-bob-2 pointer-events-none transition-transform duration-300 ${
+                stickersPulsing ? "scale-110" : ""
+              }`}
               style={{ "--rot": "2.5deg" } as React.CSSProperties}
             >
               <div className="px-3.5 py-1.5 rounded-full bg-coral border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white select-none">
@@ -175,9 +211,11 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Sticker C: Sun (18-day streak) */}
+            {/* Sticker C: Sun (18-day streak) - positioned strictly inside container */}
             <div
-              className="absolute bottom-4 sm:bottom-8 -start-1 sm:start-4 z-10 animate-sticker-bob-3 pointer-events-none"
+              className={`absolute bottom-[6%] start-[4%] sm:start-[10%] z-10 animate-sticker-bob-3 pointer-events-none transition-transform duration-300 ${
+                stickersPulsing ? "scale-110" : ""
+              }`}
               style={{ "--rot": "-2deg" } as React.CSSProperties}
             >
               <div className="px-3.5 py-1.5 rounded-full bg-sun border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none">
@@ -189,7 +227,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── 2. GOALS MARQUEE ─── */}
+      {/* ─── 2. GOALS MARQUEE (Full-Bleed Moment) ─── */}
       <section className="w-full bg-ink border-y-2 border-ink py-4 sm:py-5 overflow-hidden select-none">
         <div className={isArabic ? "animate-marquee-rtl" : "animate-marquee-ltr"}>
           {[...marqueeGoals, ...marqueeGoals, ...marqueeGoals].map((goal, idx) => (
@@ -204,10 +242,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── 3. HOW IT WORKS SECTION ─── */}
+      {/* ─── 3. HOW IT WORKS SECTION (Sticky Mini Vault) ─── */}
       <section
         id="how-it-works"
-        className="py-20 sm:py-28 px-4 sm:px-6 max-w-[1100px] mx-auto scroll-mt-24"
+        className="px-4 sm:px-6 max-w-[1100px] mx-auto scroll-mt-24"
+        style={sectionPaddingStyle}
       >
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
           <h2 className="text-3xl sm:text-5xl font-extrabold text-ink font-heading">
@@ -220,83 +259,20 @@ export default function LandingPage() {
 
         {/* Desktop Sticky Scroll (>= 1024px) */}
         <div className="hidden lg:grid grid-cols-2 gap-12 items-start relative">
-          {/* Start Side: Sticky Visual Container */}
-          <div className="sticky top-28 card-hard-lg bg-surface p-8 max-w-[420px] mx-auto space-y-6">
-            <div className="flex items-center justify-between border-b-2 border-ink/10 pb-4">
-              <span className="text-xs font-bold text-muted uppercase tracking-wider">
-                {isArabic ? "محاكاة الخزينة" : "Live Vault Preview"}
-              </span>
-              <span className="w-3 h-3 rounded-full bg-lime border border-ink animate-pulse" />
-            </div>
-
-            {/* Visual State changing per active step */}
-            {activeStep === 1 && (
-              <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                <div className="p-4 rounded-2xl bg-lime/20 border-2 border-ink space-y-2">
-                  <div className="text-xs font-bold text-muted">
-                    {isArabic ? "الهدف المحدد:" : "Active Goal:"}
-                  </div>
-                  <div className="text-2xl font-extrabold text-ink">
-                    {isArabic ? "سفرة اليابان" : "Japan Summer Trip"}
-                  </div>
-                </div>
-                <div className="flex justify-between items-center text-sm font-bold text-ink pt-2">
-                  <span>{isArabic ? "المبلغ المستهدف" : "Target Amount"}</span>
-                  <span className="text-xl font-extrabold text-violet">
-                    {isArabic ? "٥٠٠ د.ك" : "500 KWD"}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {activeStep === 2 && (
-              <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                <div className="p-4 rounded-2xl bg-violet text-white border-2 border-ink space-y-2">
-                  <div className="text-xs font-bold text-lime">
-                    {isArabic ? "خصم تلقائي منتظم" : "Automated Deduction"}
-                  </div>
-                  <div className="text-3xl font-extrabold font-mono tracking-tight text-white">
-                    {isArabic ? "١٢٥.٠٠٠ د.ك" : "125.000 KWD"}
-                  </div>
-                </div>
-                <div className="w-full bg-bg rounded-full h-3 border-2 border-ink overflow-hidden">
-                  <div className="bg-lime h-full w-1/4 rounded-full" />
-                </div>
-                <div className="text-xs font-bold text-muted text-center">
-                  {isArabic ? "خصم أسبوعي ٢٥ د.ك في يوم المكافأة" : "Auto-saving 25 KWD weekly on allowance day"}
-                </div>
-              </div>
-            )}
-
-            {activeStep === 3 && (
-              <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
-                <div className="p-4 rounded-2xl bg-[#FFEBEF] border-2 border-ink space-y-2">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-coral text-white text-xs font-bold">
-                    <Lock className="w-3 h-3" />
-                    <span>{isArabic ? "القفل محمي" : "Keyholder Protected"}</span>
-                  </div>
-                  <div className="text-lg font-extrabold text-ink">
-                    {isArabic ? "المفتاح بيد فهد المطوع" : "Key held by Fahad Al-Mutawa"}
-                  </div>
-                  <p className="text-xs text-muted">
-                    {isArabic
-                      ? "أي محاولة لكسر القفل قبل وقته تتطلب موافقة فهد الصريحة."
-                      : "Breaking early requires Fahad's explicit approval on WhatsApp."}
-                  </p>
-                </div>
-              </div>
-            )}
+          {/* Start Side: Sticky Mini Vault Graphic (Pinned at vertical center for entire section) */}
+          <div className="sticky top-[22%] self-start w-full flex items-center justify-center">
+            <MiniVaultGraphic step={activeStep} isArabic={isArabic} />
           </div>
 
           {/* End Side: 3 Big Steps Stacked Vertically with Different Heights & Colors */}
-          <div className="space-y-20 py-6">
+          <div className="space-y-32 py-12">
             {/* Step 1: Lime Accent Card */}
             <div
               ref={step1Ref}
-              className={`card-hard p-8 sm:p-10 transition-all duration-300 ${
+              className={`card-hard p-8 sm:p-10 min-h-[220px] transition-all duration-300 bg-lime text-ink border-2 border-ink ${
                 activeStep === 1
-                  ? "bg-lime border-2 border-ink shadow-[6px_6px_0_var(--ink)]"
-                  : "bg-surface opacity-80"
+                  ? "scale-100 opacity-100 shadow-[6px_6px_0_var(--ink)]"
+                  : "scale-[0.96] opacity-70 shadow-[2px_2px_0_var(--ink)]"
               }`}
             >
               <div className="w-12 h-12 rounded-2xl bg-surface border-2 border-ink flex items-center justify-center font-extrabold text-xl text-ink mb-6 shadow-[2px_2px_0_var(--ink)]">
@@ -305,47 +281,47 @@ export default function LandingPage() {
               <h3 className="text-2xl sm:text-3xl font-extrabold text-ink mb-3 font-heading">
                 {t("landing.step1Title")}
               </h3>
-              <p className="text-base sm:text-lg text-ink/80 leading-relaxed font-medium">
+              <p className="text-base sm:text-lg text-ink/90 leading-relaxed font-medium">
                 {t("landing.step1Desc")}
               </p>
             </div>
 
-            {/* Step 2: Violet Accent Card (Taller height) */}
+            {/* Step 2: Violet Accent Card (Taller height min-h-[290px]) */}
             <div
               ref={step2Ref}
-              className={`card-hard p-8 sm:p-12 transition-all duration-300 ${
+              className={`card-hard p-10 sm:p-14 min-h-[290px] transition-all duration-300 bg-violet text-white border-2 border-ink ${
                 activeStep === 2
-                  ? "bg-violet text-white border-2 border-ink shadow-[6px_6px_0_var(--ink)]"
-                  : "bg-surface opacity-80 text-ink"
+                  ? "scale-100 opacity-100 shadow-[6px_6px_0_var(--ink)]"
+                  : "scale-[0.96] opacity-70 shadow-[2px_2px_0_var(--ink)]"
               }`}
             >
               <div className="w-12 h-12 rounded-2xl bg-lime border-2 border-ink flex items-center justify-center font-extrabold text-xl text-ink mb-6 shadow-[2px_2px_0_var(--ink)]">
                 2
               </div>
-              <h3 className="text-2xl sm:text-3xl font-extrabold mb-3 font-heading">
+              <h3 className="text-2xl sm:text-3xl font-extrabold mb-3 font-heading text-white">
                 {t("landing.step2Title")}
               </h3>
-              <p className="text-base sm:text-lg opacity-90 leading-relaxed font-medium">
+              <p className="text-base sm:text-lg text-white/90 leading-relaxed font-medium">
                 {t("landing.step2Desc")}
               </p>
             </div>
 
-            {/* Step 3: Coral Tint Accent Card */}
+            {/* Step 3: Coral Accent Card (min-h-[250px]) */}
             <div
               ref={step3Ref}
-              className={`card-hard p-8 sm:p-10 transition-all duration-300 ${
+              className={`card-hard p-8 sm:p-11 min-h-[250px] transition-all duration-300 bg-coral text-ink border-2 border-ink ${
                 activeStep === 3
-                  ? "bg-[#FFEBEF] border-2 border-ink shadow-[6px_6px_0_var(--ink)]"
-                  : "bg-surface opacity-80"
+                  ? "scale-100 opacity-100 shadow-[6px_6px_0_var(--ink)]"
+                  : "scale-[0.96] opacity-70 shadow-[2px_2px_0_var(--ink)]"
               }`}
             >
-              <div className="w-12 h-12 rounded-2xl bg-surface border-2 border-ink flex items-center justify-center font-extrabold text-xl text-coral mb-6 shadow-[2px_2px_0_var(--ink)]">
+              <div className="w-12 h-12 rounded-2xl bg-surface border-2 border-ink flex items-center justify-center font-extrabold text-xl text-ink mb-6 shadow-[2px_2px_0_var(--ink)]">
                 3
               </div>
               <h3 className="text-2xl sm:text-3xl font-extrabold text-ink mb-3 font-heading">
                 {t("landing.step3Title")}
               </h3>
-              <p className="text-base sm:text-lg text-ink/80 leading-relaxed font-medium">
+              <p className="text-base sm:text-lg text-ink/90 leading-relaxed font-medium">
                 {t("landing.step3Desc")}
               </p>
             </div>
@@ -355,40 +331,40 @@ export default function LandingPage() {
         {/* Phone Vertical Stack (< 1024px) */}
         <div className="grid lg:hidden grid-cols-1 gap-6">
           {/* Mobile Step 1 */}
-          <div className="card-hard bg-lime p-6 sm:p-8 space-y-4">
+          <div className="card-hard bg-lime text-ink p-6 sm:p-8 space-y-4 border-2 border-ink shadow-[4px_4px_0_var(--ink)]">
             <div className="w-10 h-10 rounded-xl bg-surface border-2 border-ink flex items-center justify-center font-extrabold text-lg text-ink shadow-[2px_2px_0_var(--ink)]">
               1
             </div>
             <h3 className="text-xl sm:text-2xl font-extrabold text-ink font-heading">
               {t("landing.step1Title")}
             </h3>
-            <p className="text-sm sm:text-base text-ink/80 leading-relaxed font-medium">
+            <p className="text-sm sm:text-base text-ink/90 leading-relaxed font-medium">
               {t("landing.step1Desc")}
             </p>
           </div>
 
           {/* Mobile Step 2 */}
-          <div className="card-hard bg-violet text-white p-7 sm:p-9 space-y-4">
+          <div className="card-hard bg-violet text-white p-7 sm:p-9 space-y-4 border-2 border-ink shadow-[4px_4px_0_var(--ink)]">
             <div className="w-10 h-10 rounded-xl bg-lime border-2 border-ink flex items-center justify-center font-extrabold text-lg text-ink shadow-[2px_2px_0_var(--ink)]">
               2
             </div>
             <h3 className="text-xl sm:text-2xl font-extrabold text-white font-heading">
               {t("landing.step2Title")}
             </h3>
-            <p className="text-sm sm:text-base opacity-90 leading-relaxed font-medium">
+            <p className="text-sm sm:text-base text-white/90 leading-relaxed font-medium">
               {t("landing.step2Desc")}
             </p>
           </div>
 
           {/* Mobile Step 3 */}
-          <div className="card-hard bg-[#FFEBEF] p-6 sm:p-8 space-y-4">
-            <div className="w-10 h-10 rounded-xl bg-surface border-2 border-ink flex items-center justify-center font-extrabold text-lg text-coral shadow-[2px_2px_0_var(--ink)]">
+          <div className="card-hard bg-coral text-ink p-6 sm:p-8 space-y-4 border-2 border-ink shadow-[4px_4px_0_var(--ink)]">
+            <div className="w-10 h-10 rounded-xl bg-surface border-2 border-ink flex items-center justify-center font-extrabold text-lg text-ink shadow-[2px_2px_0_var(--ink)]">
               3
             </div>
             <h3 className="text-xl sm:text-2xl font-extrabold text-ink font-heading">
               {t("landing.step3Title")}
             </h3>
-            <p className="text-sm sm:text-base text-ink/80 leading-relaxed font-medium">
+            <p className="text-sm sm:text-base text-ink/90 leading-relaxed font-medium">
               {t("landing.step3Desc")}
             </p>
           </div>
@@ -398,14 +374,15 @@ export default function LandingPage() {
       {/* ─── 4. FRIEND APPROVAL MOMENT (EMOTIONAL CORE) ─── */}
       <section
         id="friend-approval"
-        className="py-20 sm:py-28 px-4 sm:px-6 max-w-[1100px] mx-auto border-t-2 border-ink/10 scroll-mt-24"
+        className="px-4 sm:px-6 max-w-[1100px] mx-auto scroll-mt-24"
+        style={sectionPaddingStyle}
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Start Column: Story & Explanation */}
           <div className="space-y-6 text-center lg:text-start">
             <div className="inline-block transform -rotate-1">
               <span className="px-3.5 py-1 rounded-full bg-sun border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-xs font-bold text-ink">
-                {isArabic ? "موافقة الربع" : "Friend Accountability"}
+                {isArabic ? "موافقة الربع" : "Friend approval"}
               </span>
             </div>
 
@@ -413,10 +390,26 @@ export default function LandingPage() {
               {t("landing.approvalHeading")}
             </h2>
 
+            {/* List with real Lucide Check icons in small lime circles */}
             <div className="space-y-4 text-base sm:text-lg text-muted font-medium leading-relaxed">
-              <p>• {t("landing.approvalStory1")}</p>
-              <p>• {t("landing.approvalStory2")}</p>
-              <p>• {t("landing.approvalStory3")}</p>
+              <div className="flex items-start gap-3.5 text-start">
+                <span className="w-6 h-6 rounded-full bg-lime border-2 border-ink flex items-center justify-center shrink-0 mt-0.5 shadow-[1px_1px_0_var(--ink)]">
+                  <Check className="w-3.5 h-3.5 text-ink stroke-[3]" />
+                </span>
+                <span>{t("landing.approvalStory1")}</span>
+              </div>
+              <div className="flex items-start gap-3.5 text-start">
+                <span className="w-6 h-6 rounded-full bg-lime border-2 border-ink flex items-center justify-center shrink-0 mt-0.5 shadow-[1px_1px_0_var(--ink)]">
+                  <Check className="w-3.5 h-3.5 text-ink stroke-[3]" />
+                </span>
+                <span>{t("landing.approvalStory2")}</span>
+              </div>
+              <div className="flex items-start gap-3.5 text-start">
+                <span className="w-6 h-6 rounded-full bg-lime border-2 border-ink flex items-center justify-center shrink-0 mt-0.5 shadow-[1px_1px_0_var(--ink)]">
+                  <Check className="w-3.5 h-3.5 text-ink stroke-[3]" />
+                </span>
+                <span>{t("landing.approvalStory3")}</span>
+              </div>
             </div>
           </div>
 
@@ -428,16 +421,32 @@ export default function LandingPage() {
 
               {/* Inside Phone: Fahad's Notification Card */}
               <div className="card-hard bg-bg p-4 space-y-4">
-                <div className="flex items-center justify-between text-xs font-bold text-muted">
-                  <span>{isArabic ? "طلب فك الخزينة" : "Unlock Request"}</span>
-                  <span className="text-coral font-mono">125.000 KWD</span>
+                {/* Header with Circular Avatar "F" for Fahad */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-violet text-white border-2 border-ink flex items-center justify-center font-extrabold text-sm shadow-[1px_1px_0_var(--ink)] shrink-0">
+                      F
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-ink">
+                        {isArabic ? "فهد المطوع" : "Fahad Al-Mutawa"}
+                      </div>
+                      <div className="text-[10px] text-muted">
+                        {isArabic ? "حامل المفتاح" : "Keyholder"}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-muted uppercase tracking-wider">
+                    {isArabic ? "طلب كسر" : "Break Request"}
+                  </span>
                 </div>
 
                 <div className="space-y-1">
                   <div className="text-sm font-extrabold text-ink">
                     {t("landing.mockupUser")}
                   </div>
-                  <div className="text-2xl font-extrabold text-ink">
+                  {/* Amount shown ONCE inside phone card */}
+                  <div className="text-2xl font-extrabold text-ink font-heading">
                     {t("landing.mockupAmount")}
                   </div>
                 </div>
@@ -452,10 +461,10 @@ export default function LandingPage() {
                   </blockquote>
                 </div>
 
-                {/* Neutral AI Briefing Note (Does NOT tell him what to choose) */}
+                {/* Quick heads-up Note (Does NOT tell him what to choose) */}
                 <div className="p-2.5 rounded-xl bg-surface/80 border border-ink/20 text-xs font-medium text-muted space-y-0.5">
                   <div className="font-bold text-ink">
-                    {isArabic ? "ملخص ذكي محايد" : "Neutral AI Briefing"}
+                    {t("landing.quickHeadsUp")}
                   </div>
                   <div>{t("landing.mockupAiNote")}</div>
                 </div>
@@ -531,7 +540,8 @@ export default function LandingPage() {
       {/* ─── 5. WHY TIJORI (BENTO GRID) ─── */}
       <section
         id="why-tijori"
-        className="py-20 sm:py-28 px-4 sm:px-6 max-w-[1100px] mx-auto border-t-2 border-ink/10 scroll-mt-24"
+        className="px-4 sm:px-6 max-w-[1100px] mx-auto scroll-mt-24"
+        style={sectionPaddingStyle}
       >
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
           <h2 className="text-3xl sm:text-5xl font-extrabold text-ink font-heading">
@@ -597,8 +607,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── 6. FINAL CTA SECTION ─── */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 max-w-[1100px] mx-auto">
+      {/* ─── 6. FINAL CTA SECTION (Full Bleed Moment) ─── */}
+      <section
+        className="px-4 sm:px-6 max-w-[1100px] mx-auto pb-12 sm:pb-16"
+        style={{ paddingTop: "clamp(32px, 5vw, 64px)" }}
+      >
         <div className="card-hard-lg bg-violet text-white p-10 sm:p-16 text-center space-y-6">
           <h2 className="text-3xl sm:text-5xl font-extrabold text-white font-heading tracking-tight">
             {t("landing.finalCtaHeading")}

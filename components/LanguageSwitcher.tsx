@@ -17,9 +17,9 @@ export default function LanguageSwitcher({ className = "" }: LanguageSwitcherPro
       type="button"
       onClick={() => setLang(nextLang)}
       aria-label={lang === "en" ? "Switch to Arabic" : "Switch to English"}
-      className={`w-10 h-10 rounded-full bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all flex items-center justify-center font-bold text-sm text-ink shrink-0 select-none ${className}`}
+      className={`h-[44px] min-w-[64px] px-4 rounded-full bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all inline-flex items-center justify-center font-bold text-ink shrink-0 select-none ${className}`}
     >
-      <span className={lang === "en" ? "font-arabic text-sm" : "font-heading text-xs font-extrabold"}>
+      <span className="font-arabic text-[16px] leading-[1.4]">
         {displayLabel}
       </span>
     </button>

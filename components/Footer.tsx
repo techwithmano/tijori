@@ -18,7 +18,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="w-full border-t-2 border-ink/20 mt-20 py-10 px-4 sm:px-6">
+    <footer className="w-full bg-surface border-t-2 border-ink py-8 sm:py-10 px-4 sm:px-6 m-0 mt-auto">
       <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
         {/* Start: Logo */}
         <Logo href="/" />
