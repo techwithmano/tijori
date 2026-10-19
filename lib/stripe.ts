@@ -1,11 +1,24 @@
 import Stripe from "stripe";
 import { User, IUser } from "@/models/User";
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
+let stripeInstance: Stripe | null = null;
 
-export const stripe = new Stripe(stripeSecretKey || "sk_test_placeholder_for_build", {
-  apiVersion: "2025-02-24.acacia",
-  typescript: true,
+export function getStripe(): Stripe {
+  const secretKey = process.env.STRIPE_SECRET_KEY || "sk_test_placeholder_for_build";
+  if (!stripeInstance) {
+    stripeInstance = new Stripe(secretKey, {
+      apiVersion: "2025-02-24.acacia",
+      typescript: true,
+    });
+  }
+  return stripeInstance;
+}
+
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    const client = getStripe();
+    return (client as any)[prop];
+  },
 });
 
 /**

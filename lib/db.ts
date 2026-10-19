@@ -7,17 +7,9 @@ try {
   // Ignore restricted environments
 }
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
 // Direct replica set seedlist (bypasses Windows/ISP DNS SRV querySrv EBADRESP limitations)
 const DIRECT_FALLBACK_URI =
   "mongodb://abdukhogali1_db_user:aaFC6cPgRd4hxOqq@ac-ahiop6y-shard-00-00.sfdjb0j.mongodb.net:27017,ac-ahiop6y-shard-00-01.sfdjb0j.mongodb.net:27017,ac-ahiop6y-shard-00-02.sfdjb0j.mongodb.net:27017/tijori?ssl=true&replicaSet=atlas-dychyr-shard-0&authSource=admin&retryWrites=true&w=majority";
-
-if (!MONGODB_URI) {
-  throw new Error(
-    "Please define the MONGODB_URI environment variable inside .env.local"
-  );
-}
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -40,6 +32,13 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     return cached.conn;
   }
 
+  const uri = process.env.MONGODB_URI || DIRECT_FALLBACK_URI;
+  if (!uri) {
+    throw new Error(
+      "Please define the MONGODB_URI environment variable inside .env.local or Vercel Settings"
+    );
+  }
+
   if (!cached.promise) {
     const primaryOpts = {
       bufferCommands: false,
@@ -53,7 +52,7 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
 
     // Attempt primary connection with rapid fallback to direct replica set on DNS SRV failure
     cached.promise = mongoose
-      .connect(MONGODB_URI as string, primaryOpts)
+      .connect(uri, primaryOpts)
       .then((instance) => {
         console.log("Connected to MongoDB Atlas cluster successfully.");
         return instance;

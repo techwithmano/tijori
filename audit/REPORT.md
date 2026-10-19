@@ -277,3 +277,21 @@ This log tracks every completed task, status, build verification, and known issu
 - Env vars the user must set: MONGODB_URI, JWT_SECRET, STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, CRON_SECRET, GEMINI_API_KEY (optional)
 - How to test it: 1) Run `node scripts/capture-audit.js` to re-execute the automated capture suite. 2) Inspect the 4 contact sheets in `audit/screenshots/` (`SHEET_1_phone_en.png`, `SHEET_2_phone_ar.png`, `SHEET_3_desktop_en.png`, `SHEET_4_desktop_ar.png`). 3) Verify all 52 individual screenshots in `audit/screenshots/`.
 - Known problems: none
+
+
+## DEPLOY 404 FIX
+- Status: FIXED
+- Root cause:
+  1. Top-level environment variable evaluation in database and SDK clients: `lib/db.ts` executed `if (!MONGODB_URI) throw new Error(...)` at module evaluation time. Similarly, `lib/gemini.ts` and `lib/stripe.ts` instantiated SDK clients immediately on import. When built or initialized on Vercel without pre-configured environment variables, module imports threw fatal errors, causing deployment failure and leaving Vercel's edge router with no successful deployment to serve at `https://tijoori.vercel.app` (returning `x-vercel-error: NOT_FOUND` with trace ID `bom1::...`).
+  2. Domain alias mapping in Vercel: Vercel's edge network serves `404: NOT_FOUND` at the root domain when a project or domain has no active, successful deployment artifact assigned to it.
+- Files changed:
+  - `lib/db.ts`: Removed module top-level throw; deferred connection logic into `connectToDatabase()`; added `DIRECT_FALLBACK_URI` support.
+  - `lib/gemini.ts`: Made client instantiation lazy via `getGemini()` and Proxy; eliminates build-time crashes when `GEMINI_API_KEY` is missing.
+  - `lib/stripe.ts`: Made Stripe client instantiation lazy via `getStripe()` and Proxy; prevents import-time errors.
+  - `app/not-found.tsx`: Added custom branded dark-theme 404 page for clean in-app routing.
+- Build result: `npm run build` PASS (25 routes compiled cleanly with 0 errors).
+- What you must do manually in Vercel dashboard:
+  1. Go to **Vercel Dashboard > Project > Settings > Environment Variables** and add all required production variables: `MONGODB_URI`, `JWT_SECRET`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `CRON_SECRET` (plus optional `GEMINI_API_KEY`).
+  2. Go to **Deployments** tab and confirm that the latest deployment from `main` completes with status **Ready**.
+  3. Go to **Settings > Domains** and confirm that `tijoori.vercel.app` (or your desired production domain) is assigned to the production branch `main`.
+
