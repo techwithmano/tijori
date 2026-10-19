@@ -129,98 +129,100 @@ export default function LandingPage() {
 
       {/* ─── 1. HERO SECTION ─── */}
       <section
-        className="relative px-4 sm:px-6 max-w-[1100px] mx-auto overflow-x-clip"
+        className="relative w-full overflow-x-clip"
         style={{ paddingTop: "clamp(32px, 5vw, 64px)", paddingBottom: "clamp(48px, 7vw, 88px)" }}
       >
-        <div className="flex flex-col-reverse lg:flex-row items-center justify-between gap-10 lg:gap-14">
-          {/* Start Column: Headline, Sticker, Sub, CTAs */}
-          <div className="w-full lg:w-1/2 space-y-6 text-center lg:text-start relative z-10">
-            {/* Rotated Sticker above Headline */}
-            <div className="inline-block transform -rotate-2 hover:rotate-0 transition-transform">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-lime border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-sm font-bold text-ink">
-                <span>{t("landing.sticker")}</span>
-              </span>
-            </div>
-
-            {/* H1 Headline: 56-88px desktop / 40px phone, weight 800 */}
-            <h1 className="text-[40px] sm:text-6xl lg:text-[72px] font-extrabold tracking-tight leading-[1.06] text-ink font-heading">
-              {t("landing.heroTitle")}
-            </h1>
-
-            {/* Subhead: 18px body font */}
-            <p className="text-lg text-muted max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
-              {t("landing.heroSubtitle")}
-            </p>
-
-            {/* CTAs: Primary Lime + Secondary Text Link with ArrowDown */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-              <Link
-                id="hero-cta-btn"
-                href="/signup"
-                className="btn-hard w-full sm:w-auto bg-lime text-ink font-extrabold text-base sm:text-lg px-8 py-4 inline-flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>{t("landing.ctaStart")}</span>
-                <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-              </Link>
-
-              <a
-                href="#how-it-works"
-                className="inline-flex items-center gap-2 text-base font-bold text-ink hover:text-violet transition-colors py-3 px-4 cursor-pointer"
-              >
-                <span>{t("landing.seeHowItWorks")}</span>
-                <ArrowDown className="w-4 h-4" />
-              </a>
-            </div>
-
-            {/* Works with existing card note */}
-            <p className="text-sm font-medium text-muted">
-              {t("landing.worksWithCard")}
-            </p>
-          </div>
-
-          {/* End Column: 3D Vault with 3 Floating Bobbing HTML Stickers */}
-          <div className="w-full lg:w-1/2 flex items-center justify-center relative min-h-[300px] sm:min-h-[460px] overflow-visible">
-            {/* The 3D Vault Container */}
-            <div className="w-full max-w-[340px] sm:max-w-[440px] h-[300px] sm:h-[460px] overflow-visible relative">
-              <VaultContainer isRTL={isArabic} onVaultClick={handleVaultClick} />
-            </div>
-
-            {/* Sticker A: Lime (+25 KWD locked) - positioned strictly inside container */}
-            <div
-              className={`absolute top-[4%] start-[2%] sm:start-[6%] z-20 animate-sticker-bob-1 pointer-events-none transition-transform duration-300 ${
-                stickersPulsing ? "scale-110" : ""
-              }`}
-              style={{ "--rot": "-3deg" } as React.CSSProperties}
-            >
-              <div className="px-3.5 py-1.5 rounded-full bg-lime border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none">
-                <Lock className="w-3.5 h-3.5 text-ink" />
-                <span>{t("landing.stickerLocked")}</span>
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 relative z-10">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-10 lg:gap-14">
+            {/* Start Column: Headline, Sticker, Sub, CTAs */}
+            <div className="w-full lg:w-1/2 space-y-6 text-center lg:text-start relative z-10">
+              {/* Rotated Sticker above Headline */}
+              <div className="inline-block transform -rotate-2 hover:rotate-0 transition-transform">
+                <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-lime border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-sm font-bold text-ink">
+                  <span>{t("landing.sticker")}</span>
+                </span>
               </div>
-            </div>
 
-            {/* Sticker B: Coral (Fahad said no) - positioned strictly inside container */}
-            <div
-              className={`absolute top-[46%] end-[2%] sm:end-[4%] z-20 animate-sticker-bob-2 pointer-events-none transition-transform duration-300 ${
-                stickersPulsing ? "scale-110" : ""
-              }`}
-              style={{ "--rot": "2.5deg" } as React.CSSProperties}
-            >
-              <div className="px-3.5 py-1.5 rounded-full bg-coral border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white select-none">
-                <Shield className="w-3.5 h-3.5 text-white" />
-                <span>{t("landing.stickerFahadNo")}</span>
+              {/* H1 Headline: 56-88px desktop / 40px phone, weight 800 */}
+              <h1 className="text-[40px] sm:text-6xl lg:text-[72px] font-extrabold tracking-tight leading-[1.06] text-ink font-heading">
+                {t("landing.heroTitle")}
+              </h1>
+
+              {/* Subhead: 18px body font */}
+              <p className="text-lg text-muted max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
+                {t("landing.heroSubtitle")}
+              </p>
+
+              {/* CTAs: Primary Lime + Secondary Text Link with ArrowDown */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                <Link
+                  id="hero-cta-btn"
+                  href="/signup"
+                  className="btn-hard w-full sm:w-auto bg-lime text-ink font-extrabold text-base sm:text-lg px-8 py-4 inline-flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>{t("landing.ctaStart")}</span>
+                  <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                </Link>
+
+                <a
+                  href="#how-it-works"
+                  className="inline-flex items-center gap-2 text-base font-bold text-ink hover:text-violet transition-colors py-3 px-4 cursor-pointer"
+                >
+                  <span>{t("landing.seeHowItWorks")}</span>
+                  <ArrowDown className="w-4 h-4" />
+                </a>
               </div>
+
+              {/* Works with existing card note */}
+              <p className="text-sm font-medium text-muted">
+                {t("landing.worksWithCard")}
+              </p>
             </div>
 
-            {/* Sticker C: Sun (18-day streak) - positioned strictly inside container */}
-            <div
-              className={`absolute bottom-[6%] start-[4%] sm:start-[10%] z-20 animate-sticker-bob-3 pointer-events-none transition-transform duration-300 ${
-                stickersPulsing ? "scale-110" : ""
-              }`}
-              style={{ "--rot": "-2deg" } as React.CSSProperties}
-            >
-              <div className="px-3.5 py-1.5 rounded-full bg-sun border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none">
-                <Flame className="w-3.5 h-3.5 text-ink" />
-                <span>{t("landing.stickerStreak")}</span>
+            {/* End Column: 3D Vault with 3 Floating Bobbing HTML Stickers */}
+            <div className="w-full lg:w-1/2 flex items-center justify-center relative min-h-[340px] sm:min-h-[460px] overflow-visible">
+              {/* The 3D Vault Container */}
+              <div className="w-full max-w-[340px] sm:max-w-[440px] h-[340px] sm:h-[460px] overflow-visible relative flex items-center justify-center">
+                <VaultContainer isRTL={isArabic} onVaultClick={handleVaultClick} />
+              </div>
+
+              {/* Sticker A: Lime (+25 KWD locked) - positioned strictly inside container */}
+              <div
+                className={`absolute top-[4%] start-[2%] sm:start-[6%] z-20 animate-sticker-bob-1 pointer-events-none transition-transform duration-300 ${
+                  stickersPulsing ? "scale-110" : ""
+                }`}
+                style={{ "--rot": "-3deg" } as React.CSSProperties}
+              >
+                <div className="px-3.5 py-1.5 rounded-full bg-lime border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none">
+                  <Lock className="w-3.5 h-3.5 text-ink" />
+                  <span>{t("landing.stickerLocked")}</span>
+                </div>
+              </div>
+
+              {/* Sticker B: Coral (Fahad said no) - positioned strictly inside container */}
+              <div
+                className={`absolute top-[46%] end-[2%] sm:end-[4%] z-20 animate-sticker-bob-2 pointer-events-none transition-transform duration-300 ${
+                  stickersPulsing ? "scale-110" : ""
+                }`}
+                style={{ "--rot": "2.5deg" } as React.CSSProperties}
+              >
+                <div className="px-3.5 py-1.5 rounded-full bg-coral border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white select-none">
+                  <Shield className="w-3.5 h-3.5 text-white" />
+                  <span>{t("landing.stickerFahadNo")}</span>
+                </div>
+              </div>
+
+              {/* Sticker C: Sun (18-day streak) - positioned strictly inside container */}
+              <div
+                className={`absolute bottom-[6%] start-[4%] sm:start-[10%] z-20 animate-sticker-bob-3 pointer-events-none transition-transform duration-300 ${
+                  stickersPulsing ? "scale-110" : ""
+                }`}
+                style={{ "--rot": "-2deg" } as React.CSSProperties}
+              >
+                <div className="px-3.5 py-1.5 rounded-full bg-sun border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none">
+                  <Flame className="w-3.5 h-3.5 text-ink" />
+                  <span>{t("landing.stickerStreak")}</span>
+                </div>
               </div>
             </div>
           </div>
