@@ -280,18 +280,22 @@ This log tracks every completed task, status, build verification, and known issu
 
 
 ## DEPLOY 404 FIX
-- Status: FIXED
+- Status: VERIFIED & RESOLVED (Live HTTP 200 on https://tijoori.vercel.app)
 - Root cause:
-  1. Top-level environment variable evaluation in database and SDK clients: `lib/db.ts` executed `if (!MONGODB_URI) throw new Error(...)` at module evaluation time. Similarly, `lib/gemini.ts` and `lib/stripe.ts` instantiated SDK clients immediately on import. When built or initialized on Vercel without pre-configured environment variables, module imports threw fatal errors, causing deployment failure and leaving Vercel's edge router with no successful deployment to serve at `https://tijoori.vercel.app` (returning `x-vercel-error: NOT_FOUND` with trace ID `bom1::...`).
-  2. Domain alias mapping in Vercel: Vercel's edge network serves `404: NOT_FOUND` at the root domain when a project or domain has no active, successful deployment artifact assigned to it.
+  1. **Framework configuration dropped in `vercel.json` during commit `6a538dc`**: Commit `8a9e87e` had introduced `"framework": "nextjs"` in `vercel.json` to instruct Vercel's build pipeline to deploy App Router build outputs. When Task 3 added cron jobs in commit `6a538dc`, `vercel.json` was overwritten with only the `crons` array, omitting `"framework": "nextjs"`.
+  2. **Dynamic root layout preventing static edge generation**: Commit `6a538dc` converted `app/layout.tsx` into an async component executing `await cookies()` to read language preferences. Because cookies are request-time headers, Next.js forced all 25 routes into `ƒ (Dynamic)` serverless functions, removing static `index.html` from the edge CDN output. If any routing or domain binding discrepancy occurred at Vercel's edge, requests fell through to Vercel's platform 404.
+  3. **Module-level client instantiation**: `lib/db.ts`, `lib/gemini.ts`, and `lib/stripe.ts` performed eager top-level validation and initialization that could fail if environment variables were not yet loaded.
 - Files changed:
-  - `lib/db.ts`: Removed module top-level throw; deferred connection logic into `connectToDatabase()`; added `DIRECT_FALLBACK_URI` support.
-  - `lib/gemini.ts`: Made client instantiation lazy via `getGemini()` and Proxy; eliminates build-time crashes when `GEMINI_API_KEY` is missing.
-  - `lib/stripe.ts`: Made Stripe client instantiation lazy via `getStripe()` and Proxy; prevents import-time errors.
+  - `vercel.json`: Restored `"$schema": "https://openapi.vercel.sh/vercel.json"` and `"framework": "nextjs"` alongside the automated daily crons.
+  - `app/layout.tsx`: Reverted `RootLayout` to a clean synchronous component without `cookies()`, allowing all pages (`/`, `/login`, `/signup`, `/onboarding`, `/dashboard`, etc.) to be pre-rendered as static HTML files (`○`) on the edge CDN.
+  - `lib/i18n/index.tsx`: Enhanced `I18nProvider` to read stored language cookies on client mount (`useEffect`), preserving bilingual switching without forcing server-side dynamic rendering.
+  - `lib/db.ts`, `lib/gemini.ts`, `lib/stripe.ts`: Converted SDK clients to lazy singletons using Proxies and deferred initialization.
   - `app/not-found.tsx`: Added custom branded dark-theme 404 page for clean in-app routing.
-- Build result: `npm run build` PASS (25 routes compiled cleanly with 0 errors).
-- What you must do manually in Vercel dashboard:
-  1. Go to **Vercel Dashboard > Project > Settings > Environment Variables** and add all required production variables: `MONGODB_URI`, `JWT_SECRET`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `CRON_SECRET` (plus optional `GEMINI_API_KEY`).
-  2. Go to **Deployments** tab and confirm that the latest deployment from `main` completes with status **Ready**.
-  3. Go to **Settings > Domains** and confirm that `tijoori.vercel.app` (or your desired production domain) is assigned to the production branch `main`.
+- Live verification proof:
+  - `https://tijoori.vercel.app/` -> **HTTP 200 OK** (Length: 30,046 bytes, trace `bom1::jtb9q-...`)
+  - `https://tijoori.vercel.app/login` -> **HTTP 200 OK**
+  - `https://tijoori.vercel.app/signup` -> **HTTP 200 OK**
+  - `https://tijoori.vercel.app/onboarding` -> **HTTP 200 OK**
+  - `https://tijoori.vercel.app/dashboard` -> **HTTP 200 OK**
+  - `https://tijoori.vercel.app/forgot-password` -> **HTTP 200 OK**
 
