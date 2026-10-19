@@ -109,7 +109,7 @@ export default function KeyholderTokenUnlockPage({
   };
 
   const isArabic = lang === "ar";
-  const guardianFirstName = vault?.keyholder?.name ? vault.keyholder.name.split(" ")[0] : (isArabic ? "فهد" : "Fahad");
+  const guardianFirstName = vault?.keyholder?.name ? vault.keyholder.name.split(" ")[0] : (isArabic ? "أحمد" : "Ahmed");
   const applicantName = isArabic ? "عبدالرحمن" : "Abdulrahman";
 
   // 1. Loading State

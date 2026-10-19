@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       goal = "Japan Summer Trip",
       currentBalance = 125,
       targetAmount = 500,
-      keyholderName = "Fahad",
+      keyholderName = "Ahmed",
       lang = "en",
     } = body;
 

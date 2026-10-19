@@ -129,13 +129,18 @@ export default function LandingPage() {
 
       {/* ─── 1. HERO SECTION ─── */}
       <section
-        className="relative w-full overflow-x-clip"
+        className="relative w-full overflow-hidden"
         style={{ paddingTop: "clamp(32px, 5vw, 64px)", paddingBottom: "clamp(48px, 7vw, 88px)" }}
       >
+        {/* Full-width 3D Canvas Background Layer behind text */}
+        <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+          <VaultContainer isRTL={isArabic} onVaultClick={handleVaultClick} />
+        </div>
+
         <div className="max-w-[1100px] mx-auto px-4 sm:px-6 relative z-10">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-10 lg:gap-14">
             {/* Start Column: Headline, Sticker, Sub, CTAs */}
-            <div className="w-full lg:w-1/2 space-y-6 text-center lg:text-start relative z-10">
+            <div className="w-full lg:w-1/2 space-y-6 text-center lg:text-start relative z-10 pointer-events-auto">
               {/* Rotated Sticker above Headline */}
               <div className="inline-block transform -rotate-2 hover:rotate-0 transition-transform">
                 <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-lime border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-sm font-bold text-ink">
@@ -180,47 +185,50 @@ export default function LandingPage() {
             </div>
 
             {/* End Column: 3D Vault with 3 Floating Bobbing HTML Stickers */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center relative min-h-[340px] sm:min-h-[460px] overflow-visible">
-              {/* The 3D Vault Container */}
-              <div className="w-full max-w-[340px] sm:max-w-[440px] h-[340px] sm:h-[460px] overflow-visible relative flex items-center justify-center">
-                <VaultContainer isRTL={isArabic} onVaultClick={handleVaultClick} />
-              </div>
+            <div className="w-full lg:w-1/2 flex items-center justify-center relative min-h-[300px] sm:min-h-[460px] overflow-visible pointer-events-auto">
+              {/* Interactive Click Target on Vault to spin wheel */}
+              <button
+                type="button"
+                onClick={handleVaultClick}
+                className="w-[260px] sm:w-[380px] h-[260px] sm:h-[380px] rounded-full cursor-pointer focus:outline-none focus:ring-0 active:scale-95 transition-transform"
+                aria-label="Spin the vault wheel"
+              />
 
-              {/* Sticker A: Lime (+25 KWD locked) - positioned strictly inside container */}
+              {/* Sticker A: Lime (+25 KWD locked) */}
               <div
-                className={`absolute top-[4%] start-[2%] sm:start-[6%] z-20 animate-sticker-bob-1 pointer-events-none transition-transform duration-300 ${
+                className={`absolute top-[8%] start-[3%] sm:start-[8%] z-20 animate-sticker-bob-1 pointer-events-none transition-transform duration-300 ${
                   stickersPulsing ? "scale-110" : ""
                 }`}
                 style={{ "--rot": "-3deg" } as React.CSSProperties}
               >
-                <div className="px-3.5 py-1.5 rounded-full bg-lime border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none">
-                  <Lock className="w-3.5 h-3.5 text-ink" />
+                <div className="px-3.5 py-1.5 rounded-full bg-lime border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none whitespace-nowrap">
+                  <Lock className="w-3.5 h-3.5 text-ink shrink-0" />
                   <span>{t("landing.stickerLocked")}</span>
                 </div>
               </div>
 
-              {/* Sticker B: Coral (Fahad said no) - positioned strictly inside container */}
+              {/* Sticker B: Coral (Ahmed said no) */}
               <div
-                className={`absolute top-[46%] end-[2%] sm:end-[4%] z-20 animate-sticker-bob-2 pointer-events-none transition-transform duration-300 ${
+                className={`absolute top-[48%] end-[1%] sm:end-[6%] z-20 animate-sticker-bob-2 pointer-events-none transition-transform duration-300 ${
                   stickersPulsing ? "scale-110" : ""
                 }`}
                 style={{ "--rot": "2.5deg" } as React.CSSProperties}
               >
-                <div className="px-3.5 py-1.5 rounded-full bg-coral border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white select-none">
-                  <Shield className="w-3.5 h-3.5 text-white" />
+                <div className="px-3.5 py-1.5 rounded-full bg-coral border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white select-none whitespace-nowrap">
+                  <Shield className="w-3.5 h-3.5 text-white shrink-0" />
                   <span>{t("landing.stickerFahadNo")}</span>
                 </div>
               </div>
 
-              {/* Sticker C: Sun (18-day streak) - positioned strictly inside container */}
+              {/* Sticker C: Sun (18-day streak) */}
               <div
-                className={`absolute bottom-[6%] start-[4%] sm:start-[10%] z-20 animate-sticker-bob-3 pointer-events-none transition-transform duration-300 ${
+                className={`absolute bottom-[10%] start-[4%] sm:start-[12%] z-20 animate-sticker-bob-3 pointer-events-none transition-transform duration-300 ${
                   stickersPulsing ? "scale-110" : ""
                 }`}
                 style={{ "--rot": "-2deg" } as React.CSSProperties}
               >
-                <div className="px-3.5 py-1.5 rounded-full bg-sun border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none">
-                  <Flame className="w-3.5 h-3.5 text-ink" />
+                <div className="px-3.5 py-1.5 rounded-full bg-sun border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none whitespace-nowrap">
+                  <Flame className="w-3.5 h-3.5 text-ink shrink-0" />
                   <span>{t("landing.stickerStreak")}</span>
                 </div>
               </div>
@@ -421,17 +429,17 @@ export default function LandingPage() {
               {/* Phone Notch/Island */}
               <div className="w-28 h-4 bg-ink rounded-full mx-auto" />
 
-              {/* Inside Phone: Fahad's Notification Card */}
+              {/* Inside Phone: Ahmed's Notification Card */}
               <div className="card-hard bg-bg p-4 space-y-4">
-                {/* Header with Circular Avatar "F" for Fahad */}
+                {/* Header with Circular Avatar "A" for Ahmed */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-violet text-white border-2 border-ink flex items-center justify-center font-extrabold text-sm shadow-[1px_1px_0_var(--ink)] shrink-0">
-                      F
+                      A
                     </div>
                     <div>
                       <div className="text-xs font-bold text-ink">
-                        {isArabic ? "فهد المطوع" : "Fahad Al-Mutawa"}
+                        {isArabic ? "أحمد المطوع" : "Ahmed Al-Mutawa"}
                       </div>
                       <div className="text-[10px] text-muted">
                         {isArabic ? "حامل المفتاح" : "Keyholder"}

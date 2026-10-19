@@ -219,7 +219,7 @@ function DashboardContent() {
           goal: vault.title,
           currentBalance: vault.currentBalance,
           targetAmount: vault.targetAmount,
-          keyholderName: vault.keyholder?.name || "Fahad",
+          keyholderName: vault.keyholder?.name || "Ahmed",
           lang,
         }),
       });
@@ -341,7 +341,7 @@ function DashboardContent() {
 
   const keyholderFirstName = vault.keyholder?.name
     ? vault.keyholder.name.split(" ")[0]
-    : isArabic ? "فهد" : "Fahad";
+    : isArabic ? "أحمد" : "Ahmed";
 
   const isPendingBreak = vault.status === "UNLOCK_PENDING";
 

@@ -454,16 +454,16 @@ export default function StyleguidePage() {
                 <ShieldCheck className="w-5 h-5 text-violet" />
               </div>
               <div>
-                <h4 className="text-sm font-extrabold text-text">Fahad Al-Mutawa</h4>
+                <h4 className="text-sm font-extrabold text-text">Ahmed Al-Mutawa</h4>
                 <p className="text-xs text-muted">Best Friend &bull; Keyholder</p>
               </div>
             </div>
             <div className="p-3.5 rounded-xl bg-raised border border-line text-xs text-muted leading-relaxed">
-              &quot;Fahad has prevented 3 impulsive breaks, protecting 380 KWD in your vault.&quot;
+              &quot;Ahmed has prevented 3 impulsive breaks, protecting 380 KWD in your vault.&quot;
             </div>
             <button className="w-full tactile-btn py-2.5 rounded-btn bg-raised hover:bg-surface border border-line text-xs font-bold text-text flex items-center justify-center gap-2">
               <Send className="w-3.5 h-3.5 text-accent" />
-              <span>Ping Fahad on WhatsApp</span>
+              <span>Ping Ahmed on WhatsApp</span>
             </button>
           </div>
 
@@ -479,7 +479,7 @@ export default function StyleguidePage() {
               &quot;Abdulrahman wants 125 KWD for chalet weekend? He bought 3 iced V60s yesterday and cried about Tokyo tickets.&quot;
             </p>
             <div className="pt-3 border-t border-line flex items-center justify-between text-xs text-muted">
-              <span>Audience: Fahad</span>
+              <span>Audience: Ahmed</span>
               <span className="text-coral font-bold">5% Break Buffer</span>
             </div>
           </div>

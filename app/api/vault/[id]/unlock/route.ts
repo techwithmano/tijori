@@ -47,7 +47,7 @@ export async function POST(
       const origin = req.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
       unlockUrl = `${origin}/unlock/${token}`;
 
-      const guardianFirstName = vault.keyholder?.name ? vault.keyholder.name.split(" ")[0] : "Fahad";
+      const guardianFirstName = vault.keyholder?.name ? vault.keyholder.name.split(" ")[0] : "Ahmed";
 
       if (lang === "ar") {
         const arMsg = `سلام ${guardianFirstName}! طلبت فك تِجوري لهدف (${vault.title}). عذري: "${finalReason}". الرابط بيدك تقرر: ${unlockUrl}`;

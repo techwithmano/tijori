@@ -136,14 +136,14 @@ export default function MiniVaultGraphic({ step, isArabic }: MiniVaultGraphicPro
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-full bg-white text-ink border-2 border-ink flex items-center justify-center font-extrabold text-base shadow-[1px_1px_0_var(--ink)] shrink-0">
-                F
+                A
               </div>
               <div>
                 <div className="text-xs font-bold text-white/90">
                   {isArabic ? "المفتاح بيد رفيقك" : "Key held by"}
                 </div>
                 <div className="text-sm font-extrabold text-white font-heading leading-tight">
-                  {isArabic ? "فهد المطوع" : "Fahad Al-Mutawa"}
+                  {isArabic ? "أحمد المطوع" : "Ahmed Al-Mutawa"}
                 </div>
               </div>
             </div>

@@ -1,527 +1,808 @@
 "use client";
 
-import React, { useRef, useEffect, useState, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { RoundedBox, Environment, Lightformer } from "@react-three/drei";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Instance, Instances, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import VaultFallback from "./VaultFallback";
 
-interface VaultSceneProps {
-  scrollProgress: number;
-  isTouchDevice: boolean;
-  isRTL: boolean;
-  onVaultClick: () => void;
+const CAMERA_Z = 5.2;
+const CAMERA_FOV = 42;
+const MAX_POINTER_TILT = THREE.MathUtils.degToRad(8);
+
+interface Vault3DProps {
+  isRTL?: boolean;
+  onVaultClick?: () => void;
 }
 
-// ─── Realistic Minted Gold Coin Component ───
+interface VaultSceneProps {
+  scrollProgress: number;
+  spinRequest: number;
+  isTouchDevice: boolean;
+  isRTL: boolean;
+  onRequestSpin: () => void;
+}
+
+interface CoinConfig {
+  radiusX: number;
+  radiusY: number;
+  radiusXPhone: number;
+  radiusYPhone: number;
+  speed: number;
+  offset: number;
+  zAmp: number;
+}
+
+const NOOP = () => {};
+
+// 6 coin trajectories tuned for desktop sweep and mobile compact framing
+const COINS: CoinConfig[] = [
+  {
+    radiusX: 2.6,
+    radiusY: 0.55,
+    radiusXPhone: 0.85,
+    radiusYPhone: 0.28,
+    speed: 0.62,
+    offset: 0,
+    zAmp: 1.1,
+  },
+  {
+    radiusX: 3.1,
+    radiusY: 0.68,
+    radiusXPhone: 0.95,
+    radiusYPhone: 0.32,
+    speed: -0.57,
+    offset: 1.05,
+    zAmp: 1.25,
+  },
+  {
+    radiusX: 2.4,
+    radiusY: 0.46,
+    radiusXPhone: 0.80,
+    radiusYPhone: 0.25,
+    speed: 0.72,
+    offset: 2.1,
+    zAmp: 1.0,
+  },
+  {
+    radiusX: 2.9,
+    radiusY: 0.62,
+    radiusXPhone: 0.90,
+    radiusYPhone: 0.30,
+    speed: -0.68,
+    offset: 3.15,
+    zAmp: 1.2,
+  },
+  {
+    radiusX: 3.3,
+    radiusY: 0.5,
+    radiusXPhone: 1.02,
+    radiusYPhone: 0.34,
+    speed: 0.53,
+    offset: 4.2,
+    zAmp: 1.15,
+  },
+  {
+    radiusX: 2.7,
+    radiusY: 0.58,
+    radiusXPhone: 0.88,
+    radiusYPhone: 0.29,
+    speed: -0.64,
+    offset: 5.25,
+    zAmp: 1.05,
+  },
+];
+
+// 16 milled reeding edge cuts
+const COIN_REEDING = Array.from({ length: 16 }, (_, index) => {
+  const angle = (index / 16) * Math.PI * 2;
+  return {
+    key: `reed-${index}`,
+    angle,
+    x: Math.cos(angle) * 0.333,
+    y: Math.sin(angle) * 0.333,
+  };
+});
+
+// 24 raised beads around perimeter ring
+const COIN_BEADS = Array.from({ length: 24 }, (_, index) => {
+  const angle = (index / 24) * Math.PI * 2;
+  return {
+    key: `bead-${index}`,
+    x: Math.cos(angle) * 0.218,
+    y: Math.sin(angle) * 0.218,
+  };
+});
+
+// Four-point star crest geometry for minted coin faces
+const FOUR_POINT_STAR = new THREE.Shape();
+FOUR_POINT_STAR.moveTo(0, 0.12);
+FOUR_POINT_STAR.lineTo(0.026, 0.026);
+FOUR_POINT_STAR.lineTo(0.12, 0);
+FOUR_POINT_STAR.lineTo(0.026, -0.026);
+FOUR_POINT_STAR.lineTo(0, -0.12);
+FOUR_POINT_STAR.lineTo(-0.026, -0.026);
+FOUR_POINT_STAR.lineTo(-0.12, 0);
+FOUR_POINT_STAR.lineTo(-0.026, 0.026);
+FOUR_POINT_STAR.closePath();
+
+const STAR_EXTRUSION = {
+  depth: 0.012,
+  steps: 1,
+  bevelEnabled: true,
+  bevelSegments: 2,
+  bevelSize: 0.004,
+  bevelThickness: 0.003,
+  curveSegments: 8,
+};
+
+/** Procedural soft radial shadow texture under the vault */
+function useShadowTexture() {
+  return useMemo(() => {
+    if (typeof document === "undefined") return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 62);
+    gradient.addColorStop(0, "rgba(20, 16, 43, 0.35)");
+    gradient.addColorStop(0.35, "rgba(20, 16, 43, 0.20)");
+    gradient.addColorStop(0.7, "rgba(20, 16, 43, 0.04)");
+    gradient.addColorStop(1, "rgba(20, 16, 43, 0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+  }, []);
+}
+
+/** Detailed two-sided minted bullion coin with genuine gold luster */
 function MintedCoin({
   innerRef,
 }: {
-  innerRef: (el: THREE.Group | null) => void;
+  innerRef: (element: THREE.Group | null) => void;
 }) {
   return (
     <group ref={innerRef}>
-      {/* 1. Main Gold Flange / Body */}
+      {/* Solid planchet cylinder */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.34, 0.34, 0.05, 32]} />
+        <cylinderGeometry args={[0.34, 0.34, 0.065, 64]} />
         <meshStandardMaterial
           color="#FFD23F"
-          emissive="#D4A017"
+          emissive="#4A3B00"
           emissiveIntensity={0.25}
-          metalness={0.92}
-          roughness={0.18}
+          metalness={0.72}
+          roughness={0.16}
         />
       </mesh>
 
-      {/* 2. Raised Rounded Outer Rim (Torus on periphery) */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.33, 0.018, 16, 32]} />
-        <meshStandardMaterial
-          color="#FFE57F"
-          emissive="#FFD23F"
-          emissiveIntensity={0.3}
-          metalness={0.95}
-          roughness={0.12}
-        />
-      </mesh>
+      {/* Raised outer rim on obverse & reverse */}
+      {[0.021, -0.021].map((z, index) => (
+        <mesh key={`outer-rim-${index}`} position={[0, 0, z]}>
+          <torusGeometry args={[0.322, 0.018, 16, 64]} />
+          <meshStandardMaterial
+            color="#FFE57F"
+            emissive="#5C4800"
+            emissiveIntensity={0.2}
+            metalness={0.78}
+            roughness={0.12}
+          />
+        </mesh>
+      ))}
 
-      {/* 3. Inset Concentric Beaded Ring (Front Face, z = +0.027) */}
-      <mesh position={[0, 0, 0.027]}>
-        <torusGeometry args={[0.22, 0.009, 12, 32]} />
-        <meshStandardMaterial
-          color="#FFE57F"
-          emissive="#FFD23F"
-          emissiveIntensity={0.25}
-          metalness={0.95}
-          roughness={0.14}
-        />
-      </mesh>
-
-      {/* 4. Inset Concentric Beaded Ring (Back Face, z = -0.027) */}
-      <mesh position={[0, 0, -0.027]}>
-        <torusGeometry args={[0.22, 0.009, 12, 32]} />
-        <meshStandardMaterial
-          color="#FFE57F"
-          emissive="#FFD23F"
-          emissiveIntensity={0.25}
-          metalness={0.95}
-          roughness={0.14}
-        />
-      </mesh>
-
-      {/* 5. Minted Star Emblem Relief (Front Face, z = +0.028) */}
-      <group position={[0, 0, 0.028]}>
-        <mesh rotation={[0, 0, Math.PI / 4]}>
-          <boxGeometry args={[0.16, 0.055, 0.012]} />
-          <meshStandardMaterial
-            color="#FFF2A3"
-            emissive="#FFD23F"
-            emissiveIntensity={0.35}
-            metalness={0.96}
-            roughness={0.1}
-          />
-        </mesh>
-        <mesh rotation={[0, 0, -Math.PI / 4]}>
-          <boxGeometry args={[0.16, 0.055, 0.012]} />
-          <meshStandardMaterial
-            color="#FFF2A3"
-            emissive="#FFD23F"
-            emissiveIntensity={0.35}
-            metalness={0.96}
-            roughness={0.1}
-          />
-        </mesh>
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.032, 0.032, 0.014, 16]} />
-          <meshStandardMaterial
-            color="#FFFFFF"
-            emissive="#FFD23F"
-            emissiveIntensity={0.45}
-            metalness={0.98}
-            roughness={0.08}
-          />
-        </mesh>
-      </group>
-
-      {/* 6. Minted Star Emblem Relief (Back Face, z = -0.028) */}
-      <group position={[0, 0, -0.028]}>
-        <mesh rotation={[0, 0, Math.PI / 4]}>
-          <boxGeometry args={[0.16, 0.055, 0.012]} />
-          <meshStandardMaterial
-            color="#FFF2A3"
-            emissive="#FFD23F"
-            emissiveIntensity={0.35}
-            metalness={0.96}
-            roughness={0.1}
-          />
-        </mesh>
-        <mesh rotation={[0, 0, -Math.PI / 4]}>
-          <boxGeometry args={[0.16, 0.055, 0.012]} />
-          <meshStandardMaterial
-            color="#FFF2A3"
-            emissive="#FFD23F"
-            emissiveIntensity={0.35}
-            metalness={0.96}
-            roughness={0.1}
-          />
-        </mesh>
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.032, 0.032, 0.014, 16]} />
-          <meshStandardMaterial
-            color="#FFFFFF"
-            emissive="#FFD23F"
-            emissiveIntensity={0.45}
-            metalness={0.98}
-            roughness={0.08}
-          />
-        </mesh>
-      </group>
-
-      {/* 7. Reeded Milled Edge (16 distinct teeth catching gleams) */}
-      {Array.from({ length: 16 }).map((_, rIdx) => {
-        const reedingAngle = (rIdx / 16) * Math.PI * 2;
-        return (
-          <mesh
-            key={`reed-${rIdx}`}
-            position={[Math.cos(reedingAngle) * 0.344, Math.sin(reedingAngle) * 0.344, 0]}
-            rotation={[0, 0, reedingAngle]}
-          >
-            <boxGeometry args={[0.012, 0.026, 0.052]} />
+      {/* Inset concentric beaded rings on obverse & reverse */}
+      {[1, -1].map((side) => (
+        <group key={`beaded-ring-${side}`} position={[0, 0, side * 0.032]}>
+          <mesh>
+            <torusGeometry args={[0.218, 0.007, 10, 64]} />
             <meshStandardMaterial
               color="#FFE57F"
-              emissive="#D4A017"
-              emissiveIntensity={0.25}
-              metalness={0.92}
-              roughness={0.16}
+              emissive="#5C4800"
+              emissiveIntensity={0.2}
+              metalness={0.78}
+              roughness={0.14}
             />
           </mesh>
-        );
-      })}
+        </group>
+      ))}
+
+      {/* Instanced beads */}
+      <Instances limit={COIN_BEADS.length * 2} range={COIN_BEADS.length * 2}>
+        <sphereGeometry args={[0.009, 10, 8]} />
+        <meshStandardMaterial
+          color="#FFE57F"
+          emissive="#5C4800"
+          emissiveIntensity={0.2}
+          metalness={0.78}
+          roughness={0.12}
+        />
+        {[1, -1].flatMap((side) =>
+          COIN_BEADS.map((bead) => (
+            <Instance
+              key={`${side}-${bead.key}`}
+              position={[bead.x, bead.y, side * 0.034]}
+            />
+          ))
+        )}
+      </Instances>
+
+      {/* Raised star crest and center jewel on obverse & reverse */}
+      {[1, -1].map((side) => (
+        <group
+          key={`mint-crest-${side}`}
+          position={[0, 0, side * 0.032]}
+          rotation={side < 0 ? [0, Math.PI, 0] : [0, 0, 0]}
+        >
+          <mesh>
+            <extrudeGeometry args={[FOUR_POINT_STAR, STAR_EXTRUSION]} />
+            <meshStandardMaterial
+              color="#FFF2A3"
+              emissive="#5C4800"
+              emissiveIntensity={0.2}
+              metalness={0.76}
+              roughness={0.14}
+            />
+          </mesh>
+          <mesh position={[0, 0, 0.018]}>
+            <sphereGeometry args={[0.026, 20, 16]} />
+            <meshStandardMaterial
+              color="#FFF8C6"
+              emissive="#665000"
+              emissiveIntensity={0.25}
+              metalness={0.72}
+              roughness={0.1}
+            />
+          </mesh>
+        </group>
+      ))}
+
+      {/* 16 spaced milled reeded edge teeth */}
+      <Instances limit={COIN_REEDING.length} range={COIN_REEDING.length}>
+        <boxGeometry args={[0.014, 0.048, 0.054]} />
+        <meshStandardMaterial
+          color="#FFE57F"
+          emissive="#5C4800"
+          emissiveIntensity={0.2}
+          metalness={0.76}
+          roughness={0.18}
+        />
+        {COIN_REEDING.map((tooth) => (
+          <Instance
+            key={tooth.key}
+            position={[tooth.x, tooth.y, 0]}
+            rotation={[0, 0, tooth.angle]}
+          />
+        ))}
+      </Instances>
     </group>
   );
 }
 
-function VaultMesh({ scrollProgress, isTouchDevice, isRTL, onVaultClick }: VaultSceneProps) {
-  const groupRef = useRef<THREE.Group>(null);
-  const wheelGroupRef = useRef<THREE.Group>(null);
-  const coinsRef = useRef<THREE.Group[]>([]);
-  const clickBonusRotRef = useRef<number>(0);
-  const targetClickBonusRotRef = useRef<number>(0);
-  const pointerPosRef = useRef({ x: 0, y: 0 });
+function VaultMesh({
+  scrollProgress,
+  spinRequest,
+  isTouchDevice,
+  isRTL,
+  onRequestSpin,
+}: VaultSceneProps) {
+  const { size, viewport } = useThree();
+  const shadowTexture = useShadowTexture();
+
+  const vaultRef = useRef<THREE.Group>(null);
+  const wheelRef = useRef<THREE.Group>(null);
+  const shadowRef = useRef<THREE.Mesh>(null);
+  const coinRefs = useRef<THREE.Group[]>([]);
+  const lastSpinRequestRef = useRef(spinRequest);
+  const spinTargetRef = useRef(0);
+  const spinCurrentRef = useRef(0);
+  const pointerRef = useRef({ x: 0, y: 0, hasPointer: false });
+
+  const coinRefCallbacks = useMemo(
+    () =>
+      COINS.map((_, index) => (element: THREE.Group | null) => {
+        if (element) coinRefs.current[index] = element;
+        else delete coinRefs.current[index];
+      }),
+    []
+  );
 
   useEffect(() => {
-    const handlePointerMove = (e: PointerEvent) => {
-      pointerPosRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-      pointerPosRef.current.y = -(e.clientY / window.innerHeight) * 2 - 1;
+    const handlePointerMove = (event: PointerEvent) => {
+      pointerRef.current.x = (event.clientX / Math.max(window.innerWidth, 1)) * 2 - 1;
+      pointerRef.current.y = 1 - (event.clientY / Math.max(window.innerHeight, 1)) * 2;
+      pointerRef.current.hasPointer = true;
     };
+
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     return () => window.removeEventListener("pointermove", handlePointerMove);
   }, []);
 
-  // 6 Orbiting Gold Coins config (realistic minted currency coins)
-  const coinsConfig = useMemo(
-    () => [
-      // Coin 0: loops high above vault, behind subtitle on phone
-      { radiusX: 2.7, radiusXPhone: 0.85, radiusYPhone: 0.8, yPhone: 1.35, speed: 0.65, offset: 0.0, yDesktop: 0.8, zAmp: 1.75 },
-      // Coin 1: swoops deep into headline text on phone, deep into text on desktop
-      { radiusX: 3.2, radiusXPhone: 0.95, radiusYPhone: 1.0, yPhone: 2.4, speed: -0.6, offset: 1.05, yDesktop: -0.45, zAmp: 1.85 },
-      // Coin 2: mid-height float around vault
-      { radiusX: 2.5, radiusXPhone: 0.75, radiusYPhone: 0.5, yPhone: 0.4, speed: 0.75, offset: 2.1, yDesktop: 0.2, zAmp: 1.65 },
-      // Coin 3: swoops behind CTA buttons on phone, wide on desktop
-      { radiusX: 3.0, radiusXPhone: 0.9, radiusYPhone: 0.9, yPhone: 1.8, speed: -0.7, offset: 3.15, yDesktop: 0.95, zAmp: 1.8 },
-      // Coin 4: wide orbit sweeping screen edges
-      { radiusX: 3.4, radiusXPhone: 0.98, radiusYPhone: 0.6, yPhone: 0.1, speed: 0.55, offset: 4.2, yDesktop: -0.85, zAmp: 1.9 },
-      // Coin 5: counter-loop around vault base
-      { radiusX: 2.8, radiusXPhone: 0.8, radiusYPhone: 0.5, yPhone: -0.2, speed: -0.65, offset: 5.25, yDesktop: -0.15, zAmp: 1.7 },
-    ],
-    []
+  const handleVaultClick = useCallback(
+    (event: { stopPropagation: () => void }) => {
+      event.stopPropagation();
+      onRequestSpin();
+    },
+    [onRequestSpin]
   );
 
-  const handleClick = (e: any) => {
-    e.stopPropagation();
-    targetClickBonusRotRef.current += Math.PI * 2;
-    onVaultClick();
-  };
+  useFrame((state, delta) => {
+    const time = state.clock.getElapsedTime();
+    const isDesktop = state.size.width >= 1024;
 
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    const isMobile = state.size.width < 1024;
-    const vaultPosX = 0;
-    const vaultPosY = isMobile ? -0.92 : 0;
-    const vaultScale = isMobile ? 0.72 : 1.0;
+    // Positioning and scale logic
+    let vaultX = 0;
+    let vaultY = 0;
+    let vaultScale = 0.92;
 
-    if (groupRef.current) {
-      // 1. Vault Position & Scale: In End Column, scaled on mobile to preserve sticker margins
-      groupRef.current.position.x = vaultPosX;
-      groupRef.current.position.y = vaultPosY + Math.sin(t * 1.3) * 0.08;
-      groupRef.current.scale.setScalar(vaultScale);
+    if (isDesktop) {
+      // Positioned exactly in the end column of the 1100px hero container
+      const containerWidth = Math.min(state.size.width, 1100);
+      const columnOffsetPx = containerWidth / 4;
+      const pixelsPerUnit = state.size.height / viewport.height;
+      vaultX = (columnOffsetPx / Math.max(pixelsPerUnit, 1)) * (isRTL ? -1 : 1);
+      vaultY = 0;
+      vaultScale = Math.min(0.92, viewport.height * 0.25);
+    } else {
+      // Mobile phone & tablet: Centered horizontally, situated cleanly in the lower half of hero
+      vaultX = 0;
+      vaultY = -viewport.height * 0.18;
+      vaultScale = Math.min(0.48, viewport.width * 0.132);
+    }
 
-      // 2. Tilt: default rest rotation y = -0.25 rad, x = 0.08 rad
-      // Max pointer tilt 8 degrees (~0.1396 rad)
+    if (vaultRef.current) {
+      vaultRef.current.position.set(vaultX, vaultY, 0);
+      vaultRef.current.scale.setScalar(vaultScale);
+
+      const baseRotationY = isRTL ? 0.11 : -0.11;
+      const baseRotationX = 0.025;
+
       if (isTouchDevice) {
-        // Slow auto-sway of +/- 4 degrees (~0.07 rad) on touch devices
-        groupRef.current.rotation.y = -0.25 + Math.sin(t * 0.8) * 0.07;
-        groupRef.current.rotation.x = 0.08 + Math.cos(t * 0.6) * 0.04;
+        // Gentle rhythmic sway for touch devices
+        const swayY = baseRotationY + Math.sin(time * 0.75) * 0.055;
+        const swayX = baseRotationX + Math.cos(time * 0.62) * 0.035;
+        vaultRef.current.rotation.y = THREE.MathUtils.damp(
+          vaultRef.current.rotation.y,
+          swayY,
+          4.5,
+          delta
+        );
+        vaultRef.current.rotation.x = THREE.MathUtils.damp(
+          vaultRef.current.rotation.x,
+          swayX,
+          4.5,
+          delta
+        );
       } else {
-        const px = pointerPosRef.current.x !== 0 ? pointerPosRef.current.x : state.pointer.x;
-        const py = pointerPosRef.current.y !== 0 ? pointerPosRef.current.y : state.pointer.y;
-        const targetRotY = -0.25 + THREE.MathUtils.clamp(px * 0.1396, -0.1396, 0.1396);
-        const targetRotX = 0.08 - THREE.MathUtils.clamp(py * 0.1396, -0.1396, 0.1396);
-        groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRotY, 0.07);
-        groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, targetRotX, 0.07);
+        // Interactive pointer tilt up to 8 deg
+        const pointerX = pointerRef.current.hasPointer
+          ? pointerRef.current.x
+          : state.pointer.x;
+        const pointerY = pointerRef.current.hasPointer
+          ? pointerRef.current.y
+          : state.pointer.y;
+
+        const targetRotationY =
+          baseRotationY +
+          THREE.MathUtils.clamp(
+            pointerX * MAX_POINTER_TILT,
+            -MAX_POINTER_TILT,
+            MAX_POINTER_TILT
+          );
+        const targetRotationX =
+          baseRotationX +
+          THREE.MathUtils.clamp(
+            -pointerY * MAX_POINTER_TILT,
+            -MAX_POINTER_TILT,
+            MAX_POINTER_TILT
+          );
+
+        vaultRef.current.rotation.y = THREE.MathUtils.damp(
+          vaultRef.current.rotation.y,
+          targetRotationY,
+          7,
+          delta
+        );
+        vaultRef.current.rotation.x = THREE.MathUtils.damp(
+          vaultRef.current.rotation.x,
+          targetRotationX,
+          7,
+          delta
+        );
       }
     }
 
-    // 3. Wheel rotation: scroll 360deg + click 360deg spin
-    clickBonusRotRef.current = THREE.MathUtils.lerp(
-      clickBonusRotRef.current,
-      targetClickBonusRotRef.current,
-      0.08
+    // Shadow moves and scales locked with the vault
+    if (shadowRef.current) {
+      shadowRef.current.position.set(vaultX, vaultY - 1.28 * vaultScale, -0.05);
+      shadowRef.current.scale.set(vaultScale, vaultScale, 1);
+    }
+
+    // Wheel spin handling
+    if (spinRequest !== lastSpinRequestRef.current) {
+      const extraTurns = Math.max(1, spinRequest - lastSpinRequestRef.current);
+      spinTargetRef.current += Math.PI * 2 * extraTurns;
+      lastSpinRequestRef.current = spinRequest;
+    }
+    spinCurrentRef.current = THREE.MathUtils.damp(
+      spinCurrentRef.current,
+      spinTargetRef.current,
+      5,
+      delta
     );
 
-    if (wheelGroupRef.current) {
-      const scrollRot = scrollProgress * Math.PI * 2;
-      wheelGroupRef.current.rotation.z = scrollRot + clickBonusRotRef.current;
+    if (wheelRef.current) {
+      wheelRef.current.rotation.z =
+        scrollProgress * Math.PI * 2 + spinCurrentRef.current;
     }
 
-    // 4. 6 Orbiting & spinning minted gold coins
-    const shiftXDesktop = isRTL ? 1.2 : -1.2;
+    // Orbiting Minted Coins
+    const sweepDirection = isRTL ? 1 : -1;
+    const coinScale = isDesktop ? 1.0 : 0.62;
 
-    coinsConfig.forEach((cfg, i) => {
-      const coinMesh = coinsRef.current[i];
-      if (!coinMesh) return;
-      const angle = t * cfg.speed + cfg.offset;
+    COINS.forEach((config, index) => {
+      const coin = coinRefs.current[index];
+      if (!coin) return;
 
-      if (isMobile) {
-        // On phone: sweep across 100% width and swoop up behind text (headline, subhead, CTAs)
-        coinMesh.position.x = Math.cos(angle) * cfg.radiusXPhone;
-        coinMesh.position.y = vaultPosY + cfg.yPhone + Math.sin(angle) * cfg.radiusYPhone;
+      coin.scale.setScalar(coinScale);
+
+      const angle = time * config.speed + config.offset;
+
+      if (isDesktop) {
+        // Desktop: Coins orbit from the vault and sweep across towards the headline column
+        const sweep = Math.sin(angle) > 0 ? sweepDirection * 1.3 : 0;
+        coin.position.x = vaultX + Math.cos(angle) * config.radiusX + sweep;
+        coin.position.y = vaultY + Math.sin(angle) * config.radiusY;
+        coin.position.z = Math.sin(angle) * config.zAmp;
       } else {
-        // On desktop: orbit around vault and swoop deep into text column on the left (or right in RTL)
-        coinMesh.position.x = vaultPosX + Math.cos(angle) * cfg.radiusX + shiftXDesktop;
-        coinMesh.position.y = cfg.yDesktop + Math.sin(t * 1.6 + i) * 0.09;
+        // Mobile: Coins orbit closely around the lower-half vault, framing it without touching text!
+        coin.position.x = vaultX + Math.cos(angle) * config.radiusXPhone;
+        coin.position.y = vaultY + Math.sin(angle) * config.radiusYPhone;
+        coin.position.z = Math.sin(angle) * 0.7;
       }
 
-      coinMesh.position.z = Math.sin(angle) * cfg.zAmp;
-      coinMesh.rotation.x += 0.025;
-      coinMesh.rotation.y += 0.038;
-      coinMesh.rotation.z += 0.012;
+      // Three-axis coin tumble
+      coin.rotation.x += delta * 0.78;
+      coin.rotation.y += delta * 1.05;
+      coin.rotation.z += delta * 0.34;
     });
   });
 
   return (
     <>
-      {/* ── Vault Group (Positioned at targetX / targetY) ── */}
-      <group ref={groupRef} position={[0, 0, 0]} onClick={handleClick} onPointerDown={handleClick}>
-        {/* Vault Main Body: RoundedBox, #6B4DFF, roughness 0.35, metalness 0.15 */}
-        <RoundedBox args={[2.5, 2.5, 1.3]} radius={0.24} smoothness={4} position={[0, 0, 0]}>
-          <meshStandardMaterial color="#6B4DFF" roughness={0.35} metalness={0.15} />
+      {/* Smooth 3D Drop Shadow directly beneath vault */}
+      {shadowTexture && (
+        <mesh ref={shadowRef} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[3.2, 1.5]} />
+          <meshBasicMaterial
+            map={shadowTexture}
+            transparent
+            opacity={0.85}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+
+      {/* The 3D Neobrutalist Vault Mesh */}
+      <group ref={vaultRef} onClick={handleVaultClick}>
+        {/* Chunky purple safe body */}
+        <RoundedBox
+          args={[2.5, 2.5, 1.3]}
+          radius={0.24}
+          smoothness={4}
+          position={[0, 0, 0]}
+        >
+          <meshStandardMaterial
+            color="#6B4DFF"
+            roughness={0.34}
+            metalness={0.18}
+          />
         </RoundedBox>
 
-        {/* 2 Chrome Hinges on the Start Side (x = -1.24) */}
-        {[-0.65, 0.65].map((yPos, idx) => (
-          <group key={`hinge-${idx}`} position={[-1.24, yPos, 0.45]}>
+        {/* Chrome hinges on side */}
+        {[-0.65, 0.65].map((y, index) => (
+          <group key={`hinge-${index}`} position={[-1.24, y, 0.45]}>
             <mesh>
-              <cylinderGeometry args={[0.085, 0.085, 0.36, 16]} />
-              <meshStandardMaterial color="#FFFFFF" metalness={0.92} roughness={0.18} />
+              <cylinderGeometry args={[0.085, 0.085, 0.36, 24]} />
+              <meshStandardMaterial
+                color="#F4F7FF"
+                metalness={0.96}
+                roughness={0.14}
+              />
             </mesh>
             <mesh position={[0.06, 0, 0]}>
               <boxGeometry args={[0.08, 0.22, 0.1]} />
-              <meshStandardMaterial color="#FFFFFF" metalness={0.92} roughness={0.18} />
+              <meshStandardMaterial
+                color="#F4F7FF"
+                metalness={0.96}
+                roughness={0.14}
+              />
             </mesh>
           </group>
         ))}
 
-        {/* 1 Horizontal Locking Bar on the Opposite Side (x = 1.25, y = 0) */}
-        <mesh position={[1.25, 0, 0.45]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.09, 0.09, 0.48, 16]} />
-          <meshStandardMaterial color="#FFFFFF" metalness={0.92} roughness={0.18} />
+        {/* Chrome locking bar */}
+        <mesh position={[1.235, 0, 0.46]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.09, 0.09, 0.48, 24]} />
+          <meshStandardMaterial
+            color="#F4F7FF"
+            metalness={0.96}
+            roughness={0.14}
+          />
         </mesh>
 
-        {/* 4 Chrome Corner Bolts */}
+        {/* Four front corner bolts */}
         {[
-          [-0.95, 0.95],
-          [0.95, 0.95],
-          [-0.95, -0.95],
-          [0.95, -0.95],
-        ].map(([bx, by], idx) => (
-          <mesh key={`bolt-${idx}`} position={[bx, by, 0.67]}>
-            <cylinderGeometry args={[0.075, 0.075, 0.06, 16]} />
-            <meshStandardMaterial color="#FFFFFF" metalness={0.92} roughness={0.18} />
+          [-0.94, 0.94],
+          [0.94, 0.94],
+          [-0.94, -0.94],
+          [0.94, -0.94],
+        ].map(([x, y], index) => (
+          <mesh
+            key={`bolt-${index}`}
+            position={[x, y, 0.675]}
+            rotation={[Math.PI / 2, 0, 0]}
+          >
+            <cylinderGeometry args={[0.073, 0.073, 0.055, 24]} />
+            <meshStandardMaterial
+              color="#F4F7FF"
+              metalness={0.96}
+              roughness={0.12}
+            />
           </mesh>
         ))}
 
-        {/* Dark Inset Seam Gap behind the door (slightly larger dark box) */}
-        <RoundedBox args={[2.18, 2.18, 0.52]} radius={0.18} smoothness={4} position={[0, 0, 0.4]}>
+        {/* Dark recessed seam & lighter purple door */}
+        <RoundedBox
+          args={[2.18, 2.18, 0.52]}
+          radius={0.18}
+          smoothness={4}
+          position={[0, 0, 0.4]}
+        >
           <meshBasicMaterial color="#14102B" />
         </RoundedBox>
-
-        {/* Thick Door: depth ~0.5 units, color lighter violet #7A5CFF */}
-        <RoundedBox args={[2.08, 2.08, 0.5]} radius={0.16} smoothness={4} position={[0, 0, 0.44]}>
-          <meshStandardMaterial color="#7A5CFF" roughness={0.3} metalness={0.18} />
+        <RoundedBox
+          args={[2.08, 2.08, 0.5]}
+          radius={0.16}
+          smoothness={4}
+          position={[0, 0, 0.44]}
+        >
+          <meshStandardMaterial
+            color="#7A5CFF"
+            roughness={0.3}
+            metalness={0.2}
+          />
         </RoundedBox>
 
-        {/* Chunky 4-Spoke Wheel Handle sitting on a smaller lime disc */}
+        {/* Neon Lime Dial Plate with Chrome Rotating Wheel */}
         <group position={[0, 0.08, 0.72]}>
-          {/* Lime disc mounting plate */}
           <mesh position={[0, 0, -0.02]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.55, 0.55, 0.04, 32]} />
-            <meshBasicMaterial color="#CFFF3A" toneMapped={false} />
+            <cylinderGeometry args={[0.55, 0.55, 0.04, 48]} />
+            <meshStandardMaterial
+              color="#CFFF3A"
+              roughness={0.32}
+              metalness={0.05}
+            />
           </mesh>
 
-          {/* Wheel rotating group */}
-          <group ref={wheelGroupRef}>
-            {/* Chrome Torus Outer Ring */}
+          <group ref={wheelRef}>
             <mesh>
-              <torusGeometry args={[0.42, 0.055, 16, 32]} />
-              <meshStandardMaterial color="#FFFFFF" metalness={0.94} roughness={0.14} />
+              <torusGeometry args={[0.42, 0.055, 16, 48]} />
+              <meshStandardMaterial
+                color="#FFFFFF"
+                metalness={0.96}
+                roughness={0.12}
+              />
             </mesh>
 
-            {/* Center Chrome Hub */}
             <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.13, 0.13, 0.12, 24]} />
-              <meshStandardMaterial color="#FFFFFF" metalness={0.94} roughness={0.14} />
+              <cylinderGeometry args={[0.13, 0.13, 0.12, 32]} />
+              <meshStandardMaterial
+                color="#FFFFFF"
+                metalness={0.96}
+                roughness={0.12}
+              />
             </mesh>
 
-            {/* 4 Chunky Cylinder Spokes with Rounded Knobs */}
-            {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, idx) => (
-              <group key={`spoke-${idx}`} rotation={[0, 0, angle]}>
-                <mesh position={[0, 0.22, 0]}>
-                  <cylinderGeometry args={[0.038, 0.038, 0.4, 16]} />
-                  <meshStandardMaterial color="#FFFFFF" metalness={0.94} roughness={0.14} />
-                </mesh>
-                <mesh position={[0, 0.45, 0]}>
-                  <sphereGeometry args={[0.065, 16, 16]} />
-                  <meshStandardMaterial color="#FFFFFF" metalness={0.94} roughness={0.14} />
-                </mesh>
-              </group>
-            ))}
+            {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map(
+              (angle, index) => (
+                <group key={`spoke-${index}`} rotation={[0, 0, angle]}>
+                  <mesh position={[0, 0.22, 0]}>
+                    <cylinderGeometry args={[0.038, 0.038, 0.4, 20]} />
+                    <meshStandardMaterial
+                      color="#F6F8FF"
+                      metalness={0.96}
+                      roughness={0.12}
+                    />
+                  </mesh>
+                  <mesh position={[0, 0.45, 0]}>
+                    <sphereGeometry args={[0.065, 20, 16]} />
+                    <meshStandardMaterial
+                      color="#FFFFFF"
+                      metalness={0.96}
+                      roughness={0.1}
+                    />
+                  </mesh>
+                </group>
+              )
+            )}
           </group>
         </group>
 
-        {/* Keyhole: Placed BELOW the wheel on a small lime plate */}
+        {/* Lime Keyhole Plate beneath wheel */}
         <group position={[0, -0.62, 0.72]}>
-          <mesh position={[0, 0, 0.01]}>
-            <boxGeometry args={[0.34, 0.42, 0.04]} />
-            <meshBasicMaterial color="#CFFF3A" toneMapped={false} />
-          </mesh>
-          <mesh position={[0, 0.04, 0.04]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.045, 0.045, 0.03, 16]} />
+          <RoundedBox
+            args={[0.34, 0.42, 0.04]}
+            radius={0.07}
+            smoothness={4}
+            position={[0, 0, 0.01]}
+          >
+            <meshStandardMaterial
+              color="#CFFF3A"
+              roughness={0.32}
+              metalness={0.05}
+            />
+          </RoundedBox>
+          <mesh position={[0, 0.055, 0.04]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.045, 0.045, 0.03, 20]} />
             <meshBasicMaterial color="#14102B" />
           </mesh>
-          <mesh position={[0, -0.04, 0.04]}>
-            <boxGeometry args={[0.055, 0.08, 0.03]} />
+          <mesh position={[0, -0.045, 0.04]}>
+            <boxGeometry args={[0.055, 0.105, 0.03]} />
             <meshBasicMaterial color="#14102B" />
           </mesh>
         </group>
       </group>
 
-      {/* ── 6 Realistic Minted Gold Coins Orbiting in Front and Behind Vault ── */}
-      {coinsConfig.map((_, i) => (
+      {/* Six high-relief minted gold coins */}
+      {COINS.map((_, index) => (
         <MintedCoin
-          key={`minted-coin-${i}`}
-          innerRef={(el) => {
-            if (el) coinsRef.current[i] = el;
-          }}
+          key={`minted-coin-${index}`}
+          innerRef={coinRefCallbacks[index]}
         />
       ))}
     </>
   );
 }
 
+/** Error boundary for WebGL rendering fallback */
+class VaultCanvasErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("Vault3D renderer failed; using fallback.", error);
+  }
+
+  render() {
+    return this.state.hasError ? this.props.fallback : this.props.children;
+  }
+}
+
 export default function Vault3D({
   isRTL = false,
-  onVaultClick = () => {},
-}: {
-  isRTL?: boolean;
-  onVaultClick?: () => void;
-}) {
+  onVaultClick = NOOP,
+}: Vault3DProps) {
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [spinRequest, setSpinRequest] = useState(0);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const [inView, setInView] = useState(true);
-  const [hasWebGL, setHasWebGL] = useState(true);
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [webGLAvailable, setWebGLAvailable] = useState<boolean | null>(null);
+  const [reducedMotion, setReducedMotion] = useState<boolean | null>(null);
+
+  const canRenderScene = webGLAvailable === true && reducedMotion === false;
+  const shouldUseFallback = webGLAvailable === false || reducedMotion === true;
+
+  const requestSpin = useCallback(() => {
+    setSpinRequest((current) => current + 1);
+    onVaultClick();
+  }, [onVaultClick]);
 
   useEffect(() => {
-    // 1. Detect Reduced Motion
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (motionQuery.matches) {
-      setReducedMotion(true);
-      return;
-    }
+    setReducedMotion(motionQuery.matches);
 
-    // 2. Detect Touch Device
+    const updateMotionPreference = (e: MediaQueryListEvent) =>
+      setReducedMotion(e.matches);
+    motionQuery.addEventListener("change", updateMotionPreference);
+
     setIsTouchDevice(window.matchMedia("(pointer: coarse)").matches);
 
-    // 3. Detect WebGL Availability
+    let available = false;
     try {
-      const canvas = document.createElement("canvas");
-      const gl =
-        canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-      if (!gl) setHasWebGL(false);
+      const testCanvas = document.createElement("canvas");
+      const context = testCanvas.getContext("webgl2");
+      available = Boolean(context);
+      context?.getExtension("WEBGL_lose_context")?.loseContext();
     } catch {
-      setHasWebGL(false);
+      available = false;
     }
+    setWebGLAvailable(available);
 
-    // 4. Scroll tracking for center wheel 360deg rotation
     const handleScroll = () => {
-      const maxScroll = window.innerHeight * 0.9;
-      const progress = Math.min(Math.max(window.scrollY / maxScroll, 0), 1);
-      setScrollProgress(progress);
+      const maxScroll = Math.max(window.innerHeight * 0.9, 1);
+      setScrollProgress(THREE.MathUtils.clamp(window.scrollY / maxScroll, 0, 1));
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
 
-    // 5. Pause rendering when offscreen (IntersectionObserver)
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setInView(entry.isIntersecting);
-      },
-      { threshold: 0.05 }
-    );
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
-
     return () => {
+      motionQuery.removeEventListener("change", updateMotionPreference);
       window.removeEventListener("scroll", handleScroll);
-      observer.disconnect();
     };
   }, []);
 
-  // Show static SVG fallback for reduced motion or WebGL failure
-  if (reducedMotion || !hasWebGL) {
+  if (shouldUseFallback) {
     return <VaultFallback onVaultClick={onVaultClick} />;
   }
 
-  return (
-    <div
-      ref={containerRef}
-      className="w-full h-full relative select-none overflow-visible flex items-center justify-center pointer-events-none"
-    >
-      {/* Soft blurred CSS Ellipse Shadow under the vault (Zero rectangular edge) */}
-      <div
-        className="absolute -bottom-6 sm:-bottom-8 left-1/2 -translate-x-1/2 w-[280px] sm:w-[380px] h-[50px] sm:h-[65px] rounded-[100%] blur-md pointer-events-none z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse at center, rgba(20,16,43,0.28) 0%, rgba(20,16,43,0.12) 45%, transparent 70%)",
-        }}
-      />
+  if (!canRenderScene) {
+    return null;
+  }
 
-      {/* 3D Canvas: Full-width from website start to end (100vw), extended behind text on phone & desktop */}
-      <div className="w-[100vw] h-[800px] lg:h-[540px] absolute left-1/2 bottom-[-40px] lg:top-1/2 -translate-x-1/2 lg:-translate-y-1/2 z-0 overflow-visible flex items-center justify-center pointer-events-none">
+  return (
+    <VaultCanvasErrorBoundary
+      fallback={<VaultFallback onVaultClick={onVaultClick} />}
+    >
+      <div className="w-full h-full relative pointer-events-none">
         <Canvas
-          camera={{ position: [0, 0, 5.2], fov: 42 }}
+          aria-hidden="true"
+          className="w-full h-full"
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+          }}
+          camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
           dpr={[1, 1.75]}
-          frameloop={inView ? "always" : "never"}
           gl={{
             antialias: true,
             alpha: true,
             powerPreference: "high-performance",
+            stencil: false,
           }}
-          className="w-full h-full overflow-visible pointer-events-auto"
         >
-          {/* Lighting Setup: Ambient + Warm Directional + Cool Rim */}
-          <ambientLight intensity={0.85} />
-          <directionalLight position={[4, 5, 4]} intensity={1.5} color="#FFF4E3" />
-          <directionalLight position={[-4, -3, -3]} intensity={1.1} color="#D6E4FF" />
+          {/* Balanced rich lighting for gleaming gold and vibrant safe colors */}
+          <ambientLight intensity={0.7} color="#FFF8F0" />
+          <directionalLight
+            position={[4, 5, 5]}
+            intensity={2.2}
+            color="#FFF5E0"
+          />
+          <directionalLight
+            position={[-4, -2, 4]}
+            intensity={1.2}
+            color="#E8EEFF"
+          />
+          <directionalLight
+            position={[0, 1, 6]}
+            intensity={1.4}
+            color="#FFEAA7"
+          />
 
-          {/* Procedural Environment with Lightformers (NO external HDR presets) */}
-          <Environment resolution={128}>
-            <Lightformer
-              form="rect"
-              intensity={2}
-              color="#FFFFFF"
-              position={[0, 4, 2]}
-              scale={[5, 2, 1]}
-            />
-            <Lightformer
-              form="circle"
-              intensity={1.5}
-              color="#CFFF3A"
-              position={[-3, 0, 2]}
-              scale={2}
-            />
-            <Lightformer
-              form="circle"
-              intensity={1.4}
-              color="#FFF4E3"
-              position={[3, 2, 2]}
-              scale={2}
-            />
-          </Environment>
-
-          {/* The 3D Vault Mesh */}
           <VaultMesh
             scrollProgress={scrollProgress}
+            spinRequest={spinRequest}
             isTouchDevice={isTouchDevice}
             isRTL={isRTL}
-            onVaultClick={onVaultClick}
+            onRequestSpin={requestSpin}
           />
         </Canvas>
       </div>
-    </div>
+    </VaultCanvasErrorBoundary>
   );
 }
