@@ -2,28 +2,22 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Lock, PlusCircle, LogOut, User, ArrowRight, ShieldCheck } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Menu, X, ArrowRight } from "lucide-react";
+import Logo from "@/components/Logo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import BrandLogo from "@/components/BrandLogo";
 import { useT } from "@/lib/i18n";
-
-interface UserSession {
-  id: string;
-  name: string;
-  email: string;
-  allowanceDay?: number;
-}
 
 export default function Header() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { t, lang } = useT();
-  const isKeyholderView = pathname?.startsWith("/unlock");
+  const { lang } = useT();
+  const isArabic = lang === "ar";
 
-  const [user, setUser] = useState<UserSession | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showNavCta, setShowNavCta] = useState(false);
+  const [user, setUser] = useState<{ id: string; name: string } | null>(null);
 
+  // Check auth status for login/dashboard link
   useEffect(() => {
     async function checkAuth() {
       try {
@@ -32,151 +26,227 @@ export default function Header() {
           const data = await res.json();
           if (data.success && data.user) {
             setUser(data.user);
-          } else {
-            setUser(null);
           }
-        } else {
-          setUser(null);
         }
-      } catch {
-        setUser(null);
-      } finally {
-        setLoadingUser(false);
-      }
+      } catch {}
     }
     checkAuth();
   }, [pathname]);
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      setUser(null);
-      router.push("/login");
-      router.refresh();
-    } catch (err) {
-      console.error("Logout error:", err);
+  // Observer for hero CTA to hide/show the nav CTA button
+  useEffect(() => {
+    if (pathname !== "/") {
+      setShowNavCta(true);
+      return;
     }
-  };
 
-  // Skip global header on landing page, dashboard, and unlock pages which have dedicated clean layouts
-  if (pathname === "/" || pathname === "/dashboard" || pathname?.startsWith("/unlock")) {
+    const heroCta = document.getElementById("hero-cta-btn");
+    if (!heroCta) {
+      setShowNavCta(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // If hero CTA is visible on screen, hide nav CTA; otherwise show it
+        setShowNavCta(!entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(heroCta);
+    return () => observer.disconnect();
+  }, [pathname]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Do not render shared floating header on dashboard and keyholder decision pages
+  if (pathname === "/dashboard" || pathname?.startsWith("/unlock")) {
     return null;
   }
 
-  // Keyholder View Header
-  if (isKeyholderView) {
-    return (
-      <header className="border-b border-line bg-surface/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-surface border border-line flex items-center justify-center shadow-violetSubtle">
-              <Lock className="w-5 h-5 text-accent" />
-            </div>
-            <div>
-              <span className="font-extrabold text-sm sm:text-base tracking-tight text-text block">
-                {lang === "ar" ? "قرار حامل المفتاح" : "Keyholder Decision"}
-              </span>
-              <p className="text-xs text-muted font-medium">
-                {lang === "ar" ? "تأكيد عبر واتساب" : "Guarded via WhatsApp"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-btn bg-raised border border-line text-xs font-semibold text-text shadow-xs">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-mint opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-mint"></span>
-              </span>
-              <span className="text-xs text-muted">
-                {lang === "ar" ? "مفتاح نشط" : "Active Key"}
-              </span>
-            </div>
-
-            <LanguageSwitcher />
-          </div>
-        </div>
-      </header>
-    );
-  }
-
-  const initials = user?.name
-    ? user.name
-        .split(" ")
-        .map((p) => p[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "U";
-
-  const firstName = user?.name ? user.name.split(" ")[0] : "Friend";
+  const isLanding = pathname === "/";
 
   return (
-    <header className="border-b border-line bg-surface/90 backdrop-blur-md sticky top-0 z-40 shadow-xs">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        {/* Brand Logo */}
-        <BrandLogo href="/" size="md" showTagline={true} />
+    <>
+      <header className="sticky top-4 z-50 w-full px-4 sm:px-6 pointer-events-none">
+        <nav
+          aria-label="Main Navigation"
+          className="mx-auto max-w-[1100px] w-full h-16 bg-surface border-2 border-ink rounded-full shadow-[4px_4px_0_var(--ink)] px-4 sm:px-6 flex items-center justify-between gap-3 pointer-events-auto transition-all"
+        >
+          {/* Start: Logo */}
+          <div className="shrink-0 flex items-center">
+            <Logo href="/" />
+          </div>
 
-        {/* Navigation State: Logged-in vs Logged-out */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <LanguageSwitcher />
-
-          {user ? (
-            /* Logged-In State: Avatar Menu + User Details + Logout */
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Link
-                href="/dashboard"
-                className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-btn bg-raised hover:bg-surface border border-line transition-all"
+          {/* Desktop Center Links (Smooth-scroll anchors on landing page) */}
+          {isLanding ? (
+            <div className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-bold text-ink">
+              <a
+                href="#how-it-works"
+                className="hover:text-violet transition-colors py-1 cursor-pointer"
               >
-                <div className="w-7 h-7 rounded-full bg-accent/15 border border-accent/30 text-accent font-extrabold text-xs flex items-center justify-center">
-                  {initials}
-                </div>
-                <div className="flex flex-col text-start">
-                  <span className="text-xs font-bold text-text leading-tight">
-                    {firstName}
-                  </span>
-                  <span className="text-xs text-muted leading-tight">
-                    {t("nav.dashboard")}
-                  </span>
-                </div>
-              </Link>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                title={t("nav.logout")}
-                className="tactile-btn p-2 rounded-btn text-muted hover:text-text hover:bg-raised border border-line transition-all text-xs flex items-center gap-1.5 shrink-0"
+                {isArabic ? "طريقة العمل" : "How it works"}
+              </a>
+              <a
+                href="#friend-approval"
+                className="hover:text-violet transition-colors py-1 cursor-pointer"
               >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline text-xs font-semibold whitespace-nowrap">
-                  {t("nav.logout")}
-                </span>
-              </button>
+                {isArabic ? "موافقة الربع" : "Friend approval"}
+              </a>
+              <a
+                href="#why-tijori"
+                className="hover:text-violet transition-colors py-1 cursor-pointer"
+              >
+                {isArabic ? "ليش تجوري" : "Why Tijori"}
+              </a>
             </div>
           ) : (
-            /* Logged-Out State: Log In + Sign Up (No redundant button on active page, no wrapping) */
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              {pathname !== "/login" && (
-                <Link
-                  href="/login"
-                  className="tactile-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-btn text-xs font-semibold text-text bg-raised hover:bg-surface border border-line transition-all whitespace-nowrap"
-                >
-                  {t("nav.login")}
-                </Link>
-              )}
-
-              {pathname !== "/signup" && (
-                <Link
-                  href="/signup"
-                  className="tactile-btn px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-btn text-xs font-extrabold text-accent-foreground bg-accent hover:brightness-105 shadow-limeGlow transition-all whitespace-nowrap"
-                >
-                  {t("nav.signup")}
-                </Link>
-              )}
+            <div className="hidden md:flex items-center gap-6 text-sm font-bold text-ink">
+              <Link href="/" className="hover:text-violet transition-colors py-1">
+                {isArabic ? "الرئيسية" : "Home"}
+              </Link>
             </div>
           )}
+
+          {/* Desktop End Controls */}
+          <div className="hidden md:flex items-center gap-3 shrink-0">
+            {/* Language toggle: single round button showing other language */}
+            <LanguageSwitcher />
+
+            {/* Login or Dashboard link */}
+            {user ? (
+              <Link
+                href="/dashboard"
+                className="text-sm font-bold text-ink hover:text-violet px-3 py-2 transition-colors whitespace-nowrap"
+              >
+                {isArabic ? "لوحة التحكم" : "Dashboard"}
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="text-sm font-bold text-ink hover:text-violet px-3 py-2 transition-colors whitespace-nowrap"
+              >
+                {isArabic ? "تسجيل الدخول" : "Log in"}
+              </Link>
+            )}
+
+            {/* "Start saving" lime button - fades in after scrolling past hero CTA */}
+            <div
+              className={`transition-all duration-300 ease-out overflow-hidden ${
+                showNavCta
+                  ? "opacity-100 max-w-[160px] translate-y-0"
+                  : "opacity-0 max-w-0 -translate-y-1 pointer-events-none"
+              }`}
+            >
+              <Link
+                href="/signup"
+                className="btn-hard bg-lime text-ink font-extrabold text-sm px-5 py-2.5 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+              >
+                <span>{isArabic ? "ابدأ التوفير" : "Start saving"}</span>
+                <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Mobile Right Controls (< 768px): Language + Hamburger */}
+          <div className="flex md:hidden items-center gap-2">
+            <LanguageSwitcher />
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label={isArabic ? "فتح القائمة" : "Open navigation menu"}
+              className="w-10 h-10 rounded-full bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)] flex items-center justify-center text-ink hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
+        </nav>
+      </header>
+
+      {/* Full-screen Mobile Navigation Sheet */}
+      {mobileMenuOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-bg/95 backdrop-blur-md flex flex-col justify-between p-6 md:hidden animate-in fade-in duration-200"
+        >
+          {/* Top Bar inside Sheet */}
+          <div className="flex items-center justify-between">
+            <Logo href="/" />
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label={isArabic ? "إغلاق القائمة" : "Close navigation menu"}
+              className="w-11 h-11 rounded-full bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)] flex items-center justify-center text-ink hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Center Links with big touch targets (min 48px) */}
+          <div className="flex flex-col gap-4 py-8">
+            {isLanding && (
+              <>
+                <a
+                  href="#how-it-works"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="min-h-[48px] flex items-center text-xl font-extrabold text-ink px-4 rounded-2xl bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)]"
+                >
+                  {isArabic ? "طريقة العمل" : "How it works"}
+                </a>
+                <a
+                  href="#friend-approval"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="min-h-[48px] flex items-center text-xl font-extrabold text-ink px-4 rounded-2xl bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)]"
+                >
+                  {isArabic ? "موافقة الربع" : "Friend approval"}
+                </a>
+                <a
+                  href="#why-tijori"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="min-h-[48px] flex items-center text-xl font-extrabold text-ink px-4 rounded-2xl bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)]"
+                >
+                  {isArabic ? "ليش تجوري" : "Why Tijori"}
+                </a>
+              </>
+            )}
+          </div>
+
+          {/* Bottom CTAs (48px+ touch targets) */}
+          <div className="space-y-3 pb-6">
+            {user ? (
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="btn-hard w-full min-h-[50px] bg-surface text-ink font-extrabold text-base flex items-center justify-center"
+              >
+                {isArabic ? "لوحة التحكم" : "Dashboard"}
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="btn-hard w-full min-h-[50px] bg-surface text-ink font-extrabold text-base flex items-center justify-center"
+              >
+                {isArabic ? "تسجيل الدخول" : "Log in"}
+              </Link>
+            )}
+
+            <Link
+              href="/signup"
+              onClick={() => setMobileMenuOpen(false)}
+              className="btn-hard w-full min-h-[50px] bg-lime text-ink font-extrabold text-base flex items-center justify-center gap-2"
+            >
+              <span>{isArabic ? "ابدأ التوفير" : "Start saving"}</span>
+              <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+            </Link>
+          </div>
         </div>
-      </div>
-    </header>
+      )}
+    </>
   );
 }

@@ -1,36 +1,53 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-
+import Logo from "@/components/Logo";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useT } from "@/lib/i18n";
 
 export default function Footer() {
   const pathname = usePathname();
-  const { t, lang } = useT();
+  const { lang } = useT();
   const isArabic = lang === "ar";
 
-  // Landing page has its own dedicated 3-link footer per Task 4 specs
-  if (pathname === "/") {
+  // Hide footer on dashboard and keyholder decision pages
+  if (pathname === "/dashboard" || pathname?.startsWith("/unlock")) {
     return null;
   }
 
   return (
-    <footer className="border-t border-line py-5 text-center text-xs text-muted bg-surface/60 backdrop-blur-sm">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          {isArabic ? (
-            <span className="font-extrabold text-text">تِجوري | Tijori</span>
-          ) : (
-            <span className="font-extrabold text-text">Tijori | تِجوري</span>
-          )}
-          <span className="text-muted/40">&bull;</span>
-          <span className="text-muted">
-            {isArabic ? "محرك التوفير ضد الصرف اللحظي" : "Anti-Impulse Micro-Savings"}
-          </span>
+    <footer className="w-full border-t-2 border-ink/20 mt-20 py-10 px-4 sm:px-6">
+      <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+        {/* Start: Logo */}
+        <Logo href="/" />
+
+        {/* Center: Legal Links */}
+        <div className="flex items-center gap-6 text-sm font-bold text-muted">
+          <Link
+            href="/security"
+            className="hover:text-ink transition-colors py-1"
+          >
+            {isArabic ? "الأمان" : "Security"}
+          </Link>
+          <Link
+            href="/privacy"
+            className="hover:text-ink transition-colors py-1"
+          >
+            {isArabic ? "الخصوصية" : "Privacy"}
+          </Link>
+          <Link
+            href="/terms"
+            className="hover:text-ink transition-colors py-1"
+          >
+            {isArabic ? "الشروط" : "Terms"}
+          </Link>
         </div>
-        <div className="text-xs text-muted tabular-nums">
-          {isArabic ? "د.ك (KWD) • الكويت والخليج العربي" : "KWD (د.ك) • Kuwait & GCC"}
+
+        {/* End: Single Language Toggle */}
+        <div className="shrink-0">
+          <LanguageSwitcher />
         </div>
       </div>
     </footer>

@@ -317,3 +317,47 @@ This log tracks every completed task, status, build verification, and known issu
 - Known problems: none
 
 
+## TASK L1: Landing Page & Shared Nav/Footer Rebuild (Light Theme Neobrutalism)
+- Status: DONE
+- Files created:
+  - `components/Logo.tsx`: Unified brand mark (40px rounded-square tile in `--lime`, 2px ink border, keyhole geometry, Bricolage/Readex wordmark without tagline).
+  - `components/VaultFallback.tsx`: High-fidelity static SVG fallback matching exact vault geometry, chrome torus rim, lime dial with 12 ticks, 3-spoke handle, keyhole, and 5 gold coins.
+  - `app/security/page.tsx`: Clean security overview placeholder page.
+  - `app/privacy/page.tsx`: Privacy policy placeholder page.
+  - `app/terms/page.tsx`: Terms of service placeholder page.
+  - `scripts/capture-l1.js`: Automated Playwright script capturing all 9 required Task L1 screenshots with font and 3D canvas stabilization.
+- Files changed:
+  - `app/globals.css`: Rebuilt design tokens with light theme variables (`--bg: #F6F2FF`, `--bg-warm: #FFF4E3`, `--surface: #FFFFFF`, `--ink: #14102B`, `--muted: #5B5675`, `--violet: #6B4DFF`, `--lime: #CFFF3A`, `--coral: #FF5A6E`, `--sun: #FFD23F`, `--mint: #2DE0A5`). Added `.btn-hard`, `.card-hard`, `.card-hard-lg` neobrutalist utility classes with 2px solid `--ink` borders, `4px 4px 0 var(--ink)` hard shadows, and hover micro-interactions.
+  - `tailwind.config.ts`: Mapped Tailwind color tokens directly to CSS variables for instant dark-theme support later. Configured border radius (`card: 24px`, `btn: 999px`) and hard shadows.
+  - `app/layout.tsx`: Removed dark mesh canvas background, establishing smooth `--bg` to `--bg-warm` gradient page background.
+  - `components/BrandLogo.tsx`: Updated to cleanly wrap `<Logo />`.
+  - `components/LanguageSwitcher.tsx`: Rebuilt as a single round toggle button displaying the opposite language label (`عربي` when in English mode, `EN` when in Arabic mode).
+  - `components/Header.tsx`: Rebuilt as a detached floating pill nav (`position: sticky; top: 16px`, centered, max-w 1100px, 64px tall, rounded-full white surface, 2px ink border, hard shadow). Implemented IntersectionObserver on `#hero-cta-btn` to fade in nav "Start saving" button only after hero CTA scrolls out of view. Added mobile full-screen slide-down sheet with 48px+ touch targets.
+  - `components/Footer.tsx`: Rebuilt with `<Logo />`, legal navigation links (`Security`, `Privacy`, `Terms`), single language switcher button, and copyright notice.
+  - `components/Vault3D.tsx`: Procedural Three.js 3D vault built with primitives (RoundedBox violet body, lighter door, chrome torus rim, 4 corner bolts, lime dial with 12 ticks and 3-spoke chrome handle, keyhole, 5 orbiting spinning gold coins). Procedural Lightformers environment (zero external HDR fetching), contact shadows, pointer tilt (auto-sway on touch), scroll rotation, DPR capped at `[1, 1.75]`, and offscreen rendering pause via IntersectionObserver.
+  - `lib/i18n/en.json` & `lib/i18n/ar.json`: Comprehensive Task L1 copy across all sections. 100% purged all banned buzzwords ("Engine", "Protocol", "Guardian", "Clearance", "256-bit", "Anti-Impulse", "Join youth across Kuwait", "banking nonsense").
+  - `app/page.tsx`: Complete landing page assembly:
+    1. Hero: 2-column desktop (mirrored in RTL), phone stacked with vault above headline (~280px). Rotated sticker above H1, H1 56-88px desktop / 40px phone, 18px sub, lime primary CTA, secondary down-arrow link, "Works with your existing card.", 3 floating bobbing notification stickers (+25 KWD locked [lime], Fahad said no [coral], 18-day streak [sun]) with Lucide icons.
+    2. Goals Marquee: Full-width strip, `--ink` background, `--lime` text, 20px bold, stars separator, infinite horizontal scroll, pause on hover, mirrored in RTL.
+    3. How It Works: Sticky-scroll desktop layout with live sticky mini-vault updating state across 3 steps on start side, and 3 big colored sticker cards (lime, violet, coral/white) on end side. Phone renders clean vertical stack with zero horizontal overflow.
+    4. Friend Approval Moment: Realistic HTML/CSS phone mockup (2px border, rounded 40px, max 380px, notch, brand colors) next to 3-line story. Interactive Fahad notification card with 125.000 KWD, quote, neutral AI note, and two equal-size side-by-side buttons ("Keep it locked", "Let him have it"). Click triggers vault slam & confetti burst vs coral fee state + replay.
+    5. Why Tijori Bento: 4 tiles of distinct sizes and colors ("Locked means locked" [violet], "Your friend decides" [lime], "You set the pace" [white], "Built for allowance day" [sun]). One line of copy per tile, one Lucide icon per tile, zero fake stats.
+    6. Final CTA Block: Large violet block with white headline "Future you says thanks.", lime CTA.
+- Files deleted: none
+- Build result: PASS (`npm run build` 28/28 static pages, `npm run lint` 0 warnings, 0 errors)
+- JS size added: ~35 kB gzip (Total `/` First Load JS is 124 kB, well within the 180 kB budget)
+- What I did NOT finish: None. All requirements of TASK L1 completed.
+- Known problems: None.
+- Master Screenshot Inventory for Task L1 (in `/audit/screenshots/`):
+  1. `L1_hero_en_desktop.png` (1440x900, EN)
+  2. `L1_hero_ar_desktop.png` (1440x900, AR, mirrored layout and stickers)
+  3. `L1_hero_en_phone.png` (390x844, EN, vault stacked above headline)
+  4. `L1_hero_ar_phone.png` (390x844, AR, vault stacked above headline)
+  5. `L1_howitworks_en_desktop.png` (1440x900, EN, sticky-scroll view)
+  6. `L1_approval_en_desktop.png` (1440x900, EN, interactive phone mockup)
+  7. `L1_approval_en_phone.png` (390x844, EN, mobile view of mockup)
+  8. `L1_full_en_desktop.png` (1440x900, EN, full-page scroll)
+  9. `L1_full_ar_desktop.png` (1440x900, AR, full-page scroll)
+
+
+

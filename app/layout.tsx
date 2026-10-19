@@ -43,14 +43,7 @@ export default function RootLayout({
       dir="ltr"
       className={`${bricolage.variable} ${dmSans.variable} ${readex.variable}`}
     >
-      <body className="bg-bg text-text min-h-screen flex flex-col antialiased selection:bg-accent/20 selection:text-accent font-sans relative">
-        {/* Subtle Animated Gradient Mesh Background */}
-        <div className="mesh-bg-canvas" aria-hidden="true">
-          <div className="mesh-blob-violet" />
-          <div className="mesh-blob-lime" />
-          <div className="mesh-blob-bottom" />
-        </div>
-
+      <body className="bg-bg text-text min-h-screen flex flex-col antialiased selection:bg-lime selection:text-ink font-sans relative">
         <I18nProvider>
           {/* Global Header */}
           <Header />
