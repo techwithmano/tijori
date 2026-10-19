@@ -9,25 +9,36 @@ import VaultFallback from "./VaultFallback";
 interface VaultSceneProps {
   scrollProgress: number;
   isTouchDevice: boolean;
+  isRTL: boolean;
   onVaultClick: () => void;
 }
 
-function VaultMesh({ scrollProgress, isTouchDevice, onVaultClick }: VaultSceneProps) {
+function VaultMesh({ scrollProgress, isTouchDevice, isRTL, onVaultClick }: VaultSceneProps) {
   const groupRef = useRef<THREE.Group>(null);
   const wheelGroupRef = useRef<THREE.Group>(null);
   const coinsRef = useRef<THREE.Group[]>([]);
   const clickBonusRotRef = useRef<number>(0);
   const targetClickBonusRotRef = useRef<number>(0);
+  const pointerPosRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handlePointerMove = (e: PointerEvent) => {
+      pointerPosRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+      pointerPosRef.current.y = -(e.clientY / window.innerHeight) * 2 - 1;
+    };
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    return () => window.removeEventListener("pointermove", handlePointerMove);
+  }, []);
 
   // 6 Orbiting Gold Coins config (radius 0.35, loop in FRONT and BEHIND the vault)
   const coinsConfig = useMemo(
     () => [
-      { radiusX: 2.3, speed: 0.7, offset: 0.0, y: 0.75, zAmplitude: 1.7 },
-      { radiusX: 2.5, speed: -0.65, offset: 1.05, y: -0.45, zAmplitude: 1.8 },
-      { radiusX: 2.2, speed: 0.8, offset: 2.1, y: 0.2, zAmplitude: 1.65 },
-      { radiusX: 2.4, speed: -0.75, offset: 3.15, y: 0.95, zAmplitude: 1.75 },
-      { radiusX: 2.55, speed: 0.6, offset: 4.2, y: -0.85, zAmplitude: 1.85 },
-      { radiusX: 2.25, speed: -0.7, offset: 5.25, y: -0.15, zAmplitude: 1.7 },
+      { radiusX: 2.7, speed: 0.65, offset: 0.0, y: 0.75, zAmplitude: 1.75 },
+      { radiusX: 3.1, speed: -0.6, offset: 1.05, y: -0.45, zAmplitude: 1.85 },
+      { radiusX: 2.5, speed: 0.75, offset: 2.1, y: 0.2, zAmplitude: 1.65 },
+      { radiusX: 2.9, speed: -0.7, offset: 3.15, y: 0.95, zAmplitude: 1.8 },
+      { radiusX: 3.2, speed: 0.55, offset: 4.2, y: -0.85, zAmplitude: 1.9 },
+      { radiusX: 2.6, speed: -0.65, offset: 5.25, y: -0.15, zAmplitude: 1.7 },
     ],
     []
   );
@@ -52,8 +63,10 @@ function VaultMesh({ scrollProgress, isTouchDevice, onVaultClick }: VaultScenePr
         groupRef.current.rotation.y = -0.25 + Math.sin(t * 0.8) * 0.07;
         groupRef.current.rotation.x = 0.08 + Math.cos(t * 0.6) * 0.04;
       } else {
-        const targetRotY = -0.25 + THREE.MathUtils.clamp(state.pointer.x * 0.1396, -0.1396, 0.1396);
-        const targetRotX = 0.08 - THREE.MathUtils.clamp(state.pointer.y * 0.1396, -0.1396, 0.1396);
+        const px = pointerPosRef.current.x !== 0 ? pointerPosRef.current.x : state.pointer.x;
+        const py = pointerPosRef.current.y !== 0 ? pointerPosRef.current.y : state.pointer.y;
+        const targetRotY = -0.25 + THREE.MathUtils.clamp(px * 0.1396, -0.1396, 0.1396);
+        const targetRotX = 0.08 - THREE.MathUtils.clamp(py * 0.1396, -0.1396, 0.1396);
         groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRotY, 0.07);
         groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, targetRotX, 0.07);
       }
@@ -72,11 +85,15 @@ function VaultMesh({ scrollProgress, isTouchDevice, onVaultClick }: VaultScenePr
     }
 
     // 4. 6 Orbiting & spinning gold coins
+    // On desktop, shift center of orbit slightly towards the text side so coins swoop deeper behind text
+    const isDesktop = state.size.width >= 768;
+    const shiftX = isDesktop ? (isRTL ? 0.5 : -0.5) : 0;
+
     coinsConfig.forEach((cfg, i) => {
       const coinMesh = coinsRef.current[i];
       if (!coinMesh) return;
       const angle = t * cfg.speed + cfg.offset;
-      coinMesh.position.x = Math.cos(angle) * cfg.radiusX;
+      coinMesh.position.x = Math.cos(angle) * cfg.radiusX + shiftX;
       // z moves in front of (z > 0.8) and behind (z < -0.65) the vault
       coinMesh.position.z = Math.sin(angle) * cfg.zAmplitude;
       coinMesh.position.y = cfg.y + Math.sin(t * 1.6 + i) * 0.09;
@@ -219,7 +236,13 @@ function VaultMesh({ scrollProgress, isTouchDevice, onVaultClick }: VaultScenePr
   );
 }
 
-export default function Vault3D({ onVaultClick = () => {} }: { onVaultClick?: () => void }) {
+export default function Vault3D({
+  isRTL = false,
+  onVaultClick = () => {},
+}: {
+  isRTL?: boolean;
+  onVaultClick?: () => void;
+}) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [inView, setInView] = useState(true);
@@ -294,8 +317,8 @@ export default function Vault3D({ onVaultClick = () => {} }: { onVaultClick?: ()
         }}
       />
 
-      {/* 3D Canvas: container ~20% larger, overflow visible */}
-      <div className="w-[360px] sm:w-[480px] h-[340px] sm:h-[480px] relative z-10 overflow-visible flex items-center justify-center">
+      {/* 3D Canvas: extended behind text on desktop so coin movement is unconstrained */}
+      <div className="w-[360px] sm:w-[520px] lg:w-[960px] xl:w-[1040px] h-[340px] sm:h-[480px] lg:h-[500px] absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0 overflow-visible flex items-center justify-center pointer-events-auto">
         <Canvas
           camera={{ position: [0, 0, 5.2], fov: 42 }}
           dpr={[1, 1.75]}
@@ -341,6 +364,7 @@ export default function Vault3D({ onVaultClick = () => {} }: { onVaultClick?: ()
           <VaultMesh
             scrollProgress={scrollProgress}
             isTouchDevice={isTouchDevice}
+            isRTL={isRTL}
             onVaultClick={onVaultClick}
           />
         </Canvas>

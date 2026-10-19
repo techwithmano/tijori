@@ -134,7 +134,7 @@ export default function LandingPage() {
       >
         <div className="flex flex-col-reverse lg:flex-row items-center justify-between gap-10 lg:gap-14">
           {/* Start Column: Headline, Sticker, Sub, CTAs */}
-          <div className="w-full lg:w-1/2 space-y-6 text-center lg:text-start">
+          <div className="w-full lg:w-1/2 space-y-6 text-center lg:text-start relative z-10">
             {/* Rotated Sticker above Headline */}
             <div className="inline-block transform -rotate-2 hover:rotate-0 transition-transform">
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-lime border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-sm font-bold text-ink">
@@ -181,13 +181,13 @@ export default function LandingPage() {
           {/* End Column: 3D Vault with 3 Floating Bobbing HTML Stickers */}
           <div className="w-full lg:w-1/2 flex items-center justify-center relative min-h-[300px] sm:min-h-[460px] overflow-visible">
             {/* The 3D Vault Container */}
-            <div className="w-full max-w-[340px] sm:max-w-[440px] h-[300px] sm:h-[460px] overflow-visible">
-              <VaultContainer onVaultClick={handleVaultClick} />
+            <div className="w-full max-w-[340px] sm:max-w-[440px] h-[300px] sm:h-[460px] overflow-visible relative">
+              <VaultContainer isRTL={isArabic} onVaultClick={handleVaultClick} />
             </div>
 
             {/* Sticker A: Lime (+25 KWD locked) - positioned strictly inside container */}
             <div
-              className={`absolute top-[4%] start-[2%] sm:start-[6%] z-10 animate-sticker-bob-1 pointer-events-none transition-transform duration-300 ${
+              className={`absolute top-[4%] start-[2%] sm:start-[6%] z-20 animate-sticker-bob-1 pointer-events-none transition-transform duration-300 ${
                 stickersPulsing ? "scale-110" : ""
               }`}
               style={{ "--rot": "-3deg" } as React.CSSProperties}
@@ -200,7 +200,7 @@ export default function LandingPage() {
 
             {/* Sticker B: Coral (Fahad said no) - positioned strictly inside container */}
             <div
-              className={`absolute top-[46%] end-[2%] sm:end-[4%] z-10 animate-sticker-bob-2 pointer-events-none transition-transform duration-300 ${
+              className={`absolute top-[46%] end-[2%] sm:end-[4%] z-20 animate-sticker-bob-2 pointer-events-none transition-transform duration-300 ${
                 stickersPulsing ? "scale-110" : ""
               }`}
               style={{ "--rot": "2.5deg" } as React.CSSProperties}
@@ -213,7 +213,7 @@ export default function LandingPage() {
 
             {/* Sticker C: Sun (18-day streak) - positioned strictly inside container */}
             <div
-              className={`absolute bottom-[6%] start-[4%] sm:start-[10%] z-10 animate-sticker-bob-3 pointer-events-none transition-transform duration-300 ${
+              className={`absolute bottom-[6%] start-[4%] sm:start-[10%] z-20 animate-sticker-bob-3 pointer-events-none transition-transform duration-300 ${
                 stickersPulsing ? "scale-110" : ""
               }`}
               style={{ "--rot": "-2deg" } as React.CSSProperties}

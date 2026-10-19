@@ -9,7 +9,13 @@ const Vault3D = dynamic(() => import("./Vault3D"), {
   loading: () => <VaultFallback />,
 });
 
-export default function VaultContainer({ onVaultClick }: { onVaultClick?: () => void }) {
+export default function VaultContainer({
+  isRTL,
+  onVaultClick,
+}: {
+  isRTL?: boolean;
+  onVaultClick?: () => void;
+}) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -30,5 +36,5 @@ export default function VaultContainer({ onVaultClick }: { onVaultClick?: () => 
     return <VaultFallback onVaultClick={onVaultClick} />;
   }
 
-  return <Vault3D onVaultClick={onVaultClick} />;
+  return <Vault3D isRTL={isRTL} onVaultClick={onVaultClick} />;
 }
