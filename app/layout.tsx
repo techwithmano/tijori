@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { Bricolage_Grotesque, DM_Sans, Readex_Pro } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { I18nProvider, Language } from "@/lib/i18n";
+import { I18nProvider } from "@/lib/i18n";
 
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -33,20 +32,15 @@ export const metadata: Metadata = {
     "Lock micro-savings from your monthly allowance or salary. When impulse urges strike, your trusted Keyholder helps keep your hands off the vault.",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const langCookie = cookieStore.get("tijori_lang")?.value;
-  const lang: Language = langCookie === "ar" ? "ar" : "en";
-  const dir = lang === "ar" ? "rtl" : "ltr";
-
   return (
     <html
-      lang={lang}
-      dir={dir}
+      lang="en"
+      dir="ltr"
       className={`${bricolage.variable} ${dmSans.variable} ${readex.variable}`}
     >
       <body className="bg-bg text-text min-h-screen flex flex-col antialiased selection:bg-accent/20 selection:text-accent font-sans relative">
@@ -57,7 +51,7 @@ export default async function RootLayout({
           <div className="mesh-blob-bottom" />
         </div>
 
-        <I18nProvider initialLang={lang}>
+        <I18nProvider>
           {/* Global Header */}
           <Header />
 

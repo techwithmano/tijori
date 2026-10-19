@@ -47,9 +47,16 @@ export function I18nProvider({
   const isRtl = lang === "ar";
   const dict = dictionaries[lang] || dictionaries.en;
 
-  // Sync with document element
+  // Sync with document element and read stored cookie
   useEffect(() => {
     if (typeof document !== "undefined") {
+      const match = document.cookie.match(/tijori_lang=([^;]+)/);
+      if (match && (match[1] === "ar" || match[1] === "en")) {
+        if (match[1] !== lang) {
+          setLangState(match[1] as Language);
+          return;
+        }
+      }
       document.documentElement.lang = lang;
       document.documentElement.dir = dir;
     }
