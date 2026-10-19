@@ -8,7 +8,7 @@ import React, {
   useState,
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Instance, Instances, RoundedBox } from "@react-three/drei";
+import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import VaultFallback from "./VaultFallback";
 
@@ -99,27 +99,6 @@ const COINS: CoinConfig[] = [
   },
 ];
 
-// 16 milled reeding edge cuts
-const COIN_REEDING = Array.from({ length: 16 }, (_, index) => {
-  const angle = (index / 16) * Math.PI * 2;
-  return {
-    key: `reed-${index}`,
-    angle,
-    x: Math.cos(angle) * 0.333,
-    y: Math.sin(angle) * 0.333,
-  };
-});
-
-// 24 raised beads around perimeter ring
-const COIN_BEADS = Array.from({ length: 24 }, (_, index) => {
-  const angle = (index / 24) * Math.PI * 2;
-  return {
-    key: `bead-${index}`,
-    x: Math.cos(angle) * 0.218,
-    y: Math.sin(angle) * 0.218,
-  };
-});
-
 // Four-point star crest geometry for minted coin faces
 const FOUR_POINT_STAR = new THREE.Shape();
 FOUR_POINT_STAR.moveTo(0, 0.12);
@@ -131,16 +110,6 @@ FOUR_POINT_STAR.lineTo(-0.026, -0.026);
 FOUR_POINT_STAR.lineTo(-0.12, 0);
 FOUR_POINT_STAR.lineTo(-0.026, 0.026);
 FOUR_POINT_STAR.closePath();
-
-const STAR_EXTRUSION = {
-  depth: 0.012,
-  steps: 1,
-  bevelEnabled: true,
-  bevelSegments: 2,
-  bevelSize: 0.004,
-  bevelThickness: 0.003,
-  curveSegments: 8,
-};
 
 /** Procedural soft radial shadow texture under the vault */
 function useShadowTexture() {
@@ -164,7 +133,7 @@ function useShadowTexture() {
   }, []);
 }
 
-/** Detailed two-sided minted bullion coin with genuine gold luster */
+/** Sleek, pure minted gold coin without chunky cylindrical extrusions */
 function MintedCoin({
   innerRef,
 }: {
@@ -172,116 +141,51 @@ function MintedCoin({
 }) {
   return (
     <group ref={innerRef}>
-      {/* Solid planchet cylinder */}
+      {/* Sleek, flat coin planchet (thin genuine coin disc: radius 0.32, height 0.022) */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.34, 0.34, 0.065, 64]} />
+        <cylinderGeometry args={[0.32, 0.32, 0.022, 64]} />
         <meshStandardMaterial
           color="#FFD23F"
-          emissive="#4A3B00"
-          emissiveIntensity={0.25}
-          metalness={0.72}
-          roughness={0.16}
+          emissive="#524000"
+          emissiveIntensity={0.22}
+          metalness={0.82}
+          roughness={0.14}
         />
       </mesh>
 
-      {/* Raised outer rim on obverse & reverse */}
-      {[0.021, -0.021].map((z, index) => (
-        <mesh key={`outer-rim-${index}`} position={[0, 0, z]}>
-          <torusGeometry args={[0.322, 0.018, 16, 64]} />
+      {/* Clean raised border rim on obverse & reverse */}
+      {[0.011, -0.011].map((z, index) => (
+        <mesh key={`rim-${index}`} position={[0, 0, z]}>
+          <torusGeometry args={[0.302, 0.012, 16, 64]} />
           <meshStandardMaterial
             color="#FFE57F"
             emissive="#5C4800"
             emissiveIntensity={0.2}
-            metalness={0.78}
+            metalness={0.85}
             roughness={0.12}
           />
         </mesh>
       ))}
 
-      {/* Inset concentric beaded rings on obverse & reverse */}
-      {[1, -1].map((side) => (
-        <group key={`beaded-ring-${side}`} position={[0, 0, side * 0.032]}>
-          <mesh>
-            <torusGeometry args={[0.218, 0.007, 10, 64]} />
-            <meshStandardMaterial
-              color="#FFE57F"
-              emissive="#5C4800"
-              emissiveIntensity={0.2}
-              metalness={0.78}
-              roughness={0.14}
-            />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Instanced beads */}
-      <Instances limit={COIN_BEADS.length * 2} range={COIN_BEADS.length * 2}>
-        <sphereGeometry args={[0.009, 10, 8]} />
-        <meshStandardMaterial
-          color="#FFE57F"
-          emissive="#5C4800"
-          emissiveIntensity={0.2}
-          metalness={0.78}
-          roughness={0.12}
-        />
-        {[1, -1].flatMap((side) =>
-          COIN_BEADS.map((bead) => (
-            <Instance
-              key={`${side}-${bead.key}`}
-              position={[bead.x, bead.y, side * 0.034]}
-            />
-          ))
-        )}
-      </Instances>
-
-      {/* Raised star crest and center jewel on obverse & reverse */}
+      {/* Flat minted star crest emblem on obverse & reverse */}
       {[1, -1].map((side) => (
         <group
-          key={`mint-crest-${side}`}
-          position={[0, 0, side * 0.032]}
+          key={`crest-${side}`}
+          position={[0, 0, side * 0.0115]}
           rotation={side < 0 ? [0, Math.PI, 0] : [0, 0, 0]}
         >
           <mesh>
-            <extrudeGeometry args={[FOUR_POINT_STAR, STAR_EXTRUSION]} />
+            <extrudeGeometry args={[FOUR_POINT_STAR, { depth: 0.004, bevelEnabled: false }]} />
             <meshStandardMaterial
-              color="#FFF2A3"
+              color="#FFF3A8"
               emissive="#5C4800"
-              emissiveIntensity={0.2}
-              metalness={0.76}
-              roughness={0.14}
-            />
-          </mesh>
-          <mesh position={[0, 0, 0.018]}>
-            <sphereGeometry args={[0.026, 20, 16]} />
-            <meshStandardMaterial
-              color="#FFF8C6"
-              emissive="#665000"
-              emissiveIntensity={0.25}
-              metalness={0.72}
-              roughness={0.1}
+              emissiveIntensity={0.22}
+              metalness={0.82}
+              roughness={0.12}
             />
           </mesh>
         </group>
       ))}
-
-      {/* 16 spaced milled reeded edge teeth */}
-      <Instances limit={COIN_REEDING.length} range={COIN_REEDING.length}>
-        <boxGeometry args={[0.014, 0.048, 0.054]} />
-        <meshStandardMaterial
-          color="#FFE57F"
-          emissive="#5C4800"
-          emissiveIntensity={0.2}
-          metalness={0.76}
-          roughness={0.18}
-        />
-        {COIN_REEDING.map((tooth) => (
-          <Instance
-            key={tooth.key}
-            position={[tooth.x, tooth.y, 0]}
-            rotation={[0, 0, tooth.angle]}
-          />
-        ))}
-      </Instances>
     </group>
   );
 }
@@ -502,6 +406,56 @@ function VaultMesh({
       coin.rotation.y += delta * 1.05;
       coin.rotation.z += delta * 0.34;
     });
+
+    // Project coin positions to screen to dynamically invert headline text when coins pass behind it
+    if (typeof document !== "undefined") {
+      const headlineEl = document.getElementById("hero-headline-inverted");
+      if (headlineEl) {
+        const rect = headlineEl.getBoundingClientRect();
+        const projVector = new THREE.Vector3();
+        const masks: string[] = [];
+        const coinRadius = isDesktop ? 65 : 42;
+
+        COINS.forEach((_, index) => {
+          const coin = coinRefs.current[index];
+          if (!coin) return;
+
+          coin.getWorldPosition(projVector);
+          projVector.project(state.camera);
+
+          // Only coins facing the camera
+          if (projVector.z >= 1) return;
+
+          const screenX = (projVector.x * 0.5 + 0.5) * window.innerWidth;
+          const screenY = (-projVector.y * 0.5 + 0.5) * window.innerHeight;
+
+          const relX = screenX - rect.left;
+          const relY = screenY - rect.top;
+
+          if (
+            relX >= -coinRadius &&
+            relX <= rect.width + coinRadius &&
+            relY >= -coinRadius &&
+            relY <= rect.height + coinRadius
+          ) {
+            masks.push(
+              `radial-gradient(circle at ${Math.round(relX)}px ${Math.round(relY)}px, black ${coinRadius - 10}px, transparent ${coinRadius + 12}px)`
+            );
+          }
+        });
+
+        if (masks.length > 0) {
+          headlineEl.style.opacity = "1";
+          const maskValue = masks.join(", ");
+          headlineEl.style.webkitMaskImage = maskValue;
+          headlineEl.style.maskImage = maskValue;
+        } else {
+          headlineEl.style.opacity = "0";
+          headlineEl.style.webkitMaskImage = "linear-gradient(transparent, transparent)";
+          headlineEl.style.maskImage = "linear-gradient(transparent, transparent)";
+        }
+      }
+    }
   });
 
   return (

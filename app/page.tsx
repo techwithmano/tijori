@@ -148,10 +148,26 @@ export default function LandingPage() {
                 </span>
               </div>
 
-              {/* H1 Headline: 56-88px desktop / 40px phone, weight 800 */}
-              <h1 className="text-[40px] sm:text-6xl lg:text-[72px] font-extrabold tracking-tight leading-[1.06] text-ink font-heading">
-                {t("landing.heroTitle")}
-              </h1>
+              {/* H1 Headline: 56-88px desktop / 40px phone, weight 800 with dynamic inverted overlay layer */}
+              <div className="relative w-full">
+                <h1 className="text-[40px] sm:text-6xl lg:text-[72px] font-extrabold tracking-tight leading-[1.06] text-ink font-heading">
+                  {t("landing.heroTitle")}
+                </h1>
+                <div
+                  id="hero-headline-inverted"
+                  aria-hidden="true"
+                  className="absolute inset-0 pointer-events-none select-none text-white font-heading font-extrabold text-[40px] sm:text-6xl lg:text-[72px] tracking-tight leading-[1.06] transition-opacity duration-75"
+                  style={{
+                    opacity: 0,
+                    WebkitTextStroke: "1.5px var(--ink)",
+                    filter: "drop-shadow(3px 3px 0 var(--ink))",
+                    maskImage: "linear-gradient(transparent, transparent)",
+                    WebkitMaskImage: "linear-gradient(transparent, transparent)",
+                  }}
+                >
+                  {t("landing.heroTitle")}
+                </div>
+              </div>
 
               {/* Subhead: 18px body font */}
               <p className="text-lg text-muted max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
