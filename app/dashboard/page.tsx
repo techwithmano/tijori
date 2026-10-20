@@ -1242,8 +1242,8 @@ function DashboardContent() {
                 <div className="relative">
                   <input
                     type="number"
-                    step="0.05"
-                    min="1"
+                    step="any"
+                    min="0.5"
                     placeholder="e.g. 25"
                     value={customAmount}
                     onChange={(e) => setCustomAmount(e.target.value)}

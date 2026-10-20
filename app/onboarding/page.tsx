@@ -264,7 +264,8 @@ export default function OnboardingPage() {
               <div className="relative">
                 <input
                   type="number"
-                  min="5"
+                  min="0.5"
+                  step="any"
                   required
                   autoComplete="off"
                   enterKeyHint="next"
@@ -310,7 +311,8 @@ export default function OnboardingPage() {
               <div className="relative">
                 <input
                   type="number"
-                  min="5"
+                  min="0.5"
+                  step="any"
                   required
                   autoComplete="off"
                   enterKeyHint="next"
