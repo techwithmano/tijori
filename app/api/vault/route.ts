@@ -100,10 +100,11 @@ export async function POST(req: NextRequest) {
       allowanceDay = 25,
       targetDate,
       keyholder,
-      keyholderPin = "123456",
+      keyholderPin,
+      inviteToken: incomingInviteToken,
     } = body;
 
-    if (!title || !targetAmount || !pullAmount || !keyholder?.name || !keyholder?.phone) {
+    if (!title || !targetAmount || !pullAmount) {
       return NextResponse.json(
         { success: false, error: "Missing required vault parameters" },
         { status: 400 }
@@ -130,7 +131,10 @@ export async function POST(req: NextRequest) {
       initialNextPull.setDate(initialNextPull.getDate() + 7);
     }
 
-    const cleanPin = String(keyholderPin || "123456").replace(/\D/g, "").slice(0, 6).padStart(6, "0");
+    const inviteToken = incomingInviteToken || crypto.randomUUID();
+    const cleanPin = keyholderPin
+      ? String(keyholderPin).replace(/\D/g, "").slice(0, 6).padStart(6, "0")
+      : "123456";
 
     const newVault = await Vault.create({
       userId: session.userId,
@@ -153,11 +157,13 @@ export async function POST(req: NextRequest) {
       totalProtected: 0,
       streakCount: 0,
       keyholder: {
-        name: keyholder.name.trim(),
-        phone: keyholder.phone.trim(),
-        relationship: keyholder.relationship?.trim() || "Best Friend",
+        name: keyholder?.name?.trim() || "Ahmed",
+        phone: keyholder?.phone?.trim() || "+96599887766",
+        relationship: keyholder?.relationship?.trim() || "Best Friend",
       },
       keyholderPin: cleanPin,
+      inviteToken,
+      keyholderInviteAccepted: false,
       transactions: [],
     });
 

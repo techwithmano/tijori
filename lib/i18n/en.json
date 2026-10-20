@@ -211,7 +211,7 @@
     "allowanceDayLabel": "Salary / Allowance Day (optional)",
     "allowanceDayHint": "Most allowances land on the 25th.",
     "step3Title": "Who keeps you honest?",
-    "step3Sub": "Your Keyholder (the friend who holds your key) holds the approval key if you ever try to break the vault early.",
+    "step3Sub": "Your Keyholder holds the approval key if you ever try to break the vault early. Send them a private link to set their secret PIN.",
     "keyholderNameLabel": "Keyholder Name",
     "keyholderNamePlaceholder": "e.g. Ahmed Al-Mutawa",
     "keyholderPhoneLabel": "WhatsApp Number (+965)",

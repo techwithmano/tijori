@@ -11,6 +11,10 @@ import {
   AlertCircle,
   KeyRound,
   TrendingUp,
+  Copy,
+  Check,
+  Share2,
+  Sparkles,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { formatKWD } from "@/lib/utils";
@@ -42,6 +46,15 @@ export default function OnboardingPage() {
   const [savedCard, setSavedCard] = useState<{ brand: string; last4: string } | null>(null);
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
 
+  // Keyholder Invite Token (Generated client-side or fallback UUID)
+  const [inviteToken, setInviteToken] = useState<string>(() => {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return "inv_" + Math.random().toString(36).substring(2, 12);
+  });
+  const [copiedInvite, setCopiedInvite] = useState(false);
+
   React.useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => res.json())
@@ -65,11 +78,10 @@ export default function OnboardingPage() {
   const [incrementalValue, setIncrementalValue] = useState<number>(0.1);
   const [allowanceDay, setAllowanceDay] = useState<number>(25);
 
-  // Step 3: Keyholder
+  // Step 3: Keyholder (Friend who holds the key)
   const [keyholderName, setKeyholderName] = useState("Ahmed");
   const [keyholderPhone, setKeyholderPhone] = useState("");
   const [keyholderRel, setKeyholderRel] = useState("Best Friend");
-  const [keyholderPin, setKeyholderPin] = useState("123456");
 
   // Phone Validation: Kuwait mobile numbers are 8 digits
   const validatePhone = (num: string): boolean => {
@@ -140,7 +152,7 @@ export default function OnboardingPage() {
             phone: fullPhone,
             relationship: keyholderRel.trim() || "Best Friend",
           },
-          keyholderPin: keyholderPin.trim() || "123456",
+          inviteToken,
         }),
       });
 
@@ -158,6 +170,28 @@ export default function OnboardingPage() {
       setLoading(false);
     }
   };
+
+  const handleCopyInvite = () => {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/keyholder/invite/${inviteToken}`;
+    navigator.clipboard.writeText(url);
+    setCopiedInvite(true);
+    setTimeout(() => setCopiedInvite(false), 2000);
+  };
+
+  const inviteUrl =
+    typeof window !== "undefined" && inviteToken
+      ? `${window.location.origin}/keyholder/invite/${inviteToken}`
+      : `/keyholder/invite/${inviteToken}`;
+
+  const cleanedPhoneForWa = keyholderPhone.replace(/\s+/g, "").replace(/^\+965/, "");
+  const waRecipient = cleanedPhoneForWa ? `965${cleanedPhoneForWa}` : "";
+  const whatsAppMessage = isArabic
+    ? `سلام يا ${keyholderName.trim() || "صاحبي"}! سويت لي خزينة توفير في تِجوري لهدفي (${goalName.trim() || "هدفي"}). اخترتك تكون حامل المفتاح وحارس التزامي! اضغط هالرابط عشان تحط رقمك السري (PIN) الخاص المكوّن من ٦ أرقام اللي ما أعرفه: ${inviteUrl}`
+    : `Salam ${keyholderName.trim() || "friend"}! I'm creating a locked savings vault on Tijori for my goal "${goalName.trim() || "my goal"}". I chose you as my Keyholder to keep me honest! Please tap this private link to set your secret 6-digit approval PIN that only you know: ${inviteUrl}`;
+  const whatsAppUrl = waRecipient
+    ? `https://wa.me/${waRecipient}?text=${encodeURIComponent(whatsAppMessage)}`
+    : `https://wa.me/?text=${encodeURIComponent(whatsAppMessage)}`;
 
   const progressPercentage = (step / 4) * 100;
 
@@ -524,29 +558,6 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            {/* Keyholder 6-Digit Authorization PIN (High Security badge removed) */}
-            <div className="space-y-1.5 p-3.5 rounded-xl bg-bg border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
-              <label className="text-xs font-bold text-ink flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-violet" />
-                <span>{isArabic ? "رمز PIN المعتمد لحامل المفتاح (٦ أرقام)" : "Keyholder 6-Digit Approval PIN"}</span>
-              </label>
-              <input
-                type="text"
-                maxLength={6}
-                autoComplete="off"
-                enterKeyHint="next"
-                value={keyholderPin}
-                onChange={(e) => setKeyholderPin(e.target.value.replace(/\D/g, ""))}
-                placeholder="123456"
-                className="w-full bg-surface border-2 border-ink text-ink font-extrabold tracking-widest text-lg rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-violet/30 text-center"
-              />
-              <p className="text-xs text-muted">
-                {isArabic
-                  ? `يقوم ${keyholderName || "صاحبك"} بإدخال هذا الرمز للموافقة على فك القفل مع خصم ${FRIEND_FEE_PCT}٪ رسوم طوارئ.`
-                  : `${keyholderName || "Your keyholder"} must enter this PIN to authorize an unlock with only a ${FRIEND_FEE_PCT}% emergency fee.`}
-              </p>
-            </div>
-
             {/* Relationship */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-ink block">
@@ -561,6 +572,81 @@ export default function OnboardingPage() {
                 placeholder={t("onboarding.keyholderRelPlaceholder")}
                 className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-medium"
               />
+            </div>
+
+            {/* ── Keyholder Invite Link Card (Friend sets secret PIN via this link) ── */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-bg border-2 border-ink shadow-[3px_3px_0_var(--ink)] space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink font-black text-sm shadow-[1.5px_1.5px_0_var(--ink)]">
+                    🔑
+                  </span>
+                  <div>
+                    <h3 className="font-extrabold text-xs sm:text-sm text-ink">
+                      {isArabic ? "رابط دعوة حامل المفتاح الخاص" : "Private Keyholder Invite Link"}
+                    </h3>
+                    <p className="text-xs text-muted font-medium">
+                      {isArabic ? "صاحبك يحدد رقمه السري بنفسه" : "Your friend sets their own secret PIN"}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-violet/15 text-violet border border-ink font-bold flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-violet" />
+                  <span>{isArabic ? "خاص وسري" : "Private & Secret"}</span>
+                </span>
+              </div>
+
+              {/* Explanatory callout explaining that the user will NEVER see the PIN */}
+              <div className="p-3 rounded-xl bg-surface border border-ink/20 text-xs text-muted leading-relaxed font-medium">
+                {isArabic ? (
+                  <>
+                    أرسل هذا الرابط إلى <strong className="text-ink font-bold">{keyholderName || "صاحبك"}</strong>. سيفتحه ليضع رقمه السري المكوّن من ٦ أرقام. <strong className="text-ink font-bold">أنت لن ترى رمزه أبداً</strong> حتى لا تتمكن من كسر الخزينة إلا بإذنه وموافقته!
+                  </>
+                ) : (
+                  <>
+                    Send this link to <strong className="text-ink font-bold">{keyholderName || "your keyholder"}</strong>. They will open it to set their secret 6-digit PIN. <strong className="text-ink font-bold">You will never see this PIN</strong>, keeping you honest so you cannot break the vault early without them!
+                  </>
+                )}
+              </div>
+
+              {/* Link Input & Copy Button */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-surface border-2 border-ink rounded-xl px-3 py-2 text-xs font-mono text-ink truncate select-all">
+                  {inviteUrl}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyInvite}
+                  className="btn-hard py-2 px-3.5 bg-surface text-ink font-bold text-xs shadow-[2px_2px_0_var(--ink)] hover:bg-lime flex items-center gap-1.5 shrink-0 cursor-pointer"
+                >
+                  {copiedInvite ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-mint" />
+                      <span>{isArabic ? "تم النسخ!" : "Copied!"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{isArabic ? "نسخ الرابط" : "Copy Link"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Direct WhatsApp Share Button */}
+              <a
+                href={whatsAppUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-hard w-full py-2.5 px-4 bg-[#25D366] text-white font-extrabold text-xs sm:text-sm shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>
+                  {isArabic
+                    ? `إرسال الرابط لـ ${keyholderName || "حامل المفتاح"} عبر واتساب`
+                    : `Send Invite to ${keyholderName || "Keyholder"} on WhatsApp`}
+                </span>
+              </a>
             </div>
 
             <div className="pt-2">

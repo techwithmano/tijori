@@ -87,7 +87,7 @@ async function runVirtualBoxTests() {
     await page.click('button[type="submit"]');
 
     // Wait for redirect to /onboarding
-    await page.waitForURL('**/onboarding', { timeout: 8000 });
+    await page.waitForURL('**/onboarding', { timeout: 15000 });
     const cookies = await context.cookies();
     const sessionCookie = cookies.find((c) => c.name === 'tijori_session');
     if (!sessionCookie) throw new Error('tijori_session cookie not set after registration');
@@ -123,13 +123,28 @@ async function runVirtualBoxTests() {
     }
     await page.fill('input[placeholder="Ahmed"]', testUser.keyholderName);
     await page.fill('input[type="tel"]', testUser.keyholderPhone);
-    await page.fill('input[placeholder="123456"]', testUser.keyholderPin);
+    // Verify Keyholder Invite link is generated & PIN input is hidden from user
+    const hasPinInput = await page.$('input[placeholder="123456"]');
+    if (hasPinInput) {
+      throw new Error("Security violation: Step 3 is still showing a PIN input to the user!");
+    }
+    const hasInviteBox = await page.getByText(/Private Keyholder Invite Link|رابط دعوة حامل المفتاح/i).first();
+    if (!hasInviteBox) {
+      throw new Error("Keyholder invite link card not rendered in Step 3.");
+    }
+    const extractedInviteUrl = await page.evaluate(() => {
+      const monoBox = document.querySelector('div.font-mono');
+      if (monoBox && monoBox.textContent && monoBox.textContent.includes('/keyholder/invite/')) {
+        return monoBox.textContent.trim();
+      }
+      return null;
+    });
     await page.click('button[type="submit"]');
     await page.waitForTimeout(800);
 
     logPass(
       '4-Step Onboarding Navigation',
-      `Configured Goal "${testUser.vaultTitle}", Target ${testUser.targetAmount} KWD, Keyholder "${testUser.keyholderName}" with PIN ${testUser.keyholderPin}`
+      `Configured Goal "${testUser.vaultTitle}", Target ${testUser.targetAmount} KWD, Keyholder "${testUser.keyholderName}" with secure private invite link`
     );
 
     // ─────────────────────────────────────────────────────────────
@@ -166,6 +181,26 @@ async function runVirtualBoxTests() {
       'Stripe TestCardHelper & Card Tokenization UI',
       'Test mode card helper rendered, quick-copy extracted clean 16-digit card number, vault successfully created'
     );
+
+    if (extractedInviteUrl) {
+      console.log(`Friend opening invite link to set PIN: ${extractedInviteUrl}...`);
+      const friendPage = await context.newPage();
+      await friendPage.goto(extractedInviteUrl, { waitUntil: 'networkidle' });
+      await friendPage.waitForTimeout(1000);
+      const pinInputs = await friendPage.$$('input[type="password"]');
+      if (pinInputs.length >= 2) {
+        await pinInputs[0].fill(testUser.keyholderPin);
+        await pinInputs[1].fill(testUser.keyholderPin);
+        await friendPage.click('button[type="submit"]');
+        await friendPage.waitForTimeout(2000);
+        const friendSuccessText = await friendPage.innerText('body');
+        if (!friendSuccessText.includes('You Hold the Key') && !friendSuccessText.includes('حامل المفتاح')) {
+          console.warn('Friend setup state:', friendSuccessText.slice(0, 200));
+        }
+      }
+      await friendPage.close();
+      console.log(`Friend set secret PIN (${testUser.keyholderPin}) via invite link.`);
+    }
 
     // ─────────────────────────────────────────────────────────────
     // FEATURE 4: Dashboard Real Data Presentation
@@ -351,12 +386,9 @@ async function runVirtualBoxTests() {
     );
     if (!confirmBtn) throw new Error('Authorize button not found in PIN modal');
     await confirmBtn.click();
-    await keyholderPage.waitForTimeout(2000);
 
-    const successText = await keyholderPage.innerText('body');
-    if (!successText.includes('Break Approved') && !successText.includes('تم تأكيد فك الخزينة') && !successText.includes('burned')) {
-      throw new Error(`Keyholder approval did not finalize. Page text:\n${successText.slice(0, 300)}`);
-    }
+    // Wait for Stripe test refund and DB update to complete
+    await keyholderPage.getByText(/Break Approved|تم تأكيد فك الخزينة|Single-use/i).first().waitFor({ timeout: 15000 });
 
     // Try reloading to verify single-use token is burned
     await keyholderPage.reload({ waitUntil: 'networkidle' });

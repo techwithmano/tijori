@@ -47,6 +47,8 @@ export interface IVault extends Document {
   keyholderNameAr?: string;
   keyholderPhone?: string;
   keyholderPin?: string | null;
+  inviteToken?: string | null;
+  keyholderInviteAccepted?: boolean;
   unlockToken?: string | null;
   unlockReason?: string | null;
   unlockMethod?: "friend_approved" | "emergency_self_break" | "FRIEND_APPROVAL" | "EMERGENCY_SOLO" | string | null;
@@ -125,6 +127,8 @@ const VaultSchema = new Schema<IVault>(
     keyholderNameAr: { type: String, default: null },
     keyholderPhone: { type: String, default: null },
     keyholderPin: { type: String, default: "123456" },
+    inviteToken: { type: String, default: null, index: true },
+    keyholderInviteAccepted: { type: Boolean, default: false },
     unlockToken: { type: String, default: null, index: true },
     unlockReason: { type: String, default: null },
     unlockMethod: { type: String, enum: ["friend_approved", "emergency_self_break", "FRIEND_APPROVAL", "EMERGENCY_SOLO", null], default: null },
