@@ -407,24 +407,25 @@ export default function OnboardingPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { type: "none", val: 0, label: t("onboarding.incrementalFixed") },
-                  { type: "fixed", val: 0.1, label: "+100 fils" },
-                  { type: "fixed", val: 0.25, label: "+250 fils" },
-                  { type: "fixed", val: 1.0, label: "+1.0 KWD" },
+                  { type: "fixed", val: 0.1, label: t("onboarding.incremental100") },
+                  { type: "fixed", val: 0.25, label: t("onboarding.incremental250") },
+                  { type: "fixed", val: 1.0, label: t("onboarding.incremental1kwd") },
                 ].map((opt, idx) => (
                   <button
                     key={idx}
                     type="button"
+                    translate="no"
                     onClick={() => {
                       setIncrementalType(opt.type as any);
                       setIncrementalValue(opt.val);
                     }}
-                    className={`py-2 px-2.5 rounded-xl border-2 border-ink text-xs font-bold transition-all cursor-pointer shadow-[2px_2px_0_var(--ink)] ${
+                    className={`notranslate py-2 px-2.5 rounded-xl border-2 border-ink text-xs font-bold transition-all cursor-pointer shadow-[2px_2px_0_var(--ink)] ${
                       incrementalType === opt.type && incrementalValue === opt.val
                         ? "bg-violet text-white"
                         : "bg-surface text-ink hover:bg-bg"
                     }`}
                   >
-                    {opt.label}
+                    <span translate="no" className="notranslate">{opt.label}</span>
                   </button>
                 ))}
               </div>
