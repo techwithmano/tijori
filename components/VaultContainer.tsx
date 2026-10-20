@@ -12,9 +12,11 @@ const Vault3D = dynamic(() => import("./Vault3D"), {
 export default function VaultContainer({
   isRTL,
   onVaultClick,
+  spinTrigger,
 }: {
   isRTL?: boolean;
   onVaultClick?: () => void;
+  spinTrigger?: number;
 }) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -36,5 +38,11 @@ export default function VaultContainer({
     return <VaultFallback onVaultClick={onVaultClick} />;
   }
 
-  return <Vault3D isRTL={isRTL} onVaultClick={onVaultClick} />;
+  return (
+    <Vault3D
+      isRTL={isRTL}
+      onVaultClick={onVaultClick}
+      spinTrigger={spinTrigger}
+    />
+  );
 }

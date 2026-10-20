@@ -26,9 +26,14 @@ export default function LandingPage() {
 
   // Vault Click / Sticker Pulse State
   const [stickersPulsing, setStickersPulsing] = useState(false);
+  const [vaultSpinTrigger, setVaultSpinTrigger] = useState(0);
 
   const handleVaultClick = () => {
     setStickersPulsing(true);
+    setVaultSpinTrigger((c) => c + 1);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("tijori:vault-spin"));
+    }
     setTimeout(() => setStickersPulsing(false), 700);
   };
 
@@ -134,7 +139,11 @@ export default function LandingPage() {
       >
         {/* Full-width 3D Canvas Background Layer behind text */}
         <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
-          <VaultContainer isRTL={isArabic} onVaultClick={handleVaultClick} />
+          <VaultContainer
+            isRTL={isArabic}
+            onVaultClick={handleVaultClick}
+            spinTrigger={vaultSpinTrigger}
+          />
         </div>
 
         <div className="max-w-[1100px] mx-auto px-4 sm:px-6 relative z-10">
@@ -563,6 +572,173 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ─── 4.5 THE TWO RULES (5% Friend Approval vs 50% Emergency Self-Break) ─── */}
+      <section
+        id="unlock-rules"
+        className="px-4 sm:px-6 max-w-[1100px] mx-auto scroll-mt-24"
+        style={sectionPaddingStyle}
+      >
+        <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16 space-y-3">
+          <div className="inline-block transform rotate-1 mb-1">
+            <span className="px-3.5 py-1 rounded-full bg-lime border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-xs font-bold text-ink">
+              {t("landing.rulesTag")}
+            </span>
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-ink font-heading tracking-tight leading-tight">
+            {t("landing.rulesHeading")}
+          </h2>
+          <p className="text-base sm:text-lg text-muted font-medium">
+            {t("landing.rulesSub")}
+          </p>
+        </div>
+
+        {/* 2-Column Side-by-Side Neobrutalist Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+          {/* Path A: 5% Friend Approval */}
+          <div className="card-hard bg-surface p-7 sm:p-9 border-2 border-ink shadow-[6px_6px_0_var(--ink)] rounded-[28px] flex flex-col justify-between space-y-6 relative overflow-hidden">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="px-3 py-1 rounded-full bg-lime border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-xs font-extrabold text-ink">
+                  {t("landing.ruleFriendBadge")}
+                </span>
+                <span className="text-xs font-bold text-muted uppercase tracking-wider">
+                  {isArabic ? "المسار الذكي" : "Accountability Path"}
+                </span>
+              </div>
+
+              <div className="flex items-baseline justify-between pt-2">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-ink font-heading">
+                  {t("landing.ruleFriendTitle")}
+                </h3>
+                <div className="text-end">
+                  <div className="text-3xl sm:text-4xl font-extrabold text-ink font-heading">
+                    {t("landing.ruleFriendRate")}
+                  </div>
+                  <div className="text-xs font-bold text-muted">
+                    {t("landing.ruleFriendRateLabel")}
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-base text-muted font-medium leading-relaxed">
+                {t("landing.ruleFriendDesc")}
+              </p>
+
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-3 text-sm font-semibold text-ink">
+                  <span className="w-5 h-5 rounded-full bg-lime border border-ink flex items-center justify-center shrink-0">
+                    <Check className="w-3.5 h-3.5 text-ink stroke-[3]" />
+                  </span>
+                  <span>{t("landing.ruleFriendBullet1")}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm font-semibold text-ink">
+                  <span className="w-5 h-5 rounded-full bg-lime border border-ink flex items-center justify-center shrink-0">
+                    <Check className="w-3.5 h-3.5 text-ink stroke-[3]" />
+                  </span>
+                  <span>{t("landing.ruleFriendBullet2")}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm font-semibold text-ink">
+                  <span className="w-5 h-5 rounded-full bg-lime border border-ink flex items-center justify-center shrink-0">
+                    <Check className="w-3.5 h-3.5 text-ink stroke-[3]" />
+                  </span>
+                  <span>{t("landing.ruleFriendBullet3")}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Micro Outcome Box */}
+            <div className="p-3.5 rounded-2xl bg-lime/25 border-2 border-ink text-xs font-bold text-ink flex items-center justify-between">
+              <span>{isArabic ? "إذا وفرت ١٠٠ د.ك" : "On 100 KWD savings:"}</span>
+              <span className="text-ink font-extrabold bg-lime px-2 py-0.5 rounded-md border border-ink">
+                {isArabic ? "تسترجع ٩٥ د.ك" : "Keep 95 KWD (5 fee)"}
+              </span>
+            </div>
+          </div>
+
+          {/* Path B: 50% Emergency Self-Break */}
+          <div className="card-hard bg-[#FFF0F3] p-7 sm:p-9 border-2 border-ink shadow-[6px_6px_0_var(--ink)] rounded-[28px] flex flex-col justify-between space-y-6 relative overflow-hidden">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="px-3 py-1 rounded-full bg-coral border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-xs font-extrabold text-white">
+                  {t("landing.ruleSelfBadge")}
+                </span>
+                <span className="text-xs font-bold text-coral uppercase tracking-wider">
+                  {isArabic ? "كسر بدون إذن" : "Solo Emergency"}
+                </span>
+              </div>
+
+              <div className="flex items-baseline justify-between pt-2">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-ink font-heading">
+                  {t("landing.ruleSelfTitle")}
+                </h3>
+                <div className="text-end">
+                  <div className="text-3xl sm:text-4xl font-extrabold text-coral font-heading">
+                    {t("landing.ruleSelfRate")}
+                  </div>
+                  <div className="text-xs font-bold text-muted">
+                    {t("landing.ruleSelfRateLabel")}
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-base text-muted font-medium leading-relaxed">
+                {t("landing.ruleSelfDesc")}
+              </p>
+
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-3 text-sm font-semibold text-ink">
+                  <span className="w-5 h-5 rounded-full bg-coral border border-ink flex items-center justify-center shrink-0 text-white">
+                    <Flame className="w-3.5 h-3.5" />
+                  </span>
+                  <span>{t("landing.ruleSelfBullet1")}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm font-semibold text-ink">
+                  <span className="w-5 h-5 rounded-full bg-coral border border-ink flex items-center justify-center shrink-0 text-white">
+                    <Flame className="w-3.5 h-3.5" />
+                  </span>
+                  <span>{t("landing.ruleSelfBullet2")}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm font-semibold text-ink">
+                  <span className="w-5 h-5 rounded-full bg-coral border border-ink flex items-center justify-center shrink-0 text-white">
+                    <Flame className="w-3.5 h-3.5" />
+                  </span>
+                  <span>{t("landing.ruleSelfBullet3")}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Micro Outcome Box */}
+            <div className="p-3.5 rounded-2xl bg-coral/20 border-2 border-ink text-xs font-bold text-ink flex items-center justify-between">
+              <span>{isArabic ? "إذا وفرت ١٠٠ د.ك" : "On 100 KWD savings:"}</span>
+              <span className="text-white font-extrabold bg-coral px-2 py-0.5 rounded-md border border-ink">
+                {isArabic ? "تخسر ٥٠ د.ك فوراً" : "Lose 50 KWD penalty!"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Banner Comparison */}
+        <div className="mt-8 p-4 sm:p-5 rounded-2xl bg-ink text-white border-2 border-ink shadow-[4px_4px_0_var(--ink)] flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-start">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-lime text-ink border border-ink flex items-center justify-center font-extrabold shrink-0">
+              <Shield className="w-5 h-5" />
+            </div>
+            <p className="text-sm sm:text-base font-bold text-white">
+              {t("landing.rulesComparisonNote")}{" "}
+              <span className="text-lime">{t("landing.rulesComparisonFriend")}</span> vs{" "}
+              <span className="text-coral">{t("landing.rulesComparisonSelf")}</span>
+            </p>
+          </div>
+          <Link
+            href="/signup"
+            className="btn-hard bg-lime text-ink font-bold text-sm px-5 py-2.5 shrink-0 inline-flex items-center gap-2"
+          >
+            <span>{t("landing.ctaStart")}</span>
+            <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+          </Link>
         </div>
       </section>
 

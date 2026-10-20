@@ -19,6 +19,7 @@ const MAX_POINTER_TILT = THREE.MathUtils.degToRad(8);
 interface Vault3DProps {
   isRTL?: boolean;
   onVaultClick?: () => void;
+  spinTrigger?: number;
 }
 
 interface VaultSceneProps {
@@ -37,65 +38,100 @@ interface CoinConfig {
   speed: number;
   offset: number;
   zAmp: number;
+  rotSpeedX: number;
+  rotSpeedY: number;
+  rotSpeedZ: number;
+  flutterFreq: number;
+  flutterAmp: number;
 }
 
 const NOOP = () => {};
 
-// 6 coin trajectories tuned for desktop sweep and mobile compact framing
+// 6 coin trajectories tuned with safe vault clearance, sweep, and independent organic tumbles
 const COINS: CoinConfig[] = [
   {
-    radiusX: 2.6,
+    radiusX: 2.7,
     radiusY: 0.55,
     radiusXPhone: 0.85,
     radiusYPhone: 0.28,
-    speed: 0.62,
+    speed: 0.58,
     offset: 0,
-    zAmp: 1.1,
+    zAmp: 1.2,
+    rotSpeedX: 1.15,
+    rotSpeedY: 1.48,
+    rotSpeedZ: 0.32,
+    flutterFreq: 1.9,
+    flutterAmp: 0.18,
   },
   {
-    radiusX: 3.1,
+    radiusX: 3.2,
     radiusY: 0.68,
     radiusXPhone: 0.95,
     radiusYPhone: 0.32,
-    speed: -0.57,
+    speed: -0.52,
     offset: 1.05,
-    zAmp: 1.25,
+    zAmp: 1.35,
+    rotSpeedX: -1.25,
+    rotSpeedY: 0.92,
+    rotSpeedZ: -0.42,
+    flutterFreq: 2.3,
+    flutterAmp: 0.22,
   },
   {
-    radiusX: 2.4,
-    radiusY: 0.46,
+    radiusX: 2.5,
+    radiusY: 0.48,
     radiusXPhone: 0.80,
     radiusYPhone: 0.25,
-    speed: 0.72,
+    speed: 0.68,
     offset: 2.1,
-    zAmp: 1.0,
+    zAmp: 1.15,
+    rotSpeedX: 0.72,
+    rotSpeedY: -1.65,
+    rotSpeedZ: 0.55,
+    flutterFreq: 1.7,
+    flutterAmp: 0.16,
   },
   {
-    radiusX: 2.9,
+    radiusX: 3.0,
     radiusY: 0.62,
     radiusXPhone: 0.90,
     radiusYPhone: 0.30,
-    speed: -0.68,
+    speed: -0.64,
     offset: 3.15,
-    zAmp: 1.2,
+    zAmp: 1.25,
+    rotSpeedX: 1.40,
+    rotSpeedY: -0.85,
+    rotSpeedZ: -0.36,
+    flutterFreq: 2.1,
+    flutterAmp: 0.20,
   },
   {
-    radiusX: 3.3,
-    radiusY: 0.5,
+    radiusX: 3.4,
+    radiusY: 0.52,
     radiusXPhone: 1.02,
     radiusYPhone: 0.34,
-    speed: 0.53,
+    speed: 0.48,
     offset: 4.2,
-    zAmp: 1.15,
+    zAmp: 1.3,
+    rotSpeedX: -0.88,
+    rotSpeedY: 1.75,
+    rotSpeedZ: 0.45,
+    flutterFreq: 1.5,
+    flutterAmp: 0.24,
   },
   {
-    radiusX: 2.7,
+    radiusX: 2.8,
     radiusY: 0.58,
     radiusXPhone: 0.88,
     radiusYPhone: 0.29,
-    speed: -0.64,
+    speed: -0.60,
     offset: 5.25,
-    zAmp: 1.05,
+    zAmp: 1.2,
+    rotSpeedX: 1.10,
+    rotSpeedY: 1.20,
+    rotSpeedZ: -0.65,
+    flutterFreq: 2.5,
+    flutterAmp: 0.19,
   },
 ];
 
@@ -208,6 +244,8 @@ function VaultMesh({
   const spinTargetRef = useRef(0);
   const spinCurrentRef = useRef(0);
   const pointerRef = useRef({ x: 0, y: 0, hasPointer: false });
+  const recoilRef = useRef({ rotX: 0, rotY: 0, rotZ: 0, scale: 1 });
+  const glowRingMatRef = useRef<THREE.MeshStandardMaterial>(null);
 
   const coinRefCallbacks = useMemo(
     () =>
@@ -218,6 +256,20 @@ function VaultMesh({
     []
   );
 
+  const handleVaultClick = useCallback(
+    (event?: { stopPropagation: () => void }) => {
+      event?.stopPropagation();
+      // Energetic physical recoil tilt, twist, and spring pop
+      recoilRef.current.rotX = -0.28;
+      recoilRef.current.rotY = (isRTL ? -1 : 1) * 0.42;
+      recoilRef.current.rotZ = (isRTL ? 1 : -1) * 0.12;
+      recoilRef.current.scale = 1.08;
+      spinTargetRef.current += Math.PI * 4;
+      onRequestSpin();
+    },
+    [isRTL, onRequestSpin]
+  );
+
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
       pointerRef.current.x = (event.clientX / Math.max(window.innerWidth, 1)) * 2 - 1;
@@ -225,17 +277,17 @@ function VaultMesh({
       pointerRef.current.hasPointer = true;
     };
 
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handlePointerMove);
-  }, []);
+    const handleCustomSpin = () => {
+      handleVaultClick();
+    };
 
-  const handleVaultClick = useCallback(
-    (event: { stopPropagation: () => void }) => {
-      event.stopPropagation();
-      onRequestSpin();
-    },
-    [onRequestSpin]
-  );
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("tijori:vault-spin", handleCustomSpin);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("tijori:vault-spin", handleCustomSpin);
+    };
+  }, [handleVaultClick]);
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
@@ -288,79 +340,16 @@ function VaultMesh({
       }
     }
 
-    if (vaultRef.current) {
-      vaultRef.current.position.set(vaultX, vaultY, 0);
-      vaultRef.current.scale.setScalar(vaultScale);
-
-      const baseRotationY = isRTL ? 0.11 : -0.11;
-      const baseRotationX = 0.025;
-
-      if (isTouchDevice) {
-        // Gentle rhythmic sway for touch devices
-        const swayY = baseRotationY + Math.sin(time * 0.75) * 0.055;
-        const swayX = baseRotationX + Math.cos(time * 0.62) * 0.035;
-        vaultRef.current.rotation.y = THREE.MathUtils.damp(
-          vaultRef.current.rotation.y,
-          swayY,
-          4.5,
-          delta
-        );
-        vaultRef.current.rotation.x = THREE.MathUtils.damp(
-          vaultRef.current.rotation.x,
-          swayX,
-          4.5,
-          delta
-        );
-      } else {
-        // Interactive pointer tilt up to 8 deg
-        const pointerX = pointerRef.current.hasPointer
-          ? pointerRef.current.x
-          : state.pointer.x;
-        const pointerY = pointerRef.current.hasPointer
-          ? pointerRef.current.y
-          : state.pointer.y;
-
-        const targetRotationY =
-          baseRotationY +
-          THREE.MathUtils.clamp(
-            pointerX * MAX_POINTER_TILT,
-            -MAX_POINTER_TILT,
-            MAX_POINTER_TILT
-          );
-        const targetRotationX =
-          baseRotationX +
-          THREE.MathUtils.clamp(
-            -pointerY * MAX_POINTER_TILT,
-            -MAX_POINTER_TILT,
-            MAX_POINTER_TILT
-          );
-
-        vaultRef.current.rotation.y = THREE.MathUtils.damp(
-          vaultRef.current.rotation.y,
-          targetRotationY,
-          7,
-          delta
-        );
-        vaultRef.current.rotation.x = THREE.MathUtils.damp(
-          vaultRef.current.rotation.x,
-          targetRotationX,
-          7,
-          delta
-        );
-      }
-    }
-
-    // Shadow moves and scales locked with the vault
-    if (shadowRef.current) {
-      shadowRef.current.position.set(vaultX, vaultY - 1.28 * vaultScale, -0.05);
-      shadowRef.current.scale.set(vaultScale, vaultScale, 1);
-    }
-
     // Wheel spin handling
     if (spinRequest !== lastSpinRequestRef.current) {
       const extraTurns = Math.max(1, spinRequest - lastSpinRequestRef.current);
-      spinTargetRef.current += Math.PI * 2 * extraTurns;
+      spinTargetRef.current += Math.PI * 4 * extraTurns;
       lastSpinRequestRef.current = spinRequest;
+      // Trigger dynamic 3D punch recoil tilt & twist
+      recoilRef.current.rotX = -0.28;
+      recoilRef.current.rotY = (isRTL ? -1 : 1) * 0.42;
+      recoilRef.current.rotZ = (isRTL ? 1 : -1) * 0.12;
+      recoilRef.current.scale = 1.08;
     }
     spinCurrentRef.current = THREE.MathUtils.damp(
       spinCurrentRef.current,
@@ -374,6 +363,104 @@ function VaultMesh({
         scrollProgress * Math.PI * 2 + spinCurrentRef.current;
     }
 
+    // Dial plate neon lime pulsing glow
+    if (glowRingMatRef.current) {
+      glowRingMatRef.current.emissiveIntensity = 1.1 + Math.sin(time * 2.8) * 0.35;
+    }
+
+    if (vaultRef.current) {
+      vaultRef.current.position.set(vaultX, vaultY, 0);
+
+      // Dampen click recoil spring smoothly back to rest
+      recoilRef.current.rotX = THREE.MathUtils.damp(recoilRef.current.rotX, 0, 5.5, delta);
+      recoilRef.current.rotY = THREE.MathUtils.damp(recoilRef.current.rotY, 0, 5.0, delta);
+      recoilRef.current.rotZ = THREE.MathUtils.damp(recoilRef.current.rotZ, 0, 6.5, delta);
+      recoilRef.current.scale = THREE.MathUtils.damp(recoilRef.current.scale, 1, 7.5, delta);
+
+      const baseRotationY = isRTL ? 0.11 : -0.11;
+      const baseRotationX = 0.025;
+
+      if (isTouchDevice) {
+        // Gentle rhythmic sway for touch devices with recoil
+        const swayY = baseRotationY + Math.sin(time * 0.75) * 0.055 + recoilRef.current.rotY;
+        const swayX = baseRotationX + Math.cos(time * 0.62) * 0.035 + recoilRef.current.rotX;
+        vaultRef.current.rotation.y = THREE.MathUtils.damp(
+          vaultRef.current.rotation.y,
+          swayY,
+          4.5,
+          delta
+        );
+        vaultRef.current.rotation.x = THREE.MathUtils.damp(
+          vaultRef.current.rotation.x,
+          swayX,
+          4.5,
+          delta
+        );
+        vaultRef.current.rotation.z = THREE.MathUtils.damp(
+          vaultRef.current.rotation.z,
+          recoilRef.current.rotZ,
+          6,
+          delta
+        );
+      } else {
+        // Dynamic, responsive pointer tilt across full screen (up to 20 deg Y, 13 deg X)
+        const MAX_POINTER_TILT_Y = 0.35;
+        const MAX_POINTER_TILT_X = 0.22;
+
+        const pointerX = pointerRef.current.hasPointer
+          ? pointerRef.current.x
+          : state.pointer.x;
+        const pointerY = pointerRef.current.hasPointer
+          ? pointerRef.current.y
+          : state.pointer.y;
+
+        const targetRotationY =
+          baseRotationY +
+          THREE.MathUtils.clamp(
+            pointerX * MAX_POINTER_TILT_Y,
+            -MAX_POINTER_TILT_Y,
+            MAX_POINTER_TILT_Y
+          ) +
+          recoilRef.current.rotY;
+
+        const targetRotationX =
+          baseRotationX +
+          THREE.MathUtils.clamp(
+            -pointerY * MAX_POINTER_TILT_X,
+            -MAX_POINTER_TILT_X,
+            MAX_POINTER_TILT_X
+          ) +
+          recoilRef.current.rotX;
+
+        vaultRef.current.rotation.y = THREE.MathUtils.damp(
+          vaultRef.current.rotation.y,
+          targetRotationY,
+          7,
+          delta
+        );
+        vaultRef.current.rotation.x = THREE.MathUtils.damp(
+          vaultRef.current.rotation.x,
+          targetRotationX,
+          7,
+          delta
+        );
+        vaultRef.current.rotation.z = THREE.MathUtils.damp(
+          vaultRef.current.rotation.z,
+          recoilRef.current.rotZ,
+          7,
+          delta
+        );
+      }
+
+      vaultRef.current.scale.setScalar(vaultScale * recoilRef.current.scale);
+    }
+
+    // Shadow moves and scales locked with the vault
+    if (shadowRef.current) {
+      shadowRef.current.position.set(vaultX, vaultY - 1.28 * vaultScale, -0.05);
+      shadowRef.current.scale.set(vaultScale * recoilRef.current.scale, vaultScale, 1);
+    }
+
     // Orbiting Minted Coins
     const sweepDirection = isRTL ? 1 : -1;
     const coinScale = isDesktop ? 0.95 : vaultScale * 1.05;
@@ -385,26 +472,50 @@ function VaultMesh({
       coin.scale.setScalar(coinScale);
 
       const angle = time * config.speed + config.offset;
+      const sinA = Math.sin(angle);
+      const cosA = Math.cos(angle);
 
       if (isDesktop) {
-        // Desktop: Coins orbit from the vault and sweep across towards the headline column
-        const sweep = Math.sin(angle) > 0 ? sweepDirection * 1.3 : 0;
-        coin.position.x = vaultX + Math.cos(angle) * config.radiusX + sweep;
-        coin.position.y = vaultY + Math.sin(angle) * config.radiusY;
-        coin.position.z = Math.sin(angle) * config.zAmp;
+        // Desktop: Wide orbit that sweeps from vault across to the headline column
+        // When sinA > 0, the coin sweeps towards the headline (sweepDirection: -1 for LTR, +1 for RTL)
+        const sweepDist = sweepDirection * (1.25 + Math.abs(cosA) * 0.45);
+        const sweep = sinA > 0 ? sweepDist : 0;
+
+        const rawX = vaultX + cosA * config.radiusX + sweep;
+        const rawY = vaultY + sinA * config.radiusY + Math.sin(time * 1.5 + index) * 0.06;
+
+        // Ensure safe clearance from vault body (vault width ~2.5, depth ~1.3)
+        // Vault bounding box: [vaultX - 1.45 * vaultScale, vaultX + 1.45 * vaultScale]
+        const distFromVaultX = Math.abs(rawX - vaultX);
+        const nearVault = distFromVaultX < 1.45 * vaultScale;
+
+        let zPos = sinA * config.zAmp;
+        if (nearVault) {
+          // If in front, stay cleanly in front of door (z > 1.25 * vaultScale)
+          // If behind, stay cleanly behind safe body (z < -1.10 * vaultScale)
+          if (zPos >= 0) {
+            zPos = Math.max(zPos, 1.25 * vaultScale + 0.25 * Math.max(0, sinA));
+          } else {
+            zPos = Math.min(zPos, -1.10 * vaultScale + 0.25 * Math.min(0, sinA));
+          }
+        }
+
+        coin.position.x = rawX;
+        coin.position.y = rawY;
+        coin.position.z = zPos;
       } else {
-        // Mobile: Coins orbit tightly around the vault, never clipping screen borders!
-        const orbitRadiusX = vaultScale * (1.30 + (index % 3) * 0.12);
-        const orbitRadiusY = vaultScale * (0.42 + (index % 2) * 0.08);
-        coin.position.x = vaultX + Math.cos(angle) * orbitRadiusX;
-        coin.position.y = vaultY + Math.sin(angle) * orbitRadiusY;
-        coin.position.z = Math.sin(angle) * 0.45;
+        // Mobile: Coins orbit tightly around the vault, never clipping screen borders or vault
+        const orbitRadiusX = vaultScale * (1.60 + (index % 3) * 0.15);
+        const orbitRadiusY = vaultScale * (0.55 + (index % 2) * 0.10);
+        coin.position.x = vaultX + cosA * orbitRadiusX;
+        coin.position.y = vaultY + sinA * orbitRadiusY;
+        coin.position.z = sinA > 0 ? 1.05 * vaultScale : -0.95 * vaultScale;
       }
 
-      // Three-axis coin tumble
-      coin.rotation.x += delta * 0.78;
-      coin.rotation.y += delta * 1.05;
-      coin.rotation.z += delta * 0.34;
+      // Three-axis coin tumble with independent velocities and organic sinusoidal flutter
+      coin.rotation.x += delta * config.rotSpeedX + Math.cos(time * config.flutterFreq) * (delta * config.flutterAmp);
+      coin.rotation.y += delta * config.rotSpeedY + Math.sin(time * config.flutterFreq * 1.2) * (delta * config.flutterAmp * 1.2);
+      coin.rotation.z += delta * config.rotSpeedZ;
     });
 
     // Project coin positions to screen to dynamically invert headline text when coins pass behind it
@@ -564,14 +675,29 @@ function VaultMesh({
           />
         </RoundedBox>
 
-        {/* Neon Lime Dial Plate with Chrome Rotating Wheel */}
+        {/* Neon Lime Dial Plate with Chrome Rotating Wheel and Pulsing Glow Ring */}
         <group position={[0, 0.08, 0.72]}>
           <mesh position={[0, 0, -0.02]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.55, 0.55, 0.04, 48]} />
             <meshStandardMaterial
               color="#CFFF3A"
-              roughness={0.32}
-              metalness={0.05}
+              emissive="#CFFF3A"
+              emissiveIntensity={0.35}
+              roughness={0.28}
+              metalness={0.08}
+            />
+          </mesh>
+
+          {/* Emissive Neon Lime Rim Ring (Pulsing high-energy glow like the classic vault) */}
+          <mesh position={[0, 0, 0.01]}>
+            <torusGeometry args={[0.54, 0.022, 16, 64]} />
+            <meshStandardMaterial
+              ref={glowRingMatRef}
+              color="#CFFF3A"
+              emissive="#CFFF3A"
+              emissiveIntensity={1.25}
+              roughness={0.12}
+              metalness={0.1}
             />
           </mesh>
 
@@ -678,6 +804,7 @@ class VaultCanvasErrorBoundary extends React.Component<
 export default function Vault3D({
   isRTL = false,
   onVaultClick = NOOP,
+  spinTrigger = 0,
 }: Vault3DProps) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [spinRequest, setSpinRequest] = useState(0);
@@ -692,6 +819,12 @@ export default function Vault3D({
     setSpinRequest((current) => current + 1);
     onVaultClick();
   }, [onVaultClick]);
+
+  useEffect(() => {
+    if (spinTrigger > 0) {
+      setSpinRequest((current) => current + 1);
+    }
+  }, [spinTrigger]);
 
   useEffect(() => {
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
