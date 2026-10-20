@@ -24,11 +24,18 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { formatKWD, formatDate, cn } from "@/lib/utils";
+import { formatKwd } from "@/lib/money";
 import GoalTitle from "@/components/GoalTitle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import BrandLogo from "@/components/BrandLogo";
 import { useT } from "@/lib/i18n";
 import StripeCardForm from "@/components/StripeCardForm";
+import {
+  FRIEND_FEE_PCT,
+  SOLO_FEE_PCT,
+  FRIEND_RETURN_PCT,
+  SOLO_RETURN_PCT,
+} from "@/lib/config";
 
 interface ITransaction {
   _id?: string;
@@ -55,7 +62,10 @@ interface IVault {
   totalProtected: number;
   streakCount: number;
   denialsCount?: number;
-  cadence: "daily" | "weekly" | "biweekly" | "monthly";
+  cadence: "daily" | "weekly" | "biweekly" | "monthly" | "custom";
+  customCadenceDays?: number;
+  incrementalSavingsType?: "none" | "fixed" | "percentage";
+  incrementalSavingsValue?: number;
   pullAmount: number;
   allowanceDay: number;
   targetDate: string;
@@ -79,6 +89,35 @@ interface IUser {
   cardBrand?: string | null;
   cardLast4?: string | null;
   hasPaymentMethod?: boolean;
+}
+
+function getHumanLedgerTitle(tx: { note?: string; type: string; amount?: number }, isArabic: boolean): string {
+  const note = tx.note || "";
+  if (note.includes("Weekend saver micro-pull") || note.includes("Scheduled auto-pull") || note.includes("Scheduled save") || note.includes("Allowance Tuck")) {
+    return isArabic ? "توفير أسبوعي" : "Weekly save";
+  }
+  if (note.includes("Emergency self-break executed") || note.includes("You broke the vault")) {
+    return isArabic ? "كسرت الخزينة (استرجاع ٨٥٪)" : "You broke the vault (85% returned)";
+  }
+  if (note.includes("penalty fee") || note.includes("Emergency fee") || note.includes("Early release fee")) {
+    return isArabic ? "رسوم طوارئ (١٥٪)" : "Emergency fee (15%)";
+  }
+  if (tx.type === "SCHEDULED_PULL" || tx.type === "SIMULATED_PULL") {
+    return isArabic ? "توفير أسبوعي" : "Weekly save";
+  }
+  if (tx.type === "BREAK_REFUND") {
+    return isArabic ? "كسرت الخزينة (استرجاع ٨٥٪)" : "You broke the vault (85% returned)";
+  }
+  if (tx.type === "DISCIPLINE_FEE") {
+    return isArabic ? "رسوم طوارئ (١٥٪)" : "Emergency fee (15%)";
+  }
+  if (tx.type === "TOP_UP" || tx.type === "STRIPE_DEPOSIT") {
+    return isArabic ? "إيداع بالبطاقة" : "Card Deposit";
+  }
+  if (tx.type === "BREAK_DENIED") {
+    return isArabic ? "تم رفض الكسر وبقي القفل" : "Break rejected (funds locked)";
+  }
+  return note || (isArabic ? "حركة توفير" : "Vault activity");
 }
 
 function DashboardContent() {
@@ -276,7 +315,7 @@ function DashboardContent() {
         setWhatsappUrl(data.whatsappUrl || "");
         setBreakStep("share");
       } else {
-        alert(data.error || "Failed to submit clearance request");
+        alert(data.error || "Failed to submit break request");
       }
     } catch (err: any) {
       alert(err.message || "Failed to create request");
@@ -285,12 +324,12 @@ function DashboardContent() {
     }
   };
 
-  // Emergency Solo Break (15% penalty fee, 85% refund)
+  // Emergency Solo Break (15% emergency fee, 85% refund)
   const handleEmergencyBreak = async () => {
     if (!vault) return;
     const confirmMsg = isArabic
-      ? "هل أنت متأكد من الكسر الفوري دون موافقة رفيقك؟ سيتم خصم رسوم طوارئ بنسبة 15% واسترداد 85%."
-      : "Are you sure you want to emergency break without friend approval? A 15% emergency penalty fee will be deducted (85% refund).";
+      ? `هل أنت متأكد من الكسر الفوري دون موافقة رفيقك؟ سيتم اقتطاع ${SOLO_FEE_PCT}٪ رسوم طوارئ واسترداد ${SOLO_RETURN_PCT}٪.`
+      : `Are you sure you want to break immediately alone? A ${SOLO_FEE_PCT}% emergency fee will be deducted (${SOLO_RETURN_PCT}% refund).`;
     if (!window.confirm(confirmMsg)) return;
 
     try {
@@ -304,7 +343,7 @@ function DashboardContent() {
       if (data.success && data.vault) {
         updateCurrentVault(data.vault);
         setShowBreakSheet(false);
-        alert(isArabic ? "تم كسر الخزينة بنجاح واقتطاع 15% رسوم طوارئ." : "Vault emergency broken. 85% refund initiated.");
+        alert(isArabic ? `تم كسر الخزينة بنجاح واقتطاع ${SOLO_FEE_PCT}٪ رسوم طوارئ.` : `Vault emergency broken. ${SOLO_RETURN_PCT}% refund initiated.`);
       } else {
         alert(data.error || "Failed to execute emergency break");
       }
@@ -404,15 +443,45 @@ function DashboardContent() {
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  // Proportional 4-Week Pacing Bars (renders full height immediately)
-  const basePull = vault.pullAmount || 25;
-  const pacingWeeks = [
-    { week: 1, label: isArabic ? "الأسبوع ١" : "Week 1", amount: Math.round(basePull * 1.5), note: isArabic ? "أول الشهر" : "Salary Tuck" },
-    { week: 2, label: isArabic ? "الأسبوع ٢" : "Week 2", amount: basePull, note: isArabic ? "توفير دوري" : "Auto-Save" },
-    { week: 3, label: isArabic ? "الأسبوع ٣" : "Week 3", amount: basePull, note: isArabic ? "توفير دوري" : "Auto-Save" },
-    { week: 4, label: isArabic ? "الأسبوع ٤" : "Week 4", amount: Math.max(5, Math.round(basePull * 0.4)), note: isArabic ? "حصة أمان" : "Buffer" },
-  ];
-  const maxPacingAmount = Math.max(...pacingWeeks.map((w) => w.amount), 1);
+  // Proportional Next 4 Saves Pacing (renders full height immediately)
+  const basePull = Number(vault.pullAmount) || 25;
+  const cadence = vault.cadence || "weekly";
+  const customDays = Math.max(1, Math.min(30, Number(vault.customCadenceDays) || 7));
+  const incType = vault.incrementalSavingsType || "none";
+  const incVal = Number(vault.incrementalSavingsValue) || 0;
+
+  let stepDays = 7;
+  if (cadence === "daily") stepDays = 1;
+  else if (cadence === "biweekly") stepDays = 14;
+  else if (cadence === "monthly") stepDays = 30;
+  else if (cadence === "custom") stepDays = customDays;
+
+  const startPullDate = vault.nextPullAt ? new Date(vault.nextPullAt) : new Date();
+
+  const nextFourSaves = Array.from({ length: 4 }).map((_, i) => {
+    const pullDate = new Date(startPullDate.getTime() + i * stepDays * 24 * 60 * 60 * 1000);
+    let amt = basePull;
+    if (incType === "fixed") {
+      amt = basePull + i * incVal;
+    } else if (incType === "percentage") {
+      amt = Math.round(basePull * Math.pow(1 + incVal / 100, i));
+    }
+
+    const weekday = new Intl.DateTimeFormat(isArabic ? "ar-KW" : "en-US", { weekday: "short" }).format(pullDate);
+    const day = String(pullDate.getDate()).padStart(2, "0");
+    const month = String(pullDate.getMonth() + 1).padStart(2, "0");
+    const dateLabel = `${weekday} ${day}/${month}`;
+
+    return {
+      index: i + 1,
+      date: pullDate,
+      dateLabel,
+      amount: amt,
+    };
+  });
+
+  const maxNextAmount = Math.max(...nextFourSaves.map((s) => s.amount), 1);
+  const hasSavedCard = Boolean(user?.cardLast4);
 
   // Next Save formatted string
   const nextDateFormatted = vault.nextPullAt
@@ -495,8 +564,8 @@ function DashboardContent() {
               >
                 <Lock className="w-3.5 h-3.5" />
                 <span>{v.title}</span>
-                <span className="text-[11px] opacity-80 font-mono">
-                  ({formatKWD(v.currentBalance)} د.ك)
+                <span className="text-xs opacity-80 font-bold">
+                  ({formatKwd(v.currentBalance, lang)})
                 </span>
               </button>
             ))}
@@ -508,7 +577,7 @@ function DashboardContent() {
               >
                 <span className="font-black">+</span>
                 <span>{isArabic ? "خزينة جديدة" : "New Vault"}</span>
-                <span className="text-[10px] text-muted font-normal">
+                <span className="text-xs text-muted font-normal">
                   ({vaults.length}/5)
                 </span>
               </Link>
@@ -564,8 +633,8 @@ function DashboardContent() {
                         : `Waiting on ${keyholderFirstName}`}
                     </span>
                   </div>
-                  <span className="text-xs font-mono font-bold bg-coral/20 px-2.5 py-0.5 rounded-btn">
-                    {isArabic ? "طلب كسر معلّق" : "Clearance Pending"}
+                  <span className="text-xs font-bold bg-coral/20 px-2.5 py-0.5 rounded-btn">
+                    {isArabic ? "طلب كسر معلّق" : "Break Request Pending"}
                   </span>
                 </div>
               )}
@@ -577,17 +646,19 @@ function DashboardContent() {
                     <GoalTitle title={vault.title} />
                   </h1>
                   <p className="text-xs text-muted font-medium mt-0.5">
-                    {isArabic ? "حارس القفل:" : "Guarded by"} {vault.keyholder?.name}
+                    {isArabic ? "المفتاح بيد:" : "Key held by"} {vault.keyholder?.name}
                   </p>
                 </div>
 
-                {/* Flame Streak Counter */}
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sun border-2 border-ink text-ink font-extrabold text-xs font-mono shadow-[2px_2px_0_var(--ink)]">
-                  <Flame className="w-4 h-4 text-ink fill-ink" />
-                  <span>
-                    {vault.streakCount || 0} {isArabic ? "يوم التزام" : "days"}
-                  </span>
-                </div>
+                {/* Flame Streak Counter (Hidden when streak is 0) */}
+                {(vault.streakCount ?? 0) > 0 && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sun border-2 border-ink text-ink font-extrabold text-xs shadow-[2px_2px_0_var(--ink)]">
+                    <Flame className="w-4 h-4 text-ink fill-ink" />
+                    <span>
+                      {t("dashboard.savesInARow", { count: vault.streakCount })}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* 3D VAULT DIAL (Tactile Metallic Vault Wheel with Luminous Progress Arc) */}
@@ -683,8 +754,8 @@ function DashboardContent() {
                       </span>
                     </div>
 
-                    <span className="text-xs text-muted mt-2 font-mono font-bold relative z-10">
-                      {isArabic ? "الهدف:" : "Goal:"} {formatKWD(vault.targetAmount)} ({percentFunded}%)
+                    <span className="text-xs text-muted mt-2 font-bold relative z-10">
+                      {isArabic ? "الهدف:" : "Goal:"} {formatKwd(vault.targetAmount, lang)} ({percentFunded}%)
                     </span>
                   </div>
                 </div>
@@ -695,8 +766,8 @@ function DashboardContent() {
                     <Clock className="w-4 h-4 text-violet shrink-0" />
                     <span>
                       {isArabic
-                        ? `التوفير القادم: ${formatKWD(vault.pullAmount)} د.ك في ${nextDateFormatted}`
-                        : `Next save: ${formatKWD(vault.pullAmount)} KWD on ${nextDateFormatted}`}
+                        ? `التوفير القادم: ${formatKwd(vault.pullAmount, lang)} في ${nextDateFormatted}`
+                        : `Next save: ${formatKwd(vault.pullAmount, lang)} on ${nextDateFormatted}`}
                     </span>
                   </p>
                 </div>
@@ -709,8 +780,8 @@ function DashboardContent() {
                     <ShieldCheck className="w-3.5 h-3.5 text-ink" />
                     <span>
                       {isArabic
-                        ? `تم تجنب ${vault.denialsCount} محاولات كسر (${formatKWD(vault.totalProtected)} د.ك محمية)`
-                        : `${vault.denialsCount} breaks avoided (${formatKWD(vault.totalProtected)} KWD protected)`}
+                        ? `تم تجنب ${vault.denialsCount} محاولات كسر (${formatKwd(vault.totalProtected, lang)} محمية)`
+                        : `${vault.denialsCount} breaks avoided (${formatKwd(vault.totalProtected, lang)} protected)`}
                     </span>
                   </span>
                 </div>
@@ -733,6 +804,7 @@ function DashboardContent() {
               {/* Secondary Ghost: I need to break it (or Pending state) */}
               <button
                 type="button"
+                id="break-vault-action-btn"
                 disabled={isPendingBreak}
                 onClick={() => {
                   if (isPendingBreak) return;
@@ -751,7 +823,7 @@ function DashboardContent() {
                   {isPendingBreak
                     ? isArabic
                       ? "طلب الكسر بانتظار الموافقة"
-                      : "Break Clearance Pending"
+                      : "Break Request Pending"
                     : t("dashboard.breakAction")}
                 </span>
               </button>
@@ -771,59 +843,78 @@ function DashboardContent() {
                 </p>
               </div>
 
-              {/* 4 Clean Proportional Bars */}
-              <div className="h-36 pt-4 flex items-end justify-between gap-3 px-2 border-b-2 border-ink/10 pb-3">
-                {pacingWeeks.map((w, idx) => {
-                  const barHeightPercent = Math.max(
-                    18,
-                    Math.round((w.amount / maxPacingAmount) * 100)
-                  );
-                  const isCurrentWeek = idx === 0;
+              {/* 4 Clean Proportional Bars or Add Card Empty State */}
+              {!hasSavedCard ? (
+                <div className="py-6 px-4 text-center rounded-2xl bg-bg border-2 border-dashed border-ink/30 space-y-3">
+                  <CreditCard className="w-8 h-8 text-muted mx-auto" />
+                  <p className="text-xs text-muted font-medium">
+                    {t("dashboard.noCardPacing")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowCardModal(true)}
+                    className="btn-hard inline-flex items-center gap-1.5 px-4 py-2 bg-lime text-ink font-extrabold text-xs shadow-[2px_2px_0_var(--ink)] cursor-pointer"
+                  >
+                    <span>{t("dashboard.addCardCta")}</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="h-40 pt-4 flex items-end justify-between gap-2 sm:gap-3 px-1 border-b-2 border-ink/10 pb-3">
+                  {nextFourSaves.map((s, idx) => {
+                    const barHeightPercent = Math.max(
+                      18,
+                      Math.round((s.amount / maxNextAmount) * 100)
+                    );
+                    const isFirst = idx === 0;
 
-                  return (
-                    <div key={w.week} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-                      {/* Amount above bar */}
-                      <span className="text-xs font-mono font-bold text-ink tabular-nums">
-                        {w.amount}
-                      </span>
+                    return (
+                      <div key={s.index} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                        {/* Amount above bar with 3 decimals */}
+                        <span className="text-xs font-bold text-ink tabular-nums text-center whitespace-nowrap">
+                          {formatKwd(s.amount, lang)}
+                        </span>
 
-                      {/* Bar */}
-                      <div className="w-full max-w-[48px] bg-bg border-2 border-ink rounded-t-xl overflow-hidden flex flex-col justify-end h-24">
-                        <div
-                          style={{ height: `${barHeightPercent}%` }}
-                          className={cn(
-                            "w-full rounded-t-lg transition-none",
-                            isCurrentWeek
-                              ? "bg-lime"
-                              : "bg-violet"
-                          )}
-                        />
+                        {/* Bar rendered at full height immediately */}
+                        <div className="w-full max-w-[48px] bg-bg border-2 border-ink rounded-t-xl overflow-hidden flex flex-col justify-end h-24">
+                          <div
+                            style={{ height: `${barHeightPercent}%` }}
+                            className={cn(
+                              "w-full rounded-t-lg transition-none",
+                              isFirst ? "bg-lime" : "bg-violet"
+                            )}
+                          />
+                        </div>
+
+                        {/* Real Date Label below bar (DD/MM) */}
+                        <span className="text-xs text-muted font-bold text-center whitespace-nowrap">
+                          {s.dateLabel}
+                        </span>
                       </div>
-
-                      {/* Label below bar */}
-                      <span className="text-xs text-muted font-bold">
-                        {w.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* ACTIVITY LEDGER: Simple list, newest first, real timestamps, no clipped rows */}
+            {/* ACTIVITY LEDGER: Simple list, newest first, real timestamps, no fake rows */}
             <div className="card-hard bg-surface border-2 border-ink p-6 shadow-[4px_4px_0_var(--ink)] space-y-4">
               <div className="flex items-center justify-between pb-3 border-b-2 border-ink/10">
                 <h3 className="font-extrabold text-base text-ink font-heading">
                   {t("dashboard.recentActivity")}
                 </h3>
-                <span className="text-xs font-mono font-bold text-muted">
+                <span className="text-xs font-bold text-muted">
                   {sortedTransactions.length} {isArabic ? "حركات" : "entries"}
                 </span>
               </div>
 
               {sortedTransactions.length === 0 ? (
-                <div className="py-8 text-center text-xs text-muted font-medium">
-                  {t("dashboard.noActivity")}
+                <div className="py-8 text-center space-y-2">
+                  <div className="w-12 h-12 rounded-2xl bg-bg border-2 border-ink mx-auto flex items-center justify-center text-muted">
+                    <Clock className="w-6 h-6" />
+                  </div>
+                  <p className="text-xs text-muted font-medium">
+                    {t("dashboard.noActivity")}
+                  </p>
                 </div>
               ) : (
                 <div className="max-h-72 overflow-y-auto space-y-2.5 pe-1 scrollbar-thin">
@@ -844,9 +935,9 @@ function DashboardContent() {
                       >
                         <div className="space-y-0.5">
                           <p className="font-bold text-ink">
-                            {tx.note || tx.type.replace(/_/g, " ")}
+                            {getHumanLedgerTitle(tx, isArabic)}
                           </p>
-                          <p className="text-xs text-muted font-mono font-medium">
+                          <p className="text-xs text-muted font-medium">
                             {formatDate(tx.createdAt, lang)}
                           </p>
                         </div>
@@ -854,7 +945,7 @@ function DashboardContent() {
                         <div className="text-end shrink-0">
                           <span
                             className={cn(
-                              "font-mono font-extrabold text-xs sm:text-sm tabular-nums",
+                              "font-extrabold text-xs sm:text-sm tabular-nums",
                               isCredit
                                 ? "text-violet"
                                 : isDebit
@@ -863,7 +954,7 @@ function DashboardContent() {
                             )}
                           >
                             {isCredit ? "+" : isDebit ? "-" : ""}
-                            {formatKWD(tx.amount)} {isArabic ? "د.ك" : "KWD"}
+                            {formatKwd(tx.amount, lang)}
                           </span>
                         </div>
                       </div>
@@ -902,9 +993,9 @@ function DashboardContent() {
                   </h2>
                 </div>
 
-                {/* Plain 1-Sentence Discipline Fee Notice */}
+                {/* Plain 1-Sentence Fee Notice */}
                 <div className="p-3.5 rounded-2xl bg-raised border border-line text-xs text-muted leading-relaxed">
-                  {t("dashboard.breakSheetFeeNotice")}
+                  {t("dashboard.breakSheetFeeNotice", { fee: FRIEND_FEE_PCT, keep: FRIEND_RETURN_PCT })}
                 </div>
 
                 <div className="space-y-2">
@@ -915,7 +1006,7 @@ function DashboardContent() {
                     placeholder={t("dashboard.reasonPlaceholder")}
                     className="w-full px-4 py-3 rounded-2xl bg-bg border border-line focus:border-accent text-sm text-text placeholder:text-muted/60 resize-none outline-hidden"
                   />
-                  <div className="flex justify-between text-xs text-muted font-mono">
+                  <div className="flex justify-between text-xs text-muted">
                     <span>
                       {reasonText.trim().length >= 10
                         ? isArabic ? "العذر كافي" : "Reason long enough"
@@ -938,6 +1029,7 @@ function DashboardContent() {
                   {/* Secondary: Send to Keyholder (Ahmed - 5% fee) */}
                   <button
                     type="button"
+                    id="ask-keyholder-btn"
                     disabled={reasonText.trim().length < 10 || loadingRoast}
                     onClick={handleFetchRoast}
                     className="btn-hard flex-1 py-3.5 px-5 bg-surface text-ink font-bold text-sm disabled:opacity-40 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-[3px_3px_0_var(--ink)]"
@@ -947,17 +1039,18 @@ function DashboardContent() {
                     ) : (
                       <span>
                         {isArabic
-                          ? `طلب إذن ${keyholderFirstName} (خصم 5%)`
-                          : `Ask ${keyholderFirstName} (5% fee)`}
+                          ? `طلب إذن ${keyholderFirstName} (خصم ${FRIEND_FEE_PCT}%)`
+                          : `Ask ${keyholderFirstName} (${FRIEND_FEE_PCT}% fee)`}
                       </span>
                     )}
                   </button>
                 </div>
 
-                {/* Option B: Emergency Solo Break (15% penalty fee, 85% refund) */}
+                {/* Option B: Emergency Solo Break (15% emergency fee, 85% refund) */}
                 <div className="pt-2 border-t-2 border-ink/10">
                   <button
                     type="button"
+                    id="solo-emergency-break-btn"
                     disabled={submittingBreak}
                     onClick={handleEmergencyBreak}
                     className="w-full py-3 px-4 rounded-xl border-2 border-coral bg-coral/10 hover:bg-coral/20 text-coral font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-[2px_2px_0_var(--coral)]"
@@ -965,8 +1058,8 @@ function DashboardContent() {
                     <AlertTriangle className="w-3.5 h-3.5 text-coral shrink-0" />
                     <span>
                       {isArabic
-                        ? "أو كسر فوري بنفسك الآن (خصم 15% رسوم طوارئ)"
-                        : "Or break immediately alone (15% emergency fee)"}
+                        ? `أو كسر فوري بنفسك الآن (خصم ${SOLO_FEE_PCT}% رسوم طوارئ)`
+                        : `Or break immediately alone (${SOLO_FEE_PCT}% emergency fee)`}
                     </span>
                   </button>
                 </div>
@@ -1006,6 +1099,7 @@ function DashboardContent() {
                   {/* Secondary Destructive: Still sending it */}
                   <button
                     type="button"
+                    id="still-sending-break-btn"
                     disabled={submittingBreak}
                     onClick={handleConfirmBreakRequest}
                     className="flex-1 py-3.5 px-5 rounded-btn border border-coral/50 bg-coral/10 hover:bg-coral/20 text-coral font-bold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-40"
@@ -1035,8 +1129,8 @@ function DashboardContent() {
                   </h2>
                   <p className="text-xs text-muted max-w-sm mx-auto leading-relaxed">
                     {isArabic
-                      ? `تم إنشاء رابط الفتح ذو الاستخدام الواحد. أرسل الرسالة لأحمد عبر واتساب ليقرر.`
-                      : `Your single-use clearance link is ready. Send it to ${keyholderFirstName} on WhatsApp for his decision.`}
+                      ? `تم إنشاء رابط الفتح ذو الاستخدام الواحد. أرسل الرسالة إلى ${keyholderFirstName} عبر واتساب ليقرر.`
+                      : `Your single-use unlock link is ready. Send it to ${keyholderFirstName} on WhatsApp for their decision.`}
                   </p>
                 </div>
 
@@ -1060,7 +1154,7 @@ function DashboardContent() {
                   <button
                     type="button"
                     onClick={() => copyToClipboard(unlockUrl)}
-                    className="w-full py-3 px-4 rounded-btn border border-line bg-surface hover:bg-raised text-xs text-muted hover:text-text font-mono flex items-center justify-center gap-2 transition-colors"
+                    className="w-full py-3 px-4 rounded-btn border border-line bg-surface hover:bg-raised text-xs text-muted hover:text-text font-bold flex items-center justify-center gap-2 transition-colors"
                   >
                     <Copy className="w-3.5 h-3.5" />
                     <span>
@@ -1129,7 +1223,7 @@ function DashboardContent() {
                       setCustomAmount("");
                     }}
                     className={cn(
-                      "py-2.5 rounded-btn font-mono font-bold text-xs border transition-colors",
+                      "py-2.5 rounded-btn font-bold text-xs border transition-colors",
                       topUpAmount === amt && !customAmount
                         ? "bg-accent text-accent-foreground border-accent shadow-limeGlow"
                         : "bg-raised border-line text-muted hover:text-text"
@@ -1153,7 +1247,7 @@ function DashboardContent() {
                     placeholder="e.g. 25"
                     value={customAmount}
                     onChange={(e) => setCustomAmount(e.target.value)}
-                    className="w-full px-4 py-3 rounded-btn bg-bg border border-line focus:border-accent text-sm text-text font-mono outline-hidden"
+                    className="w-full px-4 py-3 rounded-btn bg-bg border border-line focus:border-accent text-sm text-text outline-hidden"
                   />
                   <span className="absolute end-4 top-3 text-xs text-muted font-bold">
                     {isArabic ? "د.ك" : "KWD"}
@@ -1164,6 +1258,7 @@ function DashboardContent() {
               {/* Submit */}
               <button
                 type="submit"
+                id="confirm-topup-submit-btn"
                 disabled={topUpLoading}
                 className="tactile-btn w-full py-4 px-6 rounded-btn bg-accent text-accent-foreground font-extrabold text-sm shadow-limeGlow flex items-center justify-center gap-2 disabled:opacity-50"
               >
@@ -1185,7 +1280,7 @@ function DashboardContent() {
       {/* ── CARD SETUP MODAL (Stripe Elements) ── */}
       {showCardModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-surface border border-line rounded-[28px] p-6 sm:p-8 space-y-6 shadow-2xl relative">
+          <div className="w-full max-w-2xl bg-surface border border-line rounded-[28px] p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowCardModal(false)}
               className="absolute top-5 end-5 p-2 rounded-full hover:bg-raised text-muted hover:text-text transition-colors"
@@ -1203,6 +1298,8 @@ function DashboardContent() {
             </div>
 
             <StripeCardForm
+              userName={user?.name}
+              userEmail={user?.email}
               onSuccess={() => {
                 setShowCardModal(false);
                 // Refresh user state

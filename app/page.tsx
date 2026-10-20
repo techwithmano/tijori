@@ -19,6 +19,12 @@ import {
 import VaultContainer from "@/components/VaultContainer";
 import MiniVaultGraphic from "@/components/MiniVaultGraphic";
 import { useT } from "@/lib/i18n";
+import {
+  FRIEND_FEE_PCT,
+  SOLO_FEE_PCT,
+  FRIEND_RETURN_PCT,
+  SOLO_RETURN_PCT,
+} from "@/lib/config";
 
 export default function LandingPage() {
   const { t, lang } = useT();
@@ -39,6 +45,40 @@ export default function LandingPage() {
 
   // Friend Approval Interactive Mockup State
   const [mockupState, setMockupState] = useState<"pending" | "locked" | "unlocked">("pending");
+
+  // AI Reality Check Preview State (Interactive Roaster)
+  const [roastExcuse, setRoastExcuse] = useState("");
+  const [roastResult, setRoastResult] = useState("");
+  const [roastLoading, setRoastLoading] = useState(false);
+
+  const handleFetchLandingRoast = async (excuseToTest?: string) => {
+    const textToTest = excuseToTest !== undefined ? excuseToTest : roastExcuse;
+    if (!textToTest.trim()) return;
+    setRoastLoading(true);
+    try {
+      const res = await fetch("/api/ai/reality-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          excuse: textToTest,
+          goal: isArabic ? "سفرة اليابان" : "Japan Summer Trip",
+          currentBalance: 125,
+          keyholderName: isArabic ? "أحمد" : "Ahmed",
+          lang,
+        }),
+      });
+      const data = await res.json();
+      setRoastResult(data.realityCheck || "");
+    } catch {
+      setRoastResult(
+        isArabic
+          ? "يا صاحبي، كسر الخزينة بيكلّفك ١٥٪ كرسوم طوارئ على تعبك. فكّر بهدفك وخلك قد كلمتك!"
+          : "Wallah bro, you'll burn a 15% emergency fee on your hard-earned savings. Put the card away and let your money grow!"
+      );
+    } finally {
+      setRoastLoading(false);
+    }
+  };
 
   // Sticky How-It-Works Active Step State
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
@@ -138,7 +178,7 @@ export default function LandingPage() {
         style={{ paddingTop: "clamp(32px, 5vw, 64px)", paddingBottom: "clamp(48px, 7vw, 88px)" }}
       >
         {/* Full-width 3D Canvas Background Layer behind text */}
-        <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+        <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
           <VaultContainer
             isRTL={isArabic}
             onVaultClick={handleVaultClick}
@@ -157,26 +197,10 @@ export default function LandingPage() {
                 </span>
               </div>
 
-              {/* H1 Headline: 56-88px desktop / 40px phone, weight 800 with dynamic inverted overlay layer */}
-              <div className="relative w-full">
-                <h1 className="text-[40px] sm:text-6xl lg:text-[72px] font-extrabold tracking-tight leading-[1.06] text-ink font-heading">
-                  {t("landing.heroTitle")}
-                </h1>
-                <div
-                  id="hero-headline-inverted"
-                  aria-hidden="true"
-                  className="absolute inset-0 pointer-events-none select-none text-white font-heading font-extrabold text-[40px] sm:text-6xl lg:text-[72px] tracking-tight leading-[1.06] transition-opacity duration-75"
-                  style={{
-                    opacity: 0,
-                    WebkitTextStroke: "1.5px var(--ink)",
-                    filter: "drop-shadow(3px 3px 0 var(--ink))",
-                    maskImage: "linear-gradient(transparent, transparent)",
-                    WebkitMaskImage: "linear-gradient(transparent, transparent)",
-                  }}
-                >
-                  {t("landing.heroTitle")}
-                </div>
-              </div>
+              {/* H1 Headline: Plain ink text (clean, no dynamic inversion mask) */}
+              <h1 className="text-[40px] sm:text-6xl lg:text-[72px] font-extrabold tracking-tight leading-[1.06] text-ink font-heading">
+                {t("landing.heroTitle")}
+              </h1>
 
               {/* Subhead: 18px body font */}
               <p className="text-lg text-muted max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
@@ -222,12 +246,13 @@ export default function LandingPage() {
                 aria-label="Spin the vault wheel"
               />
 
-              {/* Sticker A: Lime (+25 KWD locked) */}
+              {/* Sticker A: Lime (+25 KWD locked) - outer band top-start: 4% / 4% */}
               <div
-                className={`absolute top-[4%] start-[4%] sm:start-[8%] z-20 animate-sticker-bob-1 pointer-events-none transition-transform duration-300 ${
+                id="hero-sticker-locked"
+                className={`absolute z-20 animate-sticker-bob-1 pointer-events-none transition-transform duration-300 ${
                   stickersPulsing ? "scale-110" : ""
                 }`}
-                style={{ "--rot": "-3deg" } as React.CSSProperties}
+                style={{ top: "4%", insetInlineStart: "4%", "--rot": "-3deg" } as React.CSSProperties}
               >
                 <div className="px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-lime border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none whitespace-nowrap">
                   <Lock className="w-3.5 h-3.5 text-ink shrink-0" />
@@ -235,12 +260,13 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Sticker B: Coral (Ahmed said no) */}
+              {/* Sticker B: Coral (Ahmed said no) - outer band end side lower: 84% / -6% */}
               <div
-                className={`absolute top-[46%] end-[2%] sm:end-[6%] z-20 animate-sticker-bob-2 pointer-events-none transition-transform duration-300 ${
+                id="hero-sticker-no"
+                className={`absolute z-20 animate-sticker-bob-2 pointer-events-none transition-transform duration-300 ${
                   stickersPulsing ? "scale-110" : ""
                 }`}
-                style={{ "--rot": "2.5deg" } as React.CSSProperties}
+                style={{ top: "84%", insetInlineEnd: "-6%", "--rot": "2.5deg" } as React.CSSProperties}
               >
                 <div className="px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-coral border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white select-none whitespace-nowrap">
                   <Shield className="w-3.5 h-3.5 text-white shrink-0" />
@@ -248,12 +274,13 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Sticker C: Sun (18-day streak) */}
+              {/* Sticker C: Sun (18-day streak) - outer band bottom-start: 2% / 8% */}
               <div
-                className={`absolute bottom-[4%] start-[6%] sm:start-[12%] z-20 animate-sticker-bob-3 pointer-events-none transition-transform duration-300 ${
+                id="hero-sticker-streak"
+                className={`absolute z-20 animate-sticker-bob-3 pointer-events-none transition-transform duration-300 ${
                   stickersPulsing ? "scale-110" : ""
                 }`}
-                style={{ "--rot": "-2deg" } as React.CSSProperties}
+                style={{ bottom: "2%", insetInlineStart: "8%", "--rot": "-2deg" } as React.CSSProperties}
               >
                 <div className="px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-sun border-2 border-ink shadow-[3px_3px_0_var(--ink)] flex items-center gap-1.5 text-xs sm:text-sm font-bold text-ink select-none whitespace-nowrap">
                   <Flame className="w-3.5 h-3.5 text-ink shrink-0" />
@@ -469,7 +496,7 @@ export default function LandingPage() {
                       <div className="text-xs font-bold text-ink">
                         {isArabic ? "أحمد المطوع" : "Ahmed Al-Mutawa"}
                       </div>
-                      <div className="text-[10px] text-muted">
+                      <div className="text-xs text-muted">
                         {isArabic ? "حامل المفتاح" : "Keyholder"}
                       </div>
                     </div>
@@ -491,7 +518,7 @@ export default function LandingPage() {
 
                 {/* Stated Excuse Quote Box */}
                 <div className="p-3 rounded-2xl bg-surface border-2 border-ink space-y-1">
-                  <div className="text-[11px] font-bold text-muted uppercase tracking-wider">
+                  <div className="text-xs font-bold text-muted uppercase tracking-wider">
                     {isArabic ? "العذر المكتوب:" : "Stated Excuse:"}
                   </div>
                   <blockquote dir="auto" className="text-xs sm:text-sm font-semibold text-ink italic">
@@ -575,7 +602,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── 4.5 THE TWO RULES (5% Friend Approval vs 50% Emergency Self-Break) ─── */}
+      {/* ─── 4.5 THE TWO RULES (5% Friend Approval vs 15% Emergency Self-Break) ─── */}
       <section
         id="unlock-rules"
         className="px-4 sm:px-6 max-w-[1100px] mx-auto scroll-mt-24"
@@ -605,17 +632,17 @@ export default function LandingPage() {
                   {t("landing.ruleFriendBadge")}
                 </span>
                 <span className="text-xs font-bold text-muted uppercase tracking-wider">
-                  {isArabic ? "المسار الذكي" : "Accountability Path"}
+                  {isArabic ? "مع الرفيق" : "With a friend"}
                 </span>
               </div>
 
               <div className="flex items-baseline justify-between pt-2">
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-ink font-heading">
-                  {t("landing.ruleFriendTitle")}
+                  {t("landing.ruleFriendTitle", { fee: FRIEND_FEE_PCT })}
                 </h3>
                 <div className="text-end">
                   <div className="text-3xl sm:text-4xl font-extrabold text-ink font-heading">
-                    {t("landing.ruleFriendRate")}
+                    {t("landing.ruleFriendRate", { fee: FRIEND_FEE_PCT })}
                   </div>
                   <div className="text-xs font-bold text-muted">
                     {t("landing.ruleFriendRateLabel")}
@@ -624,7 +651,7 @@ export default function LandingPage() {
               </div>
 
               <p className="text-base text-muted font-medium leading-relaxed">
-                {t("landing.ruleFriendDesc")}
+                {t("landing.ruleFriendDesc", { fee: FRIEND_FEE_PCT, keep: FRIEND_RETURN_PCT })}
               </p>
 
               <div className="space-y-3 pt-2">
@@ -632,7 +659,7 @@ export default function LandingPage() {
                   <span className="w-5 h-5 rounded-full bg-lime border border-ink flex items-center justify-center shrink-0">
                     <Check className="w-3.5 h-3.5 text-ink stroke-[3]" />
                   </span>
-                  <span>{t("landing.ruleFriendBullet1")}</span>
+                  <span>{t("landing.ruleFriendBullet1", { keep: FRIEND_RETURN_PCT })}</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm font-semibold text-ink">
                   <span className="w-5 h-5 rounded-full bg-lime border border-ink flex items-center justify-center shrink-0">
@@ -651,14 +678,14 @@ export default function LandingPage() {
 
             {/* Micro Outcome Box */}
             <div className="p-3.5 rounded-2xl bg-lime/25 border-2 border-ink text-xs font-bold text-ink flex items-center justify-between">
-              <span>{isArabic ? "إذا وفرت ١٠٠ د.ك" : "On 100 KWD savings:"}</span>
+              <span>{isArabic ? "على ١٠٠ د.ك توفير:" : "On 100 KWD savings:"}</span>
               <span className="text-ink font-extrabold bg-lime px-2 py-0.5 rounded-md border border-ink">
-                {isArabic ? "تسترجع ٩٥ د.ك" : "Keep 95 KWD (5 fee)"}
+                {isArabic ? "تسترجع ٩٥ د.ك (٥ د.ك رسوم)" : "Keep 95 KWD (5 KWD fee)"}
               </span>
             </div>
           </div>
 
-          {/* Path B: 50% Emergency Self-Break */}
+          {/* Path B: 15% Emergency Self-Break */}
           <div className="card-hard bg-[#FFF0F3] p-7 sm:p-9 border-2 border-ink shadow-[6px_6px_0_var(--ink)] rounded-[28px] flex flex-col justify-between space-y-6 relative overflow-hidden">
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -666,17 +693,17 @@ export default function LandingPage() {
                   {t("landing.ruleSelfBadge")}
                 </span>
                 <span className="text-xs font-bold text-coral uppercase tracking-wider">
-                  {isArabic ? "كسر بدون إذن" : "Solo Emergency"}
+                  {isArabic ? "بنفسك" : "On your own"}
                 </span>
               </div>
 
               <div className="flex items-baseline justify-between pt-2">
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-ink font-heading">
-                  {t("landing.ruleSelfTitle")}
+                  {t("landing.ruleSelfTitle", { fee: SOLO_FEE_PCT })}
                 </h3>
                 <div className="text-end">
                   <div className="text-3xl sm:text-4xl font-extrabold text-coral font-heading">
-                    {t("landing.ruleSelfRate")}
+                    {t("landing.ruleSelfRate", { fee: SOLO_FEE_PCT })}
                   </div>
                   <div className="text-xs font-bold text-muted">
                     {t("landing.ruleSelfRateLabel")}
@@ -685,7 +712,7 @@ export default function LandingPage() {
               </div>
 
               <p className="text-base text-muted font-medium leading-relaxed">
-                {t("landing.ruleSelfDesc")}
+                {t("landing.ruleSelfDesc", { fee: SOLO_FEE_PCT })}
               </p>
 
               <div className="space-y-3 pt-2">
@@ -699,7 +726,7 @@ export default function LandingPage() {
                   <span className="w-5 h-5 rounded-full bg-coral border border-ink flex items-center justify-center shrink-0 text-white">
                     <Flame className="w-3.5 h-3.5" />
                   </span>
-                  <span>{t("landing.ruleSelfBullet2")}</span>
+                  <span>{t("landing.ruleSelfBullet2", { fee: SOLO_FEE_PCT })}</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm font-semibold text-ink">
                   <span className="w-5 h-5 rounded-full bg-coral border border-ink flex items-center justify-center shrink-0 text-white">
@@ -712,9 +739,9 @@ export default function LandingPage() {
 
             {/* Micro Outcome Box */}
             <div className="p-3.5 rounded-2xl bg-coral/20 border-2 border-ink text-xs font-bold text-ink flex items-center justify-between">
-              <span>{isArabic ? "إذا وفرت ١٠٠ د.ك" : "On 100 KWD savings:"}</span>
+              <span>{isArabic ? "على ١٠٠ د.ك توفير:" : "On 100 KWD savings:"}</span>
               <span className="text-white font-extrabold bg-coral px-2 py-0.5 rounded-md border border-ink">
-                {isArabic ? "تخسر ٥٠ د.ك فوراً" : "Lose 50 KWD penalty!"}
+                {isArabic ? "تسترجع ٨٥ د.ك (١٥ د.ك رسوم)" : "Keep 85 KWD (15 KWD fee)"}
               </span>
             </div>
           </div>
@@ -728,7 +755,7 @@ export default function LandingPage() {
             </div>
             <p className="text-sm sm:text-base font-bold text-white">
               {t("landing.rulesComparisonNote")}{" "}
-              <span className="text-lime">{t("landing.rulesComparisonFriend")}</span> vs{" "}
+              <span className="text-lime">{t("landing.rulesComparisonFriend")}</span> /{" "}
               <span className="text-coral">{t("landing.rulesComparisonSelf")}</span>
             </p>
           </div>
@@ -739,6 +766,125 @@ export default function LandingPage() {
             <span>{t("landing.ctaStart")}</span>
             <ArrowRight className="w-4 h-4 rtl:rotate-180" />
           </Link>
+        </div>
+      </section>
+
+      {/* ─── 4.75 AI REALITY CHECK PREVIEW (Interactive Roaster) ─── */}
+      <section
+        id="reality-check-preview"
+        className="px-4 sm:px-6 max-w-[1100px] mx-auto scroll-mt-24"
+        style={sectionPaddingStyle}
+      >
+        <div className="card-hard bg-surface p-8 sm:p-12 border-2 border-ink shadow-[6px_6px_0_var(--ink)] rounded-[32px] space-y-8">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <div className="inline-block transform -rotate-1">
+              <span className="px-3.5 py-1 rounded-full bg-sun border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-xs font-bold text-ink">
+                {t("landing.roasterBadge")}
+              </span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-ink font-heading tracking-tight">
+              {t("landing.roasterHeading")}
+            </h2>
+            <p className="text-base sm:text-lg text-muted font-medium">
+              {t("landing.roasterSub")}
+            </p>
+          </div>
+
+          <div className="max-w-2xl mx-auto space-y-4">
+            {/* Quick-Pick Inspiration Chips */}
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              <span className="text-xs font-bold text-muted me-1">
+                {isArabic ? "أعذار شائعة:" : "Popular excuses:"}
+              </span>
+              {(isArabic
+                ? ["سنيكر ليمتد بمجمع ٣٦٠", "ويكند شاليه مع الربع", "نزل آيفون جديد اليوم"]
+                : [
+                    "Flash sneaker drop at 360 Mall",
+                    "Chalet weekend with the boys",
+                    "New iPhone just dropped",
+                  ]
+              ).map((chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => {
+                    setRoastExcuse(chip);
+                    handleFetchLandingRoast(chip);
+                  }}
+                  className="px-3 py-1 rounded-full bg-bg hover:bg-lime border border-ink text-xs font-bold text-ink transition-colors cursor-pointer"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+
+            {/* Interactive Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleFetchLandingRoast();
+              }}
+              className="flex flex-col sm:flex-row items-stretch gap-3 pt-2"
+            >
+              <input
+                type="text"
+                value={roastExcuse}
+                onChange={(e) => setRoastExcuse(e.target.value)}
+                placeholder={t("landing.roasterPlaceholder")}
+                enterKeyHint="send"
+                className="input-hard flex-1 text-sm sm:text-base py-3.5 px-4 bg-bg focus:bg-surface"
+              />
+              <button
+                type="submit"
+                disabled={!roastExcuse.trim() || roastLoading}
+                className="btn-hard bg-coral text-white font-extrabold text-sm sm:text-base px-6 py-3.5 flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {roastLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>{t("landing.roasterLoading")}</span>
+                  </>
+                ) : (
+                  <>
+                    <Flame className="w-4 h-4" />
+                    <span>{t("landing.roasterBtn")}</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Generated Roast Box addressing user in 2nd person */}
+            {roastResult && (
+              <div
+                id="landing-roast-output"
+                className="mt-6 p-6 rounded-2xl bg-coral/10 border-2 border-coral shadow-[4px_4px_0_var(--ink)] space-y-3 animate-in fade-in zoom-in-95 duration-200"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs font-extrabold text-coral uppercase tracking-wider">
+                    <Flame className="w-4 h-4 text-coral" />
+                    <span>{isArabic ? "الفزعة الصريحة" : "The Reality Check"}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRoastResult("");
+                      setRoastExcuse("");
+                    }}
+                    className="text-xs font-bold text-muted hover:text-ink underline cursor-pointer"
+                  >
+                    {t("landing.roasterTryAnother")}
+                  </button>
+                </div>
+
+                <blockquote
+                  dir="auto"
+                  className="text-base sm:text-lg font-bold text-ink italic leading-relaxed"
+                >
+                  <bdi>&ldquo;{roastResult.replace(/^["“\s]+|["”\s]+$/g, "")}&rdquo;</bdi>
+                </blockquote>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 

@@ -20,6 +20,7 @@ import GoalTitle from "@/components/GoalTitle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import BrandLogo from "@/components/BrandLogo";
 import { useT } from "@/lib/i18n";
+import { FRIEND_FEE_PCT, FRIEND_RETURN_PCT } from "@/lib/config";
 
 interface VaultData {
   _id: string;
@@ -118,7 +119,7 @@ export default function KeyholderTokenUnlockPage({
   };
 
   const isArabic = lang === "ar";
-  const guardianFirstName = vault?.keyholder?.name ? vault.keyholder.name.split(" ")[0] : (isArabic ? "أحمد" : "Ahmed");
+  const keyholderFirstName = vault?.keyholder?.name ? vault.keyholder.name.split(" ")[0] : (isArabic ? "أحمد" : "Ahmed");
   const applicantName = isArabic ? "عبدالرحمن" : "Abdulrahman";
 
   // 1. Loading State
@@ -128,7 +129,7 @@ export default function KeyholderTokenUnlockPage({
         <div className="card-hard bg-surface p-8 text-center space-y-4">
           <div className="w-12 h-12 rounded-full border-4 border-ink border-t-lime animate-spin mx-auto" />
           <p className="text-sm font-bold text-ink">
-            {isArabic ? "جاري التحقق من رابط الحماية..." : "Verifying clearance link..."}
+            {isArabic ? "جاري التحقق من رابط الحماية..." : "Verifying unlock link..."}
           </p>
         </div>
       </div>
@@ -138,12 +139,7 @@ export default function KeyholderTokenUnlockPage({
   // 2. Link Already Used or Expired
   if (alreadyUsed || !vault) {
     return (
-      <div className="min-h-screen bg-bg text-ink flex flex-col">
-        <header className="border-b-2 border-ink bg-surface px-4 py-3 flex items-center justify-between">
-          <BrandLogo href="/" size="sm" showTagline={false} />
-          <LanguageSwitcher />
-        </header>
-
+      <div className="min-h-screen bg-bg text-ink flex flex-col pt-[calc(var(--nav-h)+24px)]">
         <main className="flex-1 max-w-[400px] w-full mx-auto p-4 sm:p-6 flex flex-col justify-center items-center text-center">
           <div className="card-hard bg-surface p-8 space-y-5 w-full">
             <div className="w-16 h-16 rounded-2xl bg-lime border-2 border-ink mx-auto flex items-center justify-center text-ink shadow-[2px_2px_0_var(--ink)]">
@@ -155,7 +151,7 @@ export default function KeyholderTokenUnlockPage({
             <p className="text-xs sm:text-sm text-muted leading-relaxed">
               {isArabic
                 ? "تم تسجيل القرار في هذا الرابط الفردي بالفعل. يتم حرق الروابط لمرة واحدة فور استخدامها لحماية مدخراتك من التكرار."
-                : "A decision has already been executed for this clearance request. Single-use links are permanently burned to protect savings."}
+                : "A decision has already been executed for this break request. Single-use links are permanently burned to protect savings."}
             </p>
             <Link
               href="/"
@@ -204,12 +200,12 @@ export default function KeyholderTokenUnlockPage({
                     ? `أحسنت التصرف! تم رفض كسر الخزينة بنجاح، ومدخرات ${applicantName} (${formatKWD(vault.currentBalance)} د.ك) لا زالت بأمان وسلسلة التزامه مستمرة.`
                     : `Hero move! You blocked the impulse break. ${applicantName}'s savings (${formatKWD(vault.currentBalance)} KWD) remain 100% locked and his streak is alive.`
                   : isArabic
-                    ? `تم الإفراج عن المبلغ بعد خصم 5% رسوم التزام، وإرسال الاسترداد عبر Stripe.`
-                    : `Vault broken. Payout issued (minus 5% discipline fee) via Stripe refund.`}
+                    ? `تم الإفراج عن المبلغ بعد خصم ${FRIEND_FEE_PCT}% رسوم، وإرسال الاسترداد عبر Stripe.`
+                    : `Vault broken. Payout issued (minus ${FRIEND_FEE_PCT}% fee) via Stripe refund.`}
               </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-bg border-2 border-ink text-xs text-muted w-full font-mono font-bold">
+            <div className="p-3.5 rounded-xl bg-bg border-2 border-ink text-xs text-muted w-full font-bold">
               {isArabic
                 ? "تم حرق الرابط بنجاح ولا يمكن إعادة استخدامه."
                 : "Single-use authorization token has been burned."}
@@ -228,30 +224,25 @@ export default function KeyholderTokenUnlockPage({
     );
   }
 
-  // 4. Main Clearance Decision View (Light Neobrutalism)
+  // 4. Main Decision View (Light Neobrutalism)
   const excuseText = vault.unlockReason || vault.breakExcuse || (isArabic ? "رغبة شراء لحظية" : "Impulse purchase urge");
   const streak = vault.streakCount || 0;
   const denials = vault.denialsCount || 0;
 
   return (
-    <div className="min-h-screen bg-bg text-ink flex flex-col selection:bg-lime selection:text-ink">
-      <header className="border-b-2 border-ink bg-surface px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_0_var(--ink)]">
-        <BrandLogo href="/" size="sm" showTagline={false} />
-        <LanguageSwitcher />
-      </header>
-
+    <div className="min-h-screen bg-bg text-ink flex flex-col selection:bg-lime selection:text-ink pt-[calc(var(--nav-h)+24px)]">
       {/* Main Content Area */}
       <main className="flex-1 max-w-[420px] w-full mx-auto p-4 sm:p-6 space-y-4">
         {/* Headline */}
         <div className="text-start space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-coral text-white border-2 border-ink text-xs font-bold shadow-[2px_2px_0_var(--ink)]">
             <ShieldAlert className="w-3.5 h-3.5 text-white" />
-            <span>{isArabic ? "طلب كسر معلّق" : "Clearance Request"}</span>
+            <span>{isArabic ? "طلب كسر معلّق" : "Break Request"}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight font-heading leading-tight">
             {isArabic
-              ? `${guardianFirstName}، ${applicantName} يبي يكسر تِجوريه.`
-              : `${guardianFirstName}, ${applicantName} wants to break his vault.`}
+              ? `${keyholderFirstName}، ${applicantName} يبي يكسر تِجوريه.`
+              : `${keyholderFirstName}, ${applicantName} wants to break his vault.`}
           </h1>
         </div>
 
@@ -281,7 +272,7 @@ export default function KeyholderTokenUnlockPage({
             <span>
               {isArabic ? `عذر ${applicantName}:` : `${applicantName}'s stated excuse:`}
             </span>
-            <span className="text-xs text-muted font-mono">
+            <span className="text-xs text-muted font-medium">
               {isArabic ? "مكتوب بخط يده" : "Applicant note"}
             </span>
           </div>
@@ -338,11 +329,11 @@ export default function KeyholderTokenUnlockPage({
           </button>
         </div>
 
-        {/* Small Discipline Fee Disclaimer */}
+        {/* Small Early Release Fee Disclaimer */}
         <p className="text-xs text-muted text-center pt-1 leading-normal font-medium">
           {isArabic
-            ? "في حال الموافقة يُخصم 5% رسوم انضباط ويُسترد 95%. في حال الرفض لا يُخصم أي فلس."
-            : "If approved, a 5% discipline fee is deducted (95% refund). If locked, 0% is charged."}
+            ? `في حال الموافقة يُخصم ${FRIEND_FEE_PCT}% رسوم ويُسترد ${FRIEND_RETURN_PCT}%. في حال الرفض لا يُخصم أي فلس.`
+            : `If approved, a ${FRIEND_FEE_PCT}% fee is deducted (${FRIEND_RETURN_PCT}% refund). If locked, 0% is charged.`}
         </p>
       </main>
 
@@ -381,7 +372,7 @@ export default function KeyholderTokenUnlockPage({
                 placeholder="••••••"
                 className="w-full text-center text-2xl tracking-[0.5em] font-mono font-black py-3.5 bg-bg border-2 border-ink rounded-xl focus:outline-none focus:ring-2 focus:ring-violet"
               />
-              <p className="text-[11px] text-muted text-center pt-1 font-mono">
+              <p className="text-xs text-muted text-center pt-1 font-medium">
                 {isArabic ? "الرمز الافتراضي: 123456" : "Default PIN: 123456"}
               </p>
             </div>

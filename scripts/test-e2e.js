@@ -1,7 +1,7 @@
 /**
  * scripts/test-e2e.js
  * End-to-End Test Suite for Tijori (تِجوري)
- * Validates Auth, DB, Vault Ledger, Micro-pulls, Stripe, Gemini AI, and Single-Use Keyholder Protocol
+ * Validates Auth, DB, Vault Ledger, Pulls, Stripe, Gemini AI, and Single-Use Keyholder Protocol
  */
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -28,12 +28,20 @@ async function runTestSuite() {
   // --------------------------------------------------------------------------
   console.log(">>> 1. Testing Authentication Engine...");
 
-  // Test 1.1: 1-Click Demo Login
+  const testEmail = `test_runner_${Date.now()}@tijori.app`;
+  const testPassword = "SecurePassword2026!";
+
+  // Test 1.1: Register Test User
   try {
-    const res = await fetch(`${BASE_URL}/api/auth/login`, {
+    const res = await fetch(`${BASE_URL}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "demo@tijori.app", password: "password123" }),
+      body: JSON.stringify({
+        name: "Test Runner",
+        email: testEmail,
+        password: testPassword,
+        allowanceDay: 25,
+      }),
     });
     const setCookie = res.headers.get("set-cookie");
     if (setCookie && setCookie.includes("tijori_session")) {
@@ -42,12 +50,12 @@ async function runTestSuite() {
     const data = await res.json();
     recordTest(
       "AUTH",
-      "Demo Login (demo@tijori.app)",
+      "User Registration",
       data.success === true && !!data.user,
       `User ID: ${data.user?.id}`
     );
   } catch (err) {
-    recordTest("AUTH", "Demo Login (demo@tijori.app)", false, err.message);
+    recordTest("AUTH", "User Registration", false, err.message);
   }
 
   // Test 1.2: Invalid Password Rejection
@@ -55,7 +63,7 @@ async function runTestSuite() {
     const res = await fetch(`${BASE_URL}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "demo@tijori.app", password: "wrongpassword999" }),
+      body: JSON.stringify({ email: testEmail, password: "wrongpassword999" }),
     });
     const data = await res.json();
     recordTest(
@@ -77,7 +85,7 @@ async function runTestSuite() {
     recordTest(
       "AUTH",
       "Session Verification (GET /api/auth/me)",
-      data.success === true && data.user?.email === "demo@tijori.app",
+      data.success === true && data.user?.email === testEmail,
       `Authenticated as: ${data.user?.name}`
     );
   } catch (err) {
@@ -98,40 +106,43 @@ async function runTestSuite() {
     recordTest("AUTH", "Unauthenticated Rejection", false, err.message);
   }
 
-  // Test 1.5: Register Unique Test User
-  const uniqueEmail = `test_${Date.now()}@tijori.app`;
-  let newAuthCookie = null;
+  // --------------------------------------------------------------------------
+  // 2. VAULT & LEDGER TESTS
+  // --------------------------------------------------------------------------
+  console.log("\n>>> 2. Testing Vault Operations & Savings Ledger...");
+
+  // Create a Vault for the test user
   try {
-    const res = await fetch(`${BASE_URL}/api/auth/register`, {
+    const res = await fetch(`${BASE_URL}/api/vault`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(authCookie ? { Cookie: authCookie } : {}),
+      },
       body: JSON.stringify({
-        name: "Yousef Al-Hajji",
-        email: uniqueEmail,
-        password: "secure_password_2026",
-        phone: "+965 9988 7766",
-        allowanceDay: 25,
+        title: "Japan Summer Trip",
+        targetAmount: 500,
+        pullAmount: 25,
+        cadence: "weekly",
+        keyholderName: "Faisal Al-Sabah",
+        keyholderPhone: "+96599887766",
       }),
     });
-    const setCookie = res.headers.get("set-cookie");
-    if (setCookie && setCookie.includes("tijori_session")) {
-      newAuthCookie = setCookie.split(";")[0];
-    }
     const data = await res.json();
-    recordTest(
-      "AUTH",
-      "New User Registration + Starter Vault Seeding",
-      data.success === true && !!data.user,
-      `Registered: ${uniqueEmail}`
-    );
+    if (data.success && data.vault) {
+      testVaultId = data.vault._id;
+      recordTest(
+        "VAULT",
+        "Create New Vault",
+        true,
+        `Title: "${data.vault.title}" | ID: ${testVaultId}`
+      );
+    } else {
+      recordTest("VAULT", "Create New Vault", false, data.error || "Failed to create vault");
+    }
   } catch (err) {
-    recordTest("AUTH", "New User Registration", false, err.message);
+    recordTest("VAULT", "Create New Vault", false, err.message);
   }
-
-  // --------------------------------------------------------------------------
-  // 2. VAULT & MICRO-PULL LEDGER TESTS
-  // --------------------------------------------------------------------------
-  console.log("\n>>> 2. Testing Vault Operations & Micro-Savings Ledger...");
 
   // Test 2.1: Fetch Active Vault
   try {
@@ -140,7 +151,6 @@ async function runTestSuite() {
     });
     const data = await res.json();
     if (data.success && data.vault) {
-      testVaultId = data.vault._id;
       recordTest(
         "VAULT",
         "Fetch Active Vault",
@@ -154,7 +164,7 @@ async function runTestSuite() {
     recordTest("VAULT", "Fetch Active Vault", false, err.message);
   }
 
-  // Test 2.2: Execute Simulated Micro-Pull (+25 KWD)
+  // Test 2.2: Execute Scheduled Pull (+25 KWD)
   let balanceBefore = 0;
   let balanceAfter = 0;
   try {
@@ -162,7 +172,7 @@ async function runTestSuite() {
       headers: authCookie ? { Cookie: authCookie } : {},
     });
     const getData = await getRes.json();
-    balanceBefore = getData.vault.currentBalance;
+    balanceBefore = getData.vault.currentBalance || 0;
 
     const pullRes = await fetch(`${BASE_URL}/api/vault/${testVaultId}/pull`, {
       method: "POST",
@@ -181,12 +191,12 @@ async function runTestSuite() {
 
     recordTest(
       "VAULT",
-      "Simulate Micro-Pull (+25 KWD)",
+      "Execute Scheduled Pull (+25 KWD)",
       pullSuccess,
       `Balance: ${balanceBefore} KWD -> ${balanceAfter} KWD`
     );
   } catch (err) {
-    recordTest("VAULT", "Simulate Micro-Pull", false, err.message);
+    recordTest("VAULT", "Execute Scheduled Pull", false, err.message);
   }
 
   // Test 2.3: Verify Ledger Transaction Log
@@ -196,7 +206,7 @@ async function runTestSuite() {
     });
     const data = await res.json();
     const transactions = data.vault?.transactions || [];
-    const hasPullTx = transactions.some((t) => t.type === "SIMULATED_PULL");
+    const hasPullTx = transactions.some((t) => t.type === "SCHEDULED_PULL");
     recordTest(
       "LEDGER",
       "Ledger Transaction Audit",
@@ -233,7 +243,7 @@ async function runTestSuite() {
   // --------------------------------------------------------------------------
   // 4. GEMINI AI INTERVENTION & ROAST ENGINE
   // --------------------------------------------------------------------------
-  console.log("\n>>> 4. Testing Google Gemini 2.5 Flash Reality Check Engine...");
+  console.log("\n>>> 4. Testing Google Gemini Reality Check Engine...");
 
   try {
     const res = await fetch(`${BASE_URL}/api/ai/reality-check`, {
@@ -241,7 +251,7 @@ async function runTestSuite() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         excuse: "There is a rare drop of Prada sunglasses at Avenues and I need them today",
-        goal: "Japan Summer Trip 🇯🇵",
+        goal: "Japan Summer Trip",
         currentBalance: 250,
         targetAmount: 700,
         keyholderName: "Fahad Al-Sabah",
@@ -277,12 +287,12 @@ async function runTestSuite() {
       data.schedule.length === 4;
     recordTest(
       "GEMINI_AI",
-      "AI 4-Week Allowance Micro-Pacing Schedule",
+      "AI 4-Week Allowance Pacing Schedule",
       hasSchedule,
-      `Week 1 Pull: +${data.schedule?.[0]?.amount} KWD (${data.schedule?.[0]?.phase})`
+      `Week 1: +${data.schedule?.[0]?.amount} KWD (${data.schedule?.[0]?.phase})`
     );
   } catch (err) {
-    recordTest("GEMINI_AI", "AI 4-Week Allowance Micro-Pacing", false, err.message);
+    recordTest("GEMINI_AI", "AI 4-Week Allowance Pacing", false, err.message);
   }
 
   // --------------------------------------------------------------------------
@@ -297,7 +307,7 @@ async function runTestSuite() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "REQUEST",
-        reason: "Flash midnight sneaker drop at 360 Mall 👟",
+        reason: "Flash midnight sneaker drop at 360 Mall",
       }),
     });
     const data = await res.json();

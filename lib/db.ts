@@ -7,7 +7,7 @@ try {
   // Ignore restricted environments
 }
 
-// Direct replica set seedlist (bypasses Windows/ISP DNS SRV querySrv EBADRESP limitations)
+// Direct replica set host list (bypasses Windows/ISP DNS SRV querySrv EBADRESP limitations)
 const DIRECT_FALLBACK_URI =
   "mongodb://abdukhogali1_db_user:aaFC6cPgRd4hxOqq@ac-ahiop6y-shard-00-00.sfdjb0j.mongodb.net:27017,ac-ahiop6y-shard-00-01.sfdjb0j.mongodb.net:27017,ac-ahiop6y-shard-00-02.sfdjb0j.mongodb.net:27017/tijori?ssl=true&replicaSet=atlas-dychyr-shard-0&authSource=admin&retryWrites=true&w=majority";
 

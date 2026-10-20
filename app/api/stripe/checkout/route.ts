@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
           price_data: {
             currency: "usd", // Universally supported across all Stripe test configurations
             product_data: {
-              name: `Tijori Micro-Deposit: ${vault.title}`,
-              description: `Automated recurring micro-pull (+${depositAmount} KWD) into time-locked vault`,
+              name: `Tijori Deposit: ${vault.title}`,
+              description: `Automated recurring save (+${depositAmount} KWD) into time-locked vault`,
             },
             unit_amount: Math.round(depositAmount * 100), // Amount in cents
           },

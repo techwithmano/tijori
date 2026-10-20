@@ -414,6 +414,128 @@ This log tracks every completed task, status, build verification, and known issu
   9. `L2_full_en_desktop.png` (1440x900, EN desktop full page scroll, continuous lilac background, warm radial glows, flush footer with zero bottom gap)
   10. `L2_full_ar_desktop.png` (1440x900, AR desktop full page scroll, RTL continuous background, flush footer)
 
+## TASK M1: Master Cleanup & Production Hardening Audit
 
+### 1. Status per Part
+- **Part 0 (One Source of Truth for Fees):** `PASS`. Created `lib/config.ts` defining `FRIEND_FEE_PCT = 5`, `SOLO_FEE_PCT = 15`, `FRIEND_RETURN_PCT = 95`, `SOLO_RETURN_PCT = 85`. Replaced all hardcoded fee percentages and charity claims across the codebase with integer fils math (`Math.round`), neutral wording ("kept as a fee" / "رسوم طوارئ"), and dynamic i18n interpolation.
+- **Part 1 (Remove All Demo Code):** `PASS`. Deleted `app/api/seed/` and all auto-seeder logic from auth and vault creation routes. Removed "1-Click Demo Login", "Judges Sandbox Access", "Fill Credentials", "Live DB Seed", and "Simulate Day-25" buttons from `/`, `/login`, `/register`, and components. Created `scripts/purge-demo-data.ts` (dry run by default; deletes only with `--apply`).
+- **Part 2 (Real Data Only - Dashboard):** `PASS`. Replaced hardcoded streak with derived value computed server-side from ledger (`consecutive SUCCEEDED scheduled saves since last break`); badge is completely hidden when 0. Replaced hardcoded pacing chart with "Your next 4 saves" computed dynamically from vault cadence, nextPullAt, amount, and incremental step. Empty ledger displays a friendly empty state. Created `formatKwd(amount, lang)` in `lib/money.ts` (Intl.NumberFormat with 3 decimals: "0.000 KWD" in EN, "0.000 د.ك" in AR). Removed fake stats and counters.
+- **Part 3 (Onboarding Layout + Copy):** `PASS`. Enforced minimal header (logo + language switcher only, no nav links or dashboard button) on `/onboarding`, `/login`, `/register`, `/keyholder/join/*`, `/unlock/*` and hid global footer. Container padding set to `calc(var(--nav-h) + 24px)` with `--nav-h: 96px`, and `html { scroll-padding-top: calc(var(--nav-h) + 16px); }`. Moved "Back" and "Step X of 4" inside the card on one line with top progress bar. Updated all copy to friendly non-jargon Gulf Arabic and plain English. Form inputs include `enterkeyhint="next"` / `autocomplete` and Enter key submission.
+- **Part 4 (Stripe Test Card Helper):** `PASS`. Created `components/TestCardHelper.tsx` which renders ONLY when `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` starts with `pk_test`. Includes quick copy buttons for Card number (copies without spaces `4242424242424242`), Expiry (`12/34`), CVC (`123`), Name on card, and ZIP (`12345`), flipping to "Copied" for 1.5s. Collapsible link reveals declined and 3DS cards. Positioned beside Stripe Elements on desktop and above on phone.
+- **Part 5 (Landing Page Bugs):** `PASS`. Positioned hero stickers in the outer band (`top: 84%`, `insetInlineEnd: -6%` for "#hero-sticker-no", `top: 4%` for "+25 KWD locked", `bottom: 2%` for streak) with zero intersection with the central 55% x 55% vault rectangle across 1440, 768, and 390 widths. Deleted dynamic headline mask inversion and restricted coin orbit inside container. Restructured "How It Works" mini vault into clean vertical stack (tag on top, 16px gap, vault graphic min-height 224px, pill below). Added "AI Reality Check Preview" roaster calling real API with 5 req/min rate limit and 3s timeout addressing user in second person. Removed marketing jargon.
+- **Part 6 (Jargon Sweep + i18n Parity):** `PASS`. Swept banned words (Tuck -> save, Cadence -> how often, Guardian -> Keyholder, Clearance -> Unlock / Break request, Protocol/Engine/Anti-Impulse/Micro-pull/Custody removed). Explains Keyholder on first use as "the friend who holds your key" / "رفيقك اللي ماسك مفتاحك". Humanized ledger titles without monospace labels. Created `scripts/check-i18n.js` ensuring 100% parity across all 243 keys. Swept and upgraded all text under 14px to `text-xs`/`text-sm` and switched user-facing labels to body font.
+- **Part 7 (Final Checks, Suite, Screenshots):** `PASS`. `npm run build` and `npm run lint` passed with 0 errors. Created `scripts/test-m1.js` which passed all 5 automated end-to-end verification steps. Captured all 15 required screenshots into `/audit/screenshots/`.
 
+---
 
+### 2. Files Created, Changed, and Deleted
+
+#### Created:
+- `lib/config.ts`: Single source of truth for fee constants (`FRIEND_FEE_PCT`, `SOLO_FEE_PCT`, `FRIEND_RETURN_PCT`, `SOLO_RETURN_PCT`).
+- `lib/money.ts`: Currency formatting utility `formatKwd(amount, lang)` with 3 decimal precision and locale awareness.
+- `components/TestCardHelper.tsx`: Test card helper card rendered exclusively in Stripe test mode (`pk_test`) with individual copy buttons.
+- `scripts/purge-demo-data.ts`: Safe purging script for demo user and seeded records (dry run by default; applies only with `--apply`).
+- `scripts/check-i18n.js`: Automated i18n parity and translation check comparing `en.json` and `ar.json`.
+- `scripts/test-m1.js`: Playwright + fetch automated test suite validating all Task M1 rules.
+- `scripts/capture-m1.js`: Automated browser screenshot suite capturing all 15 required screens with 2.5s settling time.
+
+#### Changed:
+- `app/page.tsx`: Hero sticker outer band positioning, plain ink headline without dynamic inversion mask, AI Reality Check preview section, jargon removal.
+- `app/dashboard/page.tsx`: Derived streak calculation from ledger, "Your next 4 saves" pacing, human ledger titles via `getHumanLedgerTitle`, `formatKwd` integration, removal of placeholder data, action button IDs.
+- `app/onboarding/page.tsx`: Container padding `--nav-h`, Back & Step inside card, progress bar gap, updated copy, input enterkeyhint/autocomplete, typography upgrade.
+- `app/login/page.tsx`: Removed demo credentials button and prefill demo shortcut.
+- `app/register/page.tsx`: Removed demo sandbox triggers and auto-seeders.
+- `app/unlock/[token]/page.tsx`: Humanized copy ("unlock link", "break request"), removed monospace from user labels.
+- `app/privacy/page.tsx`: Cleaned jargon.
+- `app/api/vault/route.ts`: Removed starter vault auto-seeder, integer fils math for fees, derived streak.
+- `app/api/vault/[id]/route.ts`: Integer fils math for fees and payout.
+- `app/api/vault/[id]/pull/route.ts`: Replaced "Allowance Tuck" with "Scheduled save", updated error messages.
+- `app/api/vault/[id]/unlock/route.ts`: Integrated `FRIEND_FEE_PCT` and `SOLO_FEE_PCT` with integer fils math.
+- `app/api/unlock/[token]/route.ts`: Integer fils math and human break request notes.
+- `app/api/stripe/checkout/route.ts`: Updated product description to remove "micro-pull".
+- `app/api/stripe/webhook/route.ts`: Updated note to remove "auto-pull" jargon.
+- `app/api/stripe/setup-intent/route.ts`: Off-session setup intent authentication handling.
+- `app/api/ai/reality-check/route.ts`: Second-person roast prompt citing `SOLO_FEE_PCT%` (15%) and integer fils fees.
+- `app/api/ai/pacing/route.ts`: Behavioral finance pacing prompt cleaned of "engine" and "micro-pull".
+- `components/Header.tsx`: Minimal header logic (logo + lang switcher only) on auth, onboarding, and unlock routes; logged in/out nav states.
+- `components/Footer.tsx`: Hidden on auth, onboarding, and unlock routes.
+- `components/Vault3D.tsx`: Removed screen-projection headline mask inversion; clamped coin orbit strictly within canvas container.
+- `components/MiniVaultGraphic.tsx`: Vertical stack layout (tag, gap, graphic, pill) with zero overlapping layers, typography upgraded.
+- `components/StripeCardForm.tsx`: TestCardHelper integration beside/above Elements form, prefilled billing details.
+- `lib/i18n/en.json` & `lib/i18n/ar.json`: 100% key parity (243 keys), dynamic fee interpolation, natural Gulf Arabic translations.
+
+#### Deleted:
+- `app/api/seed/route.ts`: Deleted completely.
+- `app/api/seed/`: Directory purged.
+
+---
+
+### 3. Every Substituted Name
+| Old Jargon / Hardcoded Name | Substituted New Name (EN) | Substituted New Name (AR) |
+|---|---|---|
+| "50%", "50 %", "0.5", "50 KWD", "penalty" | 15% Emergency fee (`SOLO_FEE_PCT`) | رسوم طوارئ ١٥٪ |
+| "goes to charity", "donated", "charity buffer" | Kept as a fee | تؤخذ كرسوم |
+| "Tuck" / "Allowance Tuck" | Save / Scheduled save | توفير / توفير مجدول |
+| "Cadence" / "Savings Frequency" | How often | كل كم تبي توفر |
+| "Guardian" / "Guardian Protocol" | Keyholder ("the friend who holds your key") | حامل المفتاح (رفيقك اللي ماسك مفتاحك) |
+| "Clearance" / "Clearance Link" | Unlock / Unlock link | رابط الفتح |
+| "Clearance Request" | Break request | طلب كسر الخزينة |
+| "Micro-pull" | Save / Deduction | استقطاع / توفير |
+| "Engine" / "Pacing Engine" | Pacing advisor / Savings advisor | مرشد التوفير الذكي |
+| "Anti-Impulse Vault Setup" | Tijori Setup / (Removed decorative pill) | إعداد التجوري |
+| "Weekend saver micro-pull" | Weekly save | توفير أسبوعي |
+| "Emergency self-break executed (85% payout released)" | You broke the vault (85% returned) | كسرت الخزينة (استرجاع ٨٥٪) |
+| "15% Emergency solo break penalty fee retained" | Emergency fee (15%) | رسوم طوارئ (١٥٪) |
+| "Recommended - Social Accountability" | Recommended | خيار منصوح به |
+| "Ultimate Deterrent - Emergency Solo" | No friend needed | بدون رفيق |
+| "ACCOUNTABILITY PATH" | With a friend | مع رفيقك |
+| "SOLO EMERGENCY" | On your own | بنفسك |
+| "Next Question" | Continue (last step: Finish) | متابعة (الخطوة الأخيرة: إنهاء) |
+| "Amount per Tuck (KWD)" | How much each time (KWD) | كم المبلغ كل مرة (د.ك) |
+| "Incremental Savings Step (Optional)" | Save a bit more each time (optional) | وفر زيادة بسيطة كل مرة (اختياري) |
+| "Fixed Amount" | Same every time | نفس المبلغ كل مرة |
+| "Quick suggestions:" | Popular goals | أهداف شائعة |
+| "Day 25 is standard in Kuwait." | Most allowances land on the 25th. | أغلب المصاريف والإعانات تنزل يوم ٢٥. |
+
+---
+
+### 4. Build, Lint, and Test Suite Results
+- `npm run build`: **PASS** (Zero errors; 28/28 pages static & dynamic compiled and optimized in production).
+- `npm run lint`: **PASS** (`✔ No ESLint warnings or errors`).
+- `node scripts/check-i18n.js`: **PASS** (243/243 keys verified with 100% key parity and valid Gulf Arabic translations).
+- `node scripts/test-m1.js`: **PASS** (All 5 verification steps passed: clean dashboard, zero banned strings in rendered HTML, 100 KWD break math 15.000 fee / 85.000 payout, zero sticker/vault bounding box intersection at 1440/768/390 widths, and TestCardHelper test mode copy functionality).
+
+---
+
+### 5. What Was NOT Finished & Known Problems
+- **What was NOT finished:** None. All parts (Parts 0 through 7) have been completed and verified.
+- **Known problems:** None.
+
+---
+
+### 6. Demo Data Purge Command
+Per the explicit instructions in Part 1, `scripts/purge-demo-data.ts` was executed in **dry run mode** and NOT run with `--apply`.
+
+To execute the demo data purge when ready, run:
+```bash
+npx tsx scripts/purge-demo-data.ts --apply
+```
+
+---
+
+### 7. Master Screenshot Inventory for Task M1 (in `/audit/screenshots/`)
+1. `M1_landing_hero_en_desktop.png` (1440x900, EN desktop landing hero showing outer band stickers, ink text, and 3D vault)
+2. `M1_landing_hero_ar_desktop.png` (1440x900, AR desktop landing hero with RTL layout and Arabic stickers)
+3. `M1_landing_hero_en_phone.png` (390x844, EN mobile hero with stacked vault and zero clipping)
+4. `M1_two_rules_en_desktop.png` (1440x900, "The Two Rules" section displaying 15% emergency self-break and 5% friend approval)
+5. `M1_howitworks_en_desktop.png` (1440x900, "How It Works" vertical stack with zero graphic/tag overlap)
+6. `M1_onboarding_step1_en_desktop.png` (1440x900, Onboarding Step 1 with minimal header, no footer, container padding)
+7. `M1_onboarding_step2_en_desktop.png` (1440x900, Onboarding Step 2 "How much, how often")
+8. `M1_onboarding_step3_en_desktop.png` (1440x900, Onboarding Step 3 "Who keeps you honest?" explaining Keyholder on first use)
+9. `M1_onboarding_step4_card_en_desktop.png` (1440x900, Onboarding Step 4 displaying `TestCardHelper` in test mode)
+10. `M1_onboarding_step4_card_en_phone.png` (390x844, Onboarding Step 4 mobile view showing `TestCardHelper` stacked above form)
+11. `M1_onboarding_step1_ar_phone.png` (390x844, Onboarding Step 1 mobile RTL Arabic view)
+12. `M1_dashboard_empty_en_desktop.png` (1440x900, Brand-new user dashboard with no vault, hidden streak badge, empty ledger)
+13. `M1_dashboard_vault_en_desktop.png` (1440x900, Active user dashboard with real vault, real balance, derived streak, and next 4 saves pacing)
+14. `M1_dashboard_vault_ar_desktop.png` (1440x900, Active user dashboard in Arabic with 3-decimal KWD formatting)
+15. `M1_break_sheet_en_desktop.png` (1440x900, Dashboard break sheet modal displaying 15% emergency self-break fee)

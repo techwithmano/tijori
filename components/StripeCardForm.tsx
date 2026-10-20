@@ -3,15 +3,17 @@
 import React, { useState, useEffect } from "react";
 import { loadStripe, Stripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { CreditCard, Lock, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-
+import { CreditCard, Lock, AlertCircle, Loader2 } from "lucide-react";
 import { useT } from "@/lib/i18n";
+import TestCardHelper from "@/components/TestCardHelper";
 
 interface StripeCardFormProps {
   onSuccess: (card: { brand: string; last4: string }) => void;
   onSkip?: () => void;
   submitLabel?: string;
   skipLabel?: string;
+  userName?: string;
+  userEmail?: string;
 }
 
 function InnerCardForm({
@@ -19,13 +21,15 @@ function InnerCardForm({
   onSkip,
   submitLabel = "Save Card & Link Vault",
   skipLabel = "Skip for now",
-  isTestMode = true,
+  userName,
+  userEmail,
 }: {
   onSuccess: (card: { brand: string; last4: string }) => void;
   onSkip?: () => void;
   submitLabel?: string;
   skipLabel?: string;
-  isTestMode?: boolean;
+  userName?: string;
+  userEmail?: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -73,56 +77,26 @@ function InnerCardForm({
     }
   };
 
-  const handleUseTestCard = async () => {
-    setLoading(true);
-    setErrorMessage(null);
-    try {
-      const res = await fetch("/api/stripe/save-card", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ useTestCard: true }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        onSuccess(data.card || { brand: "Visa", last4: "4242" });
-      } else {
-        setErrorMessage(data.error || "Could not attach test card.");
-      }
-    } catch (err: any) {
-      setErrorMessage(err.message || "Test card setup failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="p-4 rounded-2xl bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
         <PaymentElement
           options={{
             layout: "tabs",
+            defaultValues: {
+              billingDetails: {
+                name: (userName || "").trim() || "Test User",
+                email: (userEmail || "").trim() || undefined,
+              },
+            },
+            fields: {
+              billingDetails: {
+                address: "never",
+              },
+            },
           }}
         />
       </div>
-
-      {isTestMode && (
-        <div className="p-3.5 rounded-xl bg-bg border-2 border-ink flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-muted">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-lime border border-ink" />
-            <span>
-              <strong>Test mode:</strong> use <code className="text-ink font-mono font-bold">4242 4242 4242 4242</code>, any future date, any CVC.
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={handleUseTestCard}
-            disabled={loading}
-            className="px-3 py-1 rounded-full bg-surface border-2 border-ink hover:bg-lime text-ink transition-colors font-bold text-xs shrink-0 shadow-[1px_1px_0_var(--ink)] cursor-pointer"
-          >
-            Auto-fill Test Card
-          </button>
-        </div>
-      )}
 
       {errorMessage && (
         <div className="p-3.5 rounded-xl bg-coral/20 border-2 border-ink text-ink text-sm font-bold flex items-center gap-2 shadow-[2px_2px_0_var(--ink)]">
@@ -170,11 +144,12 @@ export default function StripeCardForm({
   onSkip,
   submitLabel = "Save Card & Link Vault",
   skipLabel = "Skip for now",
+  userName,
+  userEmail,
 }: StripeCardFormProps) {
   const { lang } = useT();
   const isArabic = lang === "ar";
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [isTestMode, setIsTestMode] = useState(true);
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -190,13 +165,11 @@ export default function StripeCardForm({
         }
 
         setClientSecret(data.clientSecret);
-        setIsTestMode(data.isTestMode);
 
         const pubKey = data.publishableKey || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
         if (pubKey && !pubKey.includes("placeholder")) {
           setStripePromise(loadStripe(pubKey));
         } else {
-          // If no valid publishable key configured yet, allow fallback test card setup
           setInitError("Stripe publishable key is not configured in .env.local");
         }
       } catch (err: any) {
@@ -210,31 +183,10 @@ export default function StripeCardForm({
     init();
   }, []);
 
-  const handleFallbackTestCard = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/stripe/save-card", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ useTestCard: true }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        onSuccess(data.card || { brand: "Visa", last4: "4242" });
-      } else {
-        alert(data.error || "Failed to attach test card");
-      }
-    } catch (e: any) {
-      alert(e.message || "Test card failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="py-12 flex flex-col items-center justify-center gap-3 text-[var(--muted)]">
-        <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
+      <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted">
+        <Loader2 className="w-8 h-8 animate-spin text-violet" />
         <p className="text-sm font-medium">Securing connection to Stripe...</p>
       </div>
     );
@@ -243,88 +195,77 @@ export default function StripeCardForm({
   // Fallback view when publishable key is not set or Elements cannot load
   if (initError || !stripePromise || !clientSecret) {
     return (
-      <div className="space-y-5">
-        <div className="p-6 rounded-2xl bg-surface border-2 border-ink space-y-4 shadow-[4px_4px_0_var(--ink)]">
-          <div className="flex items-center gap-3 text-ink">
-            <div className="w-10 h-10 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink shadow-[2px_2px_0_var(--ink)]">
-              <CreditCard className="w-5 h-5 text-ink" />
-            </div>
-            <h4 className="font-extrabold text-base text-ink font-heading">
-              {isArabic ? "ربط البطاقة البنكية التلقائية" : "Automated Card Deduction"}
-            </h4>
-          </div>
-
-          <p className="text-sm text-muted font-medium leading-relaxed">
-            {isArabic
-              ? "يتم ربط بطاقتك بأمان للاستقطاع التلقائي في مواعيد التوفير المحددة لحماية أهدافك من الصرف اللحظي."
-              : "Link your debit or credit card securely for automatic recurring micro-savings to protect your goals from impulse urges."}
-          </p>
-
-          {isTestMode && (
-            <div className="p-3.5 rounded-xl bg-bg border-2 border-ink text-xs text-muted font-medium flex items-start gap-2 shadow-[2px_2px_0_var(--ink)]">
-              <span className="font-bold text-ink shrink-0">
-                {isArabic ? "وضع التجربة:" : "Test Mode:"}
-              </span>
-              <span>
-                {isArabic
-                  ? "استخدم 4242 4242 4242 4242 مع أي تاريخ مستقبلي ورمز CVC للتجربة الفورية."
-                  : "Use 4242 4242 4242 4242 with any future expiry date and CVC for instant testing."}
-              </span>
-            </div>
-          )}
-
-          <button
-            type="button"
-            disabled={loading}
-            onClick={handleFallbackTestCard}
-            className="btn-hard w-full py-4 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-          >
-            <Lock className="w-4 h-4 text-ink" />
-            <span>
-              {isArabic
-                ? "ربط بطاقة تجريبية (Visa •••• 4242)"
-                : "Link Test Card (Visa •••• 4242)"}
-            </span>
-          </button>
+      <div className="flex flex-col lg:flex-row gap-5 items-start">
+        <div className="w-full lg:w-72 shrink-0 order-first lg:order-last">
+          <TestCardHelper userName={userName} userEmail={userEmail} />
         </div>
 
-        {onSkip && (
-          <button
-            type="button"
-            onClick={onSkip}
-            className="w-full py-3 text-xs sm:text-sm text-muted hover:text-ink font-bold transition-colors cursor-pointer"
-          >
-            {skipLabel}
-          </button>
-        )}
+        <div className="flex-1 w-full space-y-4">
+          <div className="p-6 rounded-2xl bg-surface border-2 border-ink space-y-4 shadow-[4px_4px_0_var(--ink)]">
+            <div className="flex items-center gap-3 text-ink">
+              <div className="w-10 h-10 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink shadow-[2px_2px_0_var(--ink)]">
+                <CreditCard className="w-5 h-5 text-ink" />
+              </div>
+              <h4 className="font-extrabold text-base text-ink font-heading">
+                {isArabic ? "ربط البطاقة البنكية التلقائية" : "Automated Card Deduction"}
+              </h4>
+            </div>
+
+            <p className="text-sm text-muted font-medium leading-relaxed">
+              {isArabic
+                ? "يتم ربط بطاقتك بأمان للاستقطاع التلقائي في مواعيد التوفير المحددة لحماية أهدافك من الصرف اللحظي."
+                : "Link your debit or credit card securely for automatic recurring micro-savings to protect your goals from impulse urges."}
+            </p>
+          </div>
+
+          {onSkip && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="w-full py-3 text-xs sm:text-sm text-muted hover:text-ink font-bold transition-colors cursor-pointer"
+            >
+              {skipLabel}
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <Elements
-      stripe={stripePromise}
-      options={{
-        clientSecret,
-        appearance: {
-          theme: "stripe",
-          variables: {
-            colorPrimary: "#6B4DFF",
-            colorBackground: "#FFFFFF",
-            colorText: "#14102B",
-            colorDanger: "#FF5A6E",
-            borderRadius: "16px",
-          },
-        },
-      }}
-    >
-      <InnerCardForm
-        onSuccess={onSuccess}
-        onSkip={onSkip}
-        submitLabel={submitLabel}
-        skipLabel={skipLabel}
-        isTestMode={isTestMode}
-      />
-    </Elements>
+    <div className="flex flex-col lg:flex-row gap-5 items-start">
+      {/* TestCardHelper: displayed beside (desktop) or above (phone), never covering the Stripe form */}
+      <div className="w-full lg:w-72 shrink-0 order-first lg:order-last">
+        <TestCardHelper userName={userName} userEmail={userEmail} />
+      </div>
+
+      <div className="flex-1 w-full">
+        <Elements
+          stripe={stripePromise}
+          options={{
+            clientSecret,
+            appearance: {
+              theme: "stripe",
+              variables: {
+                colorPrimary: "#6B4DFF",
+                colorBackground: "#FFFFFF",
+                colorText: "#14102B",
+                colorDanger: "#FF5A6E",
+                borderRadius: "16px",
+              },
+            },
+          }}
+        >
+          <InnerCardForm
+            onSuccess={onSuccess}
+            onSkip={onSkip}
+            submitLabel={submitLabel}
+            skipLabel={skipLabel}
+            userName={userName}
+            userEmail={userEmail}
+          />
+        </Elements>
+      </div>
+    </div>
   );
 }

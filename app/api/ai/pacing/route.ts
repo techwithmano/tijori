@@ -21,17 +21,17 @@ export async function POST(req: NextRequest) {
 
     const remaining = Math.max(0, targetAmount - currentBalance);
 
-    const prompt = `You are a behavioral finance pacing engine for GCC youth.
+    const prompt = `You are a behavioral finance pacing advisor for GCC youth.
 Goal: Accumulate ${remaining} KWD remaining balance.
 Base weekly pull: ${pullAmount} KWD.
 User's monthly allowance/salary deposit day: ${allowanceDay}th of each month.
 
 In the GCC, young adults experience high liquidity right after day ${allowanceDay} (university I'ana allowance or corporate salary), followed by a steep drop by day 18-24. 
-Calibrate a 4-week dynamic micro-pull schedule adjusting the savings pull amounts according to this psychological cashflow cycle:
-- Week 1 (Right after day ${allowanceDay}): "Post-Allowance Surge" (30-50% higher than base pull).
+Calibrate a 4-week dynamic savings schedule adjusting the savings amounts according to this psychological cashflow cycle:
+- Week 1 (Right after day ${allowanceDay}): "Post-Allowance Surge" (25-40% higher than base pull).
 - Week 2: "Steady State" (around base pull).
 - Week 3: "Mid-Month Lean" (slightly reduced pull to prevent budget stress).
-- Week 4 (Days before next allowance): "Pre-Allowance Cushion" (minimum micro-pull to keep habit alive without feeling broke).
+- Week 4 (Days before next allowance): "Pre-Allowance Cushion" (minimum save to keep habit alive without feeling broke).
 
 Output strictly a valid JSON array of 4 objects with this exact structure, with NO extra markdown formatting or backticks if possible:
 [
@@ -80,7 +80,7 @@ Output strictly a valid JSON array of 4 objects with this exact structure, with 
           label: "Steady Discipline",
           amount: base,
           phase: "STEADY",
-          rationale: "Predictable automated cadence maintaining steady savings momentum.",
+          rationale: "Predictable automated schedule maintaining steady savings momentum.",
         },
         {
           week: 3,

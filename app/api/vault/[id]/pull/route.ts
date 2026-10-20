@@ -39,7 +39,7 @@ export async function POST(
       type: pullAmount === 20 ? "STRIPE_DEPOSIT" : "SCHEDULED_PULL",
       status: "SUCCESS",
       createdAt: new Date(),
-      note: pullAmount === 20 ? "Card Deposit (+20 KWD)" : `Allowance Tuck (+${pullAmount} KWD)`,
+      note: pullAmount === 20 ? "Card Deposit (+20 KWD)" : `Scheduled save (+${pullAmount} KWD)`,
     });
 
     await vault.save();
@@ -52,7 +52,7 @@ export async function POST(
   } catch (error: any) {
     console.error("POST /api/vault/[id]/pull error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to execute micro-pull" },
+      { success: false, error: error.message || "Failed to execute save" },
       { status: 500 }
     );
   }

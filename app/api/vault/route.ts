@@ -19,67 +19,30 @@ export async function GET(req: NextRequest) {
     }
 
     const user = await User.findById(session.userId).select("-password");
-    let vaults = await Vault.find({ userId: session.userId }).sort({ createdAt: -1 });
+    const rawVaults = await Vault.find({ userId: session.userId }).sort({ createdAt: -1 });
 
-    if (!vaults || vaults.length === 0) {
-      const starterVault = await Vault.create({
-        userId: session.userId,
-        title: "Japan Summer Trip",
-        titleAr: "سفرة الصيف - اليابان",
-        targetAmount: 500,
-        currentBalance: 125,
-        pullAmount: 25,
-        targetDate: new Date(Date.now() + 90 * 86400000),
-        cadence: "weekly",
-        currency: "KWD",
-        keyholder: {
-          name: "Ahmed Al-Mutawa",
-          phone: "+965 9988 7766",
-          relationship: "Best Friend",
-          avatar: "A",
-        },
-        keyholderName: "Ahmed Al-Mutawa",
-        keyholderNameAr: "أحمد المطوع",
-        keyholderPhone: "+965 9988 7766",
-        keyholderPin: "123456",
-        status: "LOCKED",
-        unlockMethod: "FRIEND_APPROVAL",
-        streakCount: 18,
-        streakDays: 18,
-        totalProtected: 0,
-        denialsCount: 0,
-        penaltyFeeRate: 0.15,
-        friendFeeRate: 0.05,
-        transactions: [
-          {
-            type: "SCHEDULED_PULL",
-            amount: 75,
-            status: "SUCCESS",
-            createdAt: new Date(Date.now() - 7 * 86400000),
-            note: "Salary day automated pull",
-          },
-          {
-            type: "SIMULATED_PULL",
-            amount: 25,
-            status: "SUCCESS",
-            createdAt: new Date(Date.now() - 3 * 86400000),
-            note: "Impulse resistance deposit (+25 KWD)",
-          },
-          {
-            type: "STRIPE_DEPOSIT",
-            amount: 25,
-            status: "SUCCESS",
-            createdAt: new Date(Date.now() - 1 * 86400000),
-            note: "Weekend saver micro-pull",
-          },
-        ],
-      });
-      vaults = [starterVault];
-    }
+    // Derive streak server-side from real ledger transactions: consecutive succeeded scheduled saves since last break
+    const vaults = (rawVaults || []).map((v) => {
+      const vObj = v.toObject ? v.toObject() : v;
+      let streak = 0;
+      const sortedTxs = [...(vObj.transactions || [])].sort(
+        (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      for (const tx of sortedTxs) {
+        if (tx.type === "BREAK_REFUND" || tx.type === "DISCIPLINE_FEE") {
+          break; // break resets streak
+        }
+        if (tx.type === "SCHEDULED_PULL" && (tx.status === "SUCCESS" || tx.status === "COMPLETED")) {
+          streak++;
+        }
+      }
+      vObj.streakCount = streak;
+      return vObj;
+    });
 
     return NextResponse.json({
       success: true,
-      vaults: vaults || [],
+      vaults: vaults,
       vault: vaults[0] || null,
       user: user || {
         id: session.userId,

@@ -12,8 +12,18 @@ export default function Footer() {
   const { lang } = useT();
   const isArabic = lang === "ar";
 
-  // Hide footer on dashboard and keyholder decision pages
-  if (pathname === "/dashboard" || pathname?.startsWith("/unlock")) {
+  // Hide footer on dashboard, onboarding, auth, keyholder, and unlock pages
+  const isExcluded =
+    pathname === "/dashboard" ||
+    pathname === "/onboarding" ||
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/signup" ||
+    pathname === "/forgot-password" ||
+    pathname?.startsWith("/keyholder") ||
+    pathname?.startsWith("/unlock");
+
+  if (isExcluded) {
     return null;
   }
 

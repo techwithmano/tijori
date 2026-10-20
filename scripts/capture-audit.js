@@ -456,13 +456,13 @@ async function main() {
   console.log("\n9. Capturing Burned Token security defense screen...");
   for (const lang of ["en", "ar"]) {
     await captureState(guestContext, {
-      url: `${BASE_URL}/unlock/burned-token-expired-demo-security`,
+      url: `${BASE_URL}/unlock/burned-token-expired-test-security`,
       filename: `13_burned_token_${lang}_phone.png`,
       lang,
       viewport: PHONE,
     });
     await captureState(guestContext, {
-      url: `${BASE_URL}/unlock/burned-token-expired-demo-security`,
+      url: `${BASE_URL}/unlock/burned-token-expired-test-security`,
       filename: `13_burned_token_${lang}_desktop.png`,
       lang,
       viewport: DESKTOP,
@@ -584,7 +584,7 @@ async function main() {
 <body>
   <div class="header">
     <h1>${s.title}</h1>
-    <p>Automated Contact Sheet • Grounded in Real DB State • Stripe Test Tokenization • Zero Emojis/Demo Shortcuts</p>
+    <p>Automated Contact Sheet • Grounded in Real DB State • Stripe Test Tokenization • Zero Emojis/Shortcuts</p>
   </div>
   <div class="grid">
     ${matchedFiles

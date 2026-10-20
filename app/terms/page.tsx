@@ -1,6 +1,12 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import {
+  FRIEND_FEE_PCT,
+  FRIEND_RETURN_PCT,
+  SOLO_FEE_PCT,
+  SOLO_RETURN_PCT,
+} from "@/lib/config";
 
 export default function TermsPage() {
   return (
@@ -20,7 +26,8 @@ export default function TermsPage() {
           By activating a Tijori vault, you agree that your designated keyholder holds discretionary authority over early break requests until your savings goal date or target is satisfied.
         </p>
         <div className="border-t-2 border-ink pt-6 space-y-4 text-sm text-ink font-medium">
-          <p>• A 5% commitment discipline fee applies to early vault breaks approved by your keyholder.</p>
+          <p>• A {FRIEND_FEE_PCT}% fee applies to early vault breaks approved by your keyholder ({FRIEND_RETURN_PCT}% returned).</p>
+          <p>• A {SOLO_FEE_PCT}% emergency fee applies to solo emergency breaks without keyholder approval ({SOLO_RETURN_PCT}% returned, kept as a fee).</p>
           <p>• Denied break requests keep 100% of your funds locked and preserve your streak.</p>
         </div>
       </div>

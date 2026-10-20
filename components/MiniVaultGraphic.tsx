@@ -27,9 +27,75 @@ export default function MiniVaultGraphic({ step, isArabic }: MiniVaultGraphicPro
   }, [step]);
 
   return (
-    <div className="w-full max-w-[380px] bg-surface border-2 border-ink rounded-[28px] shadow-[6px_6px_0_var(--ink)] p-6 relative overflow-hidden flex flex-col items-center justify-center min-h-[340px] select-none transition-all duration-300">
-      {/* ── Background Vault Body ── */}
-      <div className="w-56 h-56 rounded-[28px] bg-violet border-2 border-ink shadow-[4px_4px_0_var(--ink)] relative flex items-center justify-center transition-transform duration-300">
+    <div className="w-full max-w-[380px] bg-surface border-2 border-ink rounded-[28px] shadow-[6px_6px_0_var(--ink)] p-5 sm:p-6 flex flex-col items-center justify-between min-h-[420px] select-none transition-all duration-300">
+      {/* ── TOP: Dynamic Step Tag (Normal document flow, no absolute overlap) ── */}
+      <div className="w-full min-h-[72px] flex items-center justify-center">
+        {step === 1 && (
+          <div className="w-full bg-lime border-2 border-ink rounded-2xl p-3.5 shadow-[3px_3px_0_var(--ink)] animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <div className="text-xs font-extrabold uppercase tracking-wider text-ink/70">
+                  {isArabic ? "هدف التوفير" : "Saving Goal"}
+                </div>
+                <div className="text-base font-extrabold text-ink font-heading leading-tight">
+                  {isArabic ? "سفرة اليابان" : "Japan Summer Trip"}
+                </div>
+              </div>
+              <div className="px-2.5 py-1 rounded-full bg-surface border-2 border-ink font-extrabold text-xs text-ink shrink-0 shadow-[1px_1px_0_var(--ink)]">
+                {isArabic ? "٥٠٠ د.ك" : "500 KWD"}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="w-full bg-violet text-white border-2 border-ink rounded-2xl p-3 shadow-[3px_3px_0_var(--ink)] animate-in fade-in zoom-in-95 duration-200 space-y-1">
+            <div className="flex items-center justify-between text-xs font-bold text-lime">
+              <span>{isArabic ? "إيداع تلقائي" : "Auto-deposited"}</span>
+              <span className="flex items-center gap-1 text-xs bg-lime/20 px-2 py-0.5 rounded-full border border-lime/40 font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-lime animate-ping" />
+                {isArabic ? "+٢٥ د.ك أسبوعياً" : "+25 KWD weekly"}
+              </span>
+            </div>
+
+            <div className="flex items-baseline justify-between pt-0.5">
+              <span className="text-xl font-extrabold text-white font-heading">
+                {isArabic ? `${counterVal} د.ك` : `${counterVal}.000 KWD`}
+              </span>
+              <span className="text-xs font-extrabold text-white/80">
+                {counterVal}% {isArabic ? "مكتمل" : "saved"}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="w-full bg-coral text-white border-2 border-ink rounded-2xl p-3 shadow-[3px_3px_0_var(--ink)] animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-full bg-white text-ink border-2 border-ink flex items-center justify-center font-extrabold text-sm shadow-[1px_1px_0_var(--ink)] shrink-0">
+                  A
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white/90">
+                    {isArabic ? "المفتاح بيد رفيقك" : "Key held by"}
+                  </div>
+                  <div className="text-xs sm:text-sm font-extrabold text-white font-heading leading-tight">
+                    {isArabic ? "أحمد المطوع" : "Ahmed Al-Mutawa"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-8 h-8 rounded-full bg-lime border-2 border-ink flex items-center justify-center text-ink shadow-[1px_1px_0_var(--ink)] shrink-0 animate-bounce">
+                <KeyRound className="w-4 h-4 text-ink" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── MIDDLE: 16px Gap (my-4) + Vault Graphic with min-height 220px ── */}
+      <div className="w-56 h-56 min-h-[224px] rounded-[28px] bg-violet border-2 border-ink shadow-[4px_4px_0_var(--ink)] relative flex items-center justify-center transition-transform duration-300 my-4 shrink-0">
         {/* 4 Corner Bolts */}
         <div className="absolute top-2.5 left-2.5 w-3.5 h-3.5 rounded-full bg-white border border-ink" />
         <div className="absolute top-2.5 right-2.5 w-3.5 h-3.5 rounded-full bg-white border border-ink" />
@@ -89,74 +155,8 @@ export default function MiniVaultGraphic({ step, isArabic }: MiniVaultGraphicPro
         </div>
       </div>
 
-      {/* ── STEP 1 OVERLAY: Goal Tag pops in with 500 KWD target ── */}
-      {step === 1 && (
-        <div className="absolute inset-x-6 top-6 bg-lime border-2 border-ink rounded-2xl p-4 shadow-[4px_4px_0_var(--ink)] animate-in fade-in zoom-in-95 duration-300">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <div className="text-[11px] font-extrabold uppercase tracking-wider text-ink/70">
-                {isArabic ? "هدف التوفير" : "Saving Goal"}
-              </div>
-              <div className="text-lg font-extrabold text-ink font-heading leading-tight">
-                {isArabic ? "سفرة اليابان" : "Japan Summer Trip"}
-              </div>
-            </div>
-            <div className="px-3 py-1 rounded-full bg-surface border-2 border-ink font-extrabold text-sm text-ink shrink-0 shadow-[1px_1px_0_var(--ink)]">
-              {isArabic ? "٥٠٠ د.ك" : "500 KWD"}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── STEP 2 OVERLAY: Coins drop in + Counter 0 -> 25 -> 50 -> 75 KWD ── */}
-      {step === 2 && (
-        <div className="absolute inset-x-6 top-5 bg-violet text-white border-2 border-ink rounded-2xl p-3.5 shadow-[4px_4px_0_var(--ink)] animate-in fade-in zoom-in-95 duration-300 space-y-1.5">
-          <div className="flex items-center justify-between text-xs font-bold text-lime">
-            <span>{isArabic ? "إيداع تلقائي" : "Auto-deposited"}</span>
-            <span className="flex items-center gap-1 font-mono text-[11px] bg-lime/20 px-2 py-0.5 rounded-full border border-lime/40">
-              <span className="w-2 h-2 rounded-full bg-lime animate-ping" />
-              {isArabic ? "+٢٥ د.ك أسبوعياً" : "+25 KWD weekly"}
-            </span>
-          </div>
-
-          <div className="flex items-baseline justify-between pt-0.5">
-            <span className="text-2xl font-extrabold text-white font-heading">
-              {isArabic ? `${counterVal} د.ك` : `${counterVal}.000 KWD`}
-            </span>
-            <span className="text-xs font-extrabold text-white/80">
-              {counterVal}% {isArabic ? "مكتمل" : "saved"}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* ── STEP 3 OVERLAY: Vault locked + Key flies to Fahad's avatar ── */}
-      {step === 3 && (
-        <div className="absolute inset-x-6 top-5 bg-coral text-white border-2 border-ink rounded-2xl p-3.5 shadow-[4px_4px_0_var(--ink)] animate-in fade-in zoom-in-95 duration-300">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-full bg-white text-ink border-2 border-ink flex items-center justify-center font-extrabold text-base shadow-[1px_1px_0_var(--ink)] shrink-0">
-                A
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white/90">
-                  {isArabic ? "المفتاح بيد رفيقك" : "Key held by"}
-                </div>
-                <div className="text-sm font-extrabold text-white font-heading leading-tight">
-                  {isArabic ? "أحمد المطوع" : "Ahmed Al-Mutawa"}
-                </div>
-              </div>
-            </div>
-
-            <div className="w-9 h-9 rounded-full bg-lime border-2 border-ink flex items-center justify-center text-ink shadow-[1px_1px_0_var(--ink)] shrink-0 animate-bounce">
-              <KeyRound className="w-5 h-5 text-ink" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom Status Tag */}
-      <div className="mt-4 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-bg border-2 border-ink text-xs font-bold text-ink shadow-[1px_1px_0_var(--ink)]">
+      {/* ── BOTTOM: Status Tag Pill ── */}
+      <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-bg border-2 border-ink text-xs font-bold text-ink shadow-[1px_1px_0_var(--ink)] shrink-0">
         {step === 1 && (
           <>
             <span className="w-2 h-2 rounded-full bg-lime" />

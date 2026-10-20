@@ -17,7 +17,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="text-muted leading-relaxed">
-          We value your personal privacy. We only collect the minimal information necessary to safeguard your micro-savings and coordinate clearance requests with your chosen keyholder.
+          We value your personal privacy. We only collect the minimal information necessary to safeguard your savings and coordinate break requests with your chosen keyholder.
         </p>
         <div className="border-t-2 border-ink pt-6 space-y-4 text-sm text-ink font-medium">
           <p>• Your savings goals and amounts are kept strictly between you and your appointed friend.</p>

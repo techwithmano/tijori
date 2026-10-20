@@ -63,9 +63,37 @@ export default function Header() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  // Do not render shared floating header on dashboard and keyholder decision pages
-  if (pathname === "/dashboard" || pathname?.startsWith("/unlock")) {
+  // Do not render shared floating header on dashboard
+  if (pathname === "/dashboard") {
     return null;
+  }
+
+  // Minimal header for onboarding, auth, keyholder, and unlock routes
+  const isMinimal =
+    pathname === "/onboarding" ||
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/signup" ||
+    pathname === "/forgot-password" ||
+    pathname?.startsWith("/keyholder") ||
+    pathname?.startsWith("/unlock");
+
+  if (isMinimal) {
+    return (
+      <header className="sticky top-4 z-50 w-full px-4 sm:px-6 pointer-events-none">
+        <nav
+          aria-label="Main Navigation"
+          className="mx-auto max-w-[1100px] w-full h-16 bg-surface border-2 border-ink rounded-full shadow-[4px_4px_0_var(--ink)] px-4 sm:px-6 flex items-center justify-between gap-3 pointer-events-auto transition-all"
+        >
+          <div className="shrink-0 flex items-center">
+            <Logo href="/" />
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <LanguageSwitcher />
+          </div>
+        </nav>
+      </header>
+    );
   }
 
   const isLanding = pathname === "/";

@@ -281,7 +281,7 @@ export default function StyleguidePage() {
             </div>
           </div>
 
-          {/* Button States Demonstration */}
+          {/* Button States Preview */}
           <div className="pt-4 border-t border-line">
             <span className="text-xs font-semibold text-muted block mb-3">Interactive States:</span>
             <div className="flex flex-wrap items-center gap-3">

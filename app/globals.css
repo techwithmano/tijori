@@ -18,11 +18,17 @@
   --raised: #FFFFFF;
   --accent: #CFFF3A;
   --accent-foreground: #14102B;
+  --nav-h: 96px;
 }
 
 html {
   overflow-x: clip;
   max-width: 100%;
+  scroll-padding-top: calc(var(--nav-h) + 16px);
+}
+
+section[id] {
+  scroll-margin-top: calc(var(--nav-h) + 16px);
 }
 
 body {

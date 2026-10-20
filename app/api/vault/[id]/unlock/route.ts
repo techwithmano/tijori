@@ -3,6 +3,14 @@ import { connectToDatabase } from "@/lib/db";
 import { Vault } from "@/models/Vault";
 import { stripe, kwdToUsdCents } from "@/lib/stripe";
 import crypto from "crypto";
+import {
+  calculateFriendRelease,
+  calculateSoloBreak,
+  FRIEND_FEE_PCT,
+  SOLO_FEE_PCT,
+  FRIEND_RETURN_PCT,
+  SOLO_RETURN_PCT,
+} from "@/lib/config";
 
 export async function POST(
   req: NextRequest,
@@ -82,8 +90,7 @@ export async function POST(
       }
 
       const totalAmount = vault.currentBalance;
-      const fee = Math.round(totalAmount * 0.05 * 1000) / 1000;
-      const payout = Math.round((totalAmount - fee) * 1000) / 1000;
+      const { fee, returnAmount: payout } = calculateFriendRelease(totalAmount);
 
       // Issue Stripe test-mode refund against most recent charges
       if (vault.processedPaymentIntents && vault.processedPaymentIntents.length > 0) {
@@ -110,7 +117,7 @@ export async function POST(
         type: "BREAK_REFUND",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `Break approved by ${vault.keyholder?.name || "Ahmed"} with PIN (95% payout released via Stripe refund)`,
+        note: `Break approved by ${vault.keyholder?.name || "Ahmed"} (${FRIEND_RETURN_PCT}% returned)`,
       });
 
       vault.transactions.unshift({
@@ -118,13 +125,12 @@ export async function POST(
         type: "DISCIPLINE_FEE",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `5% Discipline fee retained in reserve`,
+        note: `Early release fee (${FRIEND_FEE_PCT}%)`,
       });
     } else if (action === "EMERGENCY_BREAK") {
-      // Emergency Break Alone (15% penalty fee, 85% refund)
+      // Emergency Break Alone (15% emergency fee, 85% refund)
       const totalAmount = vault.currentBalance;
-      const fee = Math.round(totalAmount * 0.15 * 1000) / 1000;
-      const payout = Math.round((totalAmount - fee) * 1000) / 1000;
+      const { fee, returnAmount: payout } = calculateSoloBreak(totalAmount);
 
       if (vault.processedPaymentIntents && vault.processedPaymentIntents.length > 0) {
         const latestPi = vault.processedPaymentIntents[vault.processedPaymentIntents.length - 1];
@@ -150,7 +156,7 @@ export async function POST(
         type: "BREAK_REFUND",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `Emergency self-break executed (85% payout released via Stripe refund)`,
+        note: `You broke the vault (${SOLO_RETURN_PCT}% returned)`,
       });
 
       vault.transactions.unshift({
@@ -158,7 +164,7 @@ export async function POST(
         type: "DISCIPLINE_FEE",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `15% Emergency solo break penalty fee retained in reserve`,
+        note: `Emergency fee (${SOLO_FEE_PCT}%)`,
       });
     } else if (action === "DENY") {
       vault.status = "LOCKED";

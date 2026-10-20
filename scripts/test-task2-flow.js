@@ -36,7 +36,7 @@ async function run() {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
 
-  // 1. Visit /login to verify pure real login (no demo buttons)
+  // 1. Visit /login to verify real login
   console.log("1. Testing /login...");
   await page.goto(`${BASE_URL}/login`, { waitUntil: "networkidle0" });
   await page.screenshot({
@@ -151,7 +151,7 @@ async function run() {
 
   // 5. Test Empty-State Dashboard for a user with 0 vaults
   console.log("5. Testing empty-state dashboard...");
-  // Clear cookies to simulate fresh signup or visit empty user
+  // Clear cookies for fresh signup or visit empty user
   const client = await page.target().createCDPSession();
   await client.send("Network.clearBrowserCookies");
 

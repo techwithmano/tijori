@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { Vault } from "@/models/Vault";
 import { stripe, kwdToUsdCents } from "@/lib/stripe";
+import { calculateFriendRelease, FRIEND_FEE_PCT, FRIEND_RETURN_PCT } from "@/lib/config";
 
 export async function GET(
   req: NextRequest,
@@ -36,7 +37,7 @@ export async function GET(
   } catch (error: any) {
     console.error("GET /api/unlock/[token] error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to retrieve clearance request" },
+      { success: false, error: error.message || "Failed to retrieve break request" },
       { status: 500 }
     );
   }
@@ -96,8 +97,7 @@ export async function POST(
       }
 
       const totalAmount = vault.currentBalance;
-      const fee = Math.round(totalAmount * 0.05 * 1000) / 1000;
-      const payout = Math.round((totalAmount - fee) * 1000) / 1000;
+      const { fee, returnAmount: payout } = calculateFriendRelease(totalAmount);
 
       // Issue Stripe test-mode refund against most recent charges
       if (vault.processedPaymentIntents && vault.processedPaymentIntents.length > 0) {
@@ -126,7 +126,7 @@ export async function POST(
         type: "BREAK_REFUND",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `Keyholder ${guardianFullName} authorized break with PIN (95% payout via Stripe refund)`,
+        note: `Break approved by ${guardianFullName} (${FRIEND_RETURN_PCT}% returned)`,
       });
 
       vault.transactions.unshift({
@@ -134,7 +134,7 @@ export async function POST(
         type: "DISCIPLINE_FEE",
         status: "SUCCESS",
         createdAt: new Date(),
-        note: `5% Discipline penalty fee retained in reserve`,
+        note: `Early release fee (${FRIEND_FEE_PCT}%)`,
       });
     } else if (action === "DENY") {
       vault.status = "LOCKED";

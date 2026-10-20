@@ -92,7 +92,7 @@ async function capture() {
     });
     console.log("Captured task4-phone-mockup.png");
 
-    // Test clicking inside the mockup (simulate interaction)
+    // Test clicking inside the mockup (test interaction)
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll("button"));
       const reject = btns.find((b) => b.textContent && (b.textContent.includes("Keep Locked") || b.textContent.includes("Reject")));

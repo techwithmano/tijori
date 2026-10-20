@@ -298,10 +298,12 @@ function VaultMesh({
     let vaultX = 0;
     let vaultY = 0;
     let vaultScale = 0.92;
+    let anchorRect: DOMRect | null = null;
+    let pixelsPerUnit = state.size.height / Math.max(viewport.height, 0.001);
 
     if (anchor && state.gl.domElement) {
       const canvasRect = state.gl.domElement.getBoundingClientRect();
-      const anchorRect = anchor.getBoundingClientRect();
+      anchorRect = anchor.getBoundingClientRect();
 
       // Convert anchor center to canvas coordinate space
       const anchorCenterX = anchorRect.left + anchorRect.width / 2 - canvasRect.left;
@@ -315,7 +317,7 @@ function VaultMesh({
       vaultX = ndcX * (viewport.width / 2);
       vaultY = ndcY * (viewport.height / 2);
 
-      const pixelsPerUnit = canvasRect.height / viewport.height;
+      pixelsPerUnit = canvasRect.height / viewport.height;
       if (isDesktop) {
         // Desktop: sized nicely inside the end column (approx 290px safe body)
         const targetPx = Math.min(anchorRect.width * 0.72, 300);
@@ -329,7 +331,7 @@ function VaultMesh({
       if (isDesktop) {
         const containerWidth = Math.min(state.size.width, 1100);
         const columnOffsetPx = containerWidth / 4;
-        const pixelsPerUnit = state.size.height / viewport.height;
+        pixelsPerUnit = state.size.height / viewport.height;
         vaultX = (columnOffsetPx / Math.max(pixelsPerUnit, 1)) * (isRTL ? -1 : 1);
         vaultY = 0;
         vaultScale = Math.min(0.92, viewport.height * 0.25);
@@ -476,39 +478,52 @@ function VaultMesh({
       const cosA = Math.cos(angle);
 
       if (isDesktop) {
-        // Desktop: Wide orbit that sweeps from vault across to the headline column
-        // When sinA > 0, the coin sweeps towards the headline (sweepDirection: -1 for LTR, +1 for RTL)
-        const sweepDist = sweepDirection * (1.25 + Math.abs(cosA) * 0.45);
-        const sweep = sinA > 0 ? sweepDist : 0;
+        // Desktop: Coins orbit tightly around the vault inside the container, never sweeping over the headline
+        const orbitRadiusX = vaultScale * (1.65 + (index % 3) * 0.15);
+        const orbitRadiusY = vaultScale * (0.55 + (index % 2) * 0.10);
 
-        const rawX = vaultX + cosA * config.radiusX + sweep;
-        const rawY = vaultY + sinA * config.radiusY + Math.sin(time * 1.5 + index) * 0.06;
+        const rawX = vaultX + cosA * orbitRadiusX;
+        const rawY = vaultY + sinA * orbitRadiusY + Math.sin(time * 1.5 + index) * 0.05;
 
-        // Ensure safe clearance from vault body (vault width ~2.5, depth ~1.3)
-        // Vault bounding box: [vaultX - 1.45 * vaultScale, vaultX + 1.45 * vaultScale]
-        const distFromVaultX = Math.abs(rawX - vaultX);
+        // Container bounds clamping in world coordinates
+        const containerHalfW = anchorRect ? (anchorRect.width / Math.max(pixelsPerUnit, 1)) / 2 : 1.8;
+        const containerHalfH = anchorRect ? (anchorRect.height / Math.max(pixelsPerUnit, 1)) / 2 : 1.8;
+        const coinRadiusWorld = 0.22 * coinScale;
+        const maxDeltaX = Math.max(0.2, containerHalfW - coinRadiusWorld - (8 / Math.max(pixelsPerUnit, 1)));
+        const maxDeltaY = Math.max(0.2, containerHalfH - coinRadiusWorld - (8 / Math.max(pixelsPerUnit, 1)));
+
+        const clampedX = THREE.MathUtils.clamp(rawX, vaultX - maxDeltaX, vaultX + maxDeltaX);
+        const clampedY = THREE.MathUtils.clamp(rawY, vaultY - maxDeltaY, vaultY + maxDeltaY);
+
+        // Viewport edge safety clamp (ensures right-most coin is never clipped by screen edge)
+        const maxScreenX = (viewport.width / 2) - coinRadiusWorld - (16 / Math.max(pixelsPerUnit, 1));
+        coin.position.x = THREE.MathUtils.clamp(clampedX, -maxScreenX, maxScreenX);
+        coin.position.y = clampedY;
+
+        // Ensure safe clearance from vault body
+        const distFromVaultX = Math.abs(coin.position.x - vaultX);
         const nearVault = distFromVaultX < 1.45 * vaultScale;
 
         let zPos = sinA * config.zAmp;
         if (nearVault) {
-          // If in front, stay cleanly in front of door (z > 1.25 * vaultScale)
-          // If behind, stay cleanly behind safe body (z < -1.10 * vaultScale)
           if (zPos >= 0) {
             zPos = Math.max(zPos, 1.25 * vaultScale + 0.25 * Math.max(0, sinA));
           } else {
             zPos = Math.min(zPos, -1.10 * vaultScale + 0.25 * Math.min(0, sinA));
           }
         }
-
-        coin.position.x = rawX;
-        coin.position.y = rawY;
         coin.position.z = zPos;
       } else {
         // Mobile: Coins orbit tightly around the vault, never clipping screen borders or vault
         const orbitRadiusX = vaultScale * (1.60 + (index % 3) * 0.15);
         const orbitRadiusY = vaultScale * (0.55 + (index % 2) * 0.10);
-        coin.position.x = vaultX + cosA * orbitRadiusX;
-        coin.position.y = vaultY + sinA * orbitRadiusY;
+        const rawX = vaultX + cosA * orbitRadiusX;
+        const rawY = vaultY + sinA * orbitRadiusY;
+        const coinRadiusWorld = 0.22 * coinScale;
+        const maxScreenX = (viewport.width / 2) - coinRadiusWorld - (12 / Math.max(pixelsPerUnit, 1));
+
+        coin.position.x = THREE.MathUtils.clamp(rawX, -maxScreenX, maxScreenX);
+        coin.position.y = rawY;
         coin.position.z = sinA > 0 ? 1.05 * vaultScale : -0.95 * vaultScale;
       }
 
@@ -517,56 +532,6 @@ function VaultMesh({
       coin.rotation.y += delta * config.rotSpeedY + Math.sin(time * config.flutterFreq * 1.2) * (delta * config.flutterAmp * 1.2);
       coin.rotation.z += delta * config.rotSpeedZ;
     });
-
-    // Project coin positions to screen to dynamically invert headline text when coins pass behind it
-    if (typeof document !== "undefined") {
-      const headlineEl = document.getElementById("hero-headline-inverted");
-      if (headlineEl) {
-        const rect = headlineEl.getBoundingClientRect();
-        const projVector = new THREE.Vector3();
-        const masks: string[] = [];
-        const coinRadius = isDesktop ? 65 : 42;
-
-        COINS.forEach((_, index) => {
-          const coin = coinRefs.current[index];
-          if (!coin) return;
-
-          coin.getWorldPosition(projVector);
-          projVector.project(state.camera);
-
-          // Only coins facing the camera
-          if (projVector.z >= 1) return;
-
-          const screenX = (projVector.x * 0.5 + 0.5) * window.innerWidth;
-          const screenY = (-projVector.y * 0.5 + 0.5) * window.innerHeight;
-
-          const relX = screenX - rect.left;
-          const relY = screenY - rect.top;
-
-          if (
-            relX >= -coinRadius &&
-            relX <= rect.width + coinRadius &&
-            relY >= -coinRadius &&
-            relY <= rect.height + coinRadius
-          ) {
-            masks.push(
-              `radial-gradient(circle at ${Math.round(relX)}px ${Math.round(relY)}px, black ${coinRadius - 10}px, transparent ${coinRadius + 12}px)`
-            );
-          }
-        });
-
-        if (masks.length > 0) {
-          headlineEl.style.opacity = "1";
-          const maskValue = masks.join(", ");
-          headlineEl.style.webkitMaskImage = maskValue;
-          headlineEl.style.maskImage = maskValue;
-        } else {
-          headlineEl.style.opacity = "0";
-          headlineEl.style.webkitMaskImage = "linear-gradient(transparent, transparent)";
-          headlineEl.style.maskImage = "linear-gradient(transparent, transparent)";
-        }
-      }
-    }
   });
 
   return (

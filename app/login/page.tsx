@@ -61,7 +61,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
+    <div className="min-h-[85vh] flex items-center justify-center px-4 pb-12 pt-[calc(var(--nav-h)+24px)]">
       <div className="w-full max-w-md card-hard bg-surface p-6 sm:p-8 shadow-[4px_4px_0_var(--ink)] space-y-6">
         {/* Brand Icon & Header */}
         <div className="text-center space-y-2">
@@ -84,7 +84,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Real Login Form (No Demo) */}
+        {/* Real Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
           <div className="space-y-1.5">

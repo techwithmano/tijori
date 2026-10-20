@@ -6,22 +6,16 @@ import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
-  Sparkles,
-  Shield,
   CreditCard,
   CheckCircle2,
   AlertCircle,
-  Lock,
-  HeartHandshake,
-  Calendar,
-  Smartphone,
   KeyRound,
-  Coins,
   TrendingUp,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { formatKWD } from "@/lib/utils";
 import StripeCardForm from "@/components/StripeCardForm";
+import { FRIEND_FEE_PCT } from "@/lib/config";
 
 interface QuickChip {
   id: string;
@@ -46,6 +40,18 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedCard, setSavedCard] = useState<{ brand: string; last4: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
+
+  React.useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.user) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Step 1: Goal & Target
   const [goalName, setGoalName] = useState("Japan Summer Trip");
@@ -99,30 +105,24 @@ export default function OnboardingPage() {
     e.preventDefault();
     setError(null);
     if (!keyholderName.trim()) {
-      setError(isArabic ? "يرجى كتابة اسم حامل المفتاح." : "Please enter your Keyholder's name.");
+      setError(isArabic ? "يرجى إدخال اسم حامل المفتاح." : "Please enter your keyholder's name.");
       return;
     }
-    if (!keyholderPhone.trim() || !validatePhone(keyholderPhone)) {
+    if (!validatePhone(keyholderPhone)) {
       setError(t("onboarding.phoneValidation"));
-      return;
-    }
-    if (!/^\d{6}$/.test(keyholderPin)) {
-      setError(isArabic ? "رمز PIN لحامل المفتاح يجب أن يكون 6 أرقام." : "Keyholder PIN must be exactly 6 digits.");
       return;
     }
     setStep(4);
   };
 
   const handleCreateVault = async () => {
-    setLoading(true);
-    setError(null);
-
-    const cleanedPhone = keyholderPhone.replace(/\s+/g, "");
-    const formattedPhone = cleanedPhone.startsWith("+")
-      ? cleanedPhone
-      : `+965 ${cleanedPhone}`;
-
     try {
+      setLoading(true);
+      setError(null);
+
+      const cleanedPhone = keyholderPhone.replace(/\s+/g, "").replace(/^\+965/, "");
+      const fullPhone = `+965${cleanedPhone}`;
+
       const res = await fetch("/api/vault", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,22 +130,23 @@ export default function OnboardingPage() {
           title: goalName.trim(),
           targetAmount: Number(targetAmount),
           pullAmount: Number(pullAmount),
-          cadence: cadence === "custom" ? "weekly" : cadence,
-          customCadenceDays: cadence === "custom" ? customCadenceDays : undefined,
+          cadence,
+          customCadenceDays: cadence === "custom" ? customCadenceDays : 7,
           incrementalSavingsType: incrementalType,
-          incrementalSavingsValue: incrementalType !== "none" ? incrementalValue : 0,
+          incrementalSavingsValue: incrementalValue,
           allowanceDay: Number(allowanceDay) || 25,
-          keyholderPin: keyholderPin.trim() || "123456",
           keyholder: {
             name: keyholderName.trim(),
-            phone: formattedPhone,
-            relationship: keyholderRel.trim() || "Friend",
+            phone: fullPhone,
+            relationship: keyholderRel.trim() || "Best Friend",
           },
+          keyholderPin: keyholderPin.trim() || "123456",
         }),
       });
 
       const data = await res.json();
-      if (data.success) {
+
+      if (data.success && data.vault) {
         router.push("/dashboard");
         router.refresh();
       } else {
@@ -161,45 +162,38 @@ export default function OnboardingPage() {
   const progressPercentage = (step / 4) * 100;
 
   return (
-    <div className="min-h-[85vh] flex flex-col justify-center max-w-2xl mx-auto px-4 py-8">
-      {/* Top Header & Progress Bar */}
-      <div className="mb-6 space-y-4">
-        <div className="flex items-center justify-between text-xs text-muted">
+    <div className={`min-h-[85vh] flex flex-col justify-center mx-auto px-4 pb-12 pt-[calc(var(--nav-h)+24px)] transition-all ${step === 4 ? "max-w-3xl" : "max-w-xl"}`}>
+      {/* Neobrutalist Progress Bar directly above card (16px gap, 25/50/75/100%) */}
+      <div className="w-full h-2.5 bg-surface rounded-full overflow-hidden border-2 border-ink shadow-[2px_2px_0_var(--ink)] mb-4">
+        <div
+          className="h-full bg-lime border-e-2 border-ink transition-all duration-300 rounded-full"
+          style={{ width: `${progressPercentage}%` }}
+        />
+      </div>
+
+      {/* Main Card */}
+      <div className="card-hard bg-surface p-5 sm:p-8 shadow-[4px_4px_0_var(--ink)] space-y-5">
+        {/* Inside Card Header: Back & Step X of 4 on one line above title */}
+        <div className="flex items-center justify-between text-xs text-muted border-b border-ink/10 pb-3">
           <div className="flex items-center gap-2">
-            {step > 1 && (
+            {step > 1 ? (
               <button
                 type="button"
                 onClick={() => setStep((s) => (s > 1 ? ((s - 1) as any) : 1))}
-                className="inline-flex items-center gap-1 text-muted hover:text-ink font-bold transition-colors me-2 cursor-pointer"
+                className="inline-flex items-center gap-1 text-muted hover:text-ink font-bold transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
                 <span>{t("onboarding.backAction")}</span>
               </button>
+            ) : (
+              <span className="text-muted/60 font-semibold">Tijori</span>
             )}
-            <span className="font-extrabold text-ink">
-              {t("onboarding.stepCount", { current: step, total: 4 })}
-            </span>
           </div>
-
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-lime border-2 border-ink text-xs font-bold text-ink shadow-[2px_2px_0_var(--ink)]">
-            <Lock className="w-3.5 h-3.5 text-ink" />
-            <span>
-              {isArabic ? "إعداد خزينة تِجوري" : "Anti-Impulse Vault Setup"}
-            </span>
-          </div>
+          <span className="font-extrabold text-ink">
+            {t("onboarding.stepCount", { current: step, total: 4 })}
+          </span>
         </div>
 
-        {/* Neobrutalist Progress Bar */}
-        <div className="w-full h-3 bg-surface rounded-full overflow-hidden border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
-          <div
-            className="h-full bg-lime border-e-2 border-ink transition-all duration-300 rounded-full"
-            style={{ width: `${progressPercentage}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Main Card */}
-      <div className="card-hard bg-surface p-6 sm:p-10 shadow-[4px_4px_0_var(--ink)] space-y-8">
         {error && (
           <div className="p-3.5 rounded-xl bg-coral/20 border-2 border-ink text-ink font-bold text-xs flex items-center gap-2 shadow-[2px_2px_0_var(--ink)]">
             <AlertCircle className="w-4 h-4 text-coral shrink-0" />
@@ -209,20 +203,20 @@ export default function OnboardingPage() {
 
         {/* ── STEP 1: What are you saving for? ── */}
         {step === 1 && (
-          <form onSubmit={handleNextStep1} className="space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-ink tracking-tight leading-tight font-heading">
+          <form onSubmit={handleNextStep1} className="space-y-4 sm:space-y-5">
+            <div className="space-y-1.5">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight leading-tight font-heading">
                 {t("onboarding.step1Title")}
               </h1>
-              <p className="text-sm sm:text-base text-muted font-medium">
+              <p className="text-xs sm:text-sm text-muted font-medium">
                 {t("onboarding.step1Sub")}
               </p>
             </div>
 
-            {/* Quick-Pick Chips */}
-            <div className="space-y-2">
+            {/* Popular Goals Chips */}
+            <div className="space-y-1.5">
               <span className="text-xs font-bold text-muted block">
-                {isArabic ? "اقتراحات سريعة:" : "Quick suggestions:"}
+                {t("onboarding.popularGoals")}
               </span>
               <div className="flex flex-wrap gap-2">
                 {QUICK_CHIPS.map((chip) => (
@@ -233,7 +227,7 @@ export default function OnboardingPage() {
                       setGoalName(chip.defaultTitle);
                       setTargetAmount(chip.defaultAmount);
                     }}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold border-2 border-ink transition-all cursor-pointer shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 border-ink transition-all cursor-pointer shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 ${
                       goalName === chip.defaultTitle
                         ? "bg-lime text-ink"
                         : "bg-surface text-muted hover:text-ink hover:bg-bg"
@@ -246,22 +240,24 @@ export default function OnboardingPage() {
             </div>
 
             {/* Goal Title Input */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-ink block">
                 {t("onboarding.goalNameLabel")}
               </label>
               <input
                 type="text"
                 required
+                autoComplete="off"
+                enterKeyHint="next"
                 value={goalName}
                 onChange={(e) => setGoalName(e.target.value)}
                 placeholder={t("onboarding.goalNamePlaceholder")}
-                className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-semibold"
+                className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-semibold"
               />
             </div>
 
             {/* Target Amount Input */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-ink block">
                 {t("onboarding.targetAmountLabel")}
               </label>
@@ -270,9 +266,11 @@ export default function OnboardingPage() {
                   type="number"
                   min="5"
                   required
+                  autoComplete="off"
+                  enterKeyHint="next"
                   value={targetAmount}
                   onChange={(e) => setTargetAmount(e.target.value)}
-                  className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3.5 text-2xl font-extrabold tabular-nums pe-20 focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-heading"
+                  className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3 text-xl sm:text-2xl font-extrabold tabular-nums pe-20 focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-heading"
                 />
                 <span className="absolute inset-y-0 end-4 flex items-center text-sm font-extrabold text-ink pointer-events-none">
                   {isArabic ? "د.ك" : "KWD"}
@@ -280,32 +278,32 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="btn-hard w-full py-4 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 pt-3 cursor-pointer"
-            >
-              <span>{t("onboarding.nextAction")}</span>
-              <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-            </button>
+            <div className="pt-2">
+              <button
+                type="submit"
+                className="btn-hard w-full py-3.5 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>{t("onboarding.nextAction")}</span>
+                <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+              </button>
+            </div>
           </form>
         )}
 
         {/* ── STEP 2: Flexible Pacing ── */}
         {step === 2 && (
-          <form onSubmit={handleNextStep2} className="space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-ink tracking-tight leading-tight font-heading">
+          <form onSubmit={handleNextStep2} className="space-y-4 sm:space-y-5">
+            <div className="space-y-1.5">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight leading-tight font-heading">
                 {t("onboarding.step2Title")}
               </h1>
-              <p className="text-sm sm:text-base text-muted font-medium">
-                {isArabic
-                  ? "تحكّم في وتيرة الادخار وسرعته حسب ميزانيتك وموعد راتبك."
-                  : "Customize cadence, frequency, and micro-savings according to your budget."}
+              <p className="text-xs sm:text-sm text-muted font-medium">
+                {t("onboarding.step2Sub")}
               </p>
             </div>
 
-            {/* Amount Per Tuck */}
-            <div className="space-y-2">
+            {/* How much each time */}
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-ink block">
                 {t("onboarding.pullAmountLabel")}
               </label>
@@ -314,9 +312,11 @@ export default function OnboardingPage() {
                   type="number"
                   min="5"
                   required
+                  autoComplete="off"
+                  enterKeyHint="next"
                   value={pullAmount}
                   onChange={(e) => setPullAmount(e.target.value)}
-                  className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3.5 text-2xl font-extrabold tabular-nums pe-20 focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-heading"
+                  className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3 text-xl sm:text-2xl font-extrabold tabular-nums pe-20 focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-heading"
                 />
                 <span className="absolute inset-y-0 end-4 flex items-center text-sm font-extrabold text-ink pointer-events-none">
                   {isArabic ? "د.ك" : "KWD"}
@@ -330,7 +330,7 @@ export default function OnboardingPage() {
                     key={amt}
                     type="button"
                     onClick={() => setPullAmount(amt)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold border-2 border-ink transition-all tabular-nums cursor-pointer shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 ${
+                    className={`px-3 py-1 rounded-full text-xs font-bold border-2 border-ink transition-all tabular-nums cursor-pointer shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 ${
                       Number(pullAmount) === amt
                         ? "bg-lime text-ink"
                         : "bg-surface text-muted hover:text-ink"
@@ -342,12 +342,12 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Cadence Selector: Daily, Weekly, Bi-weekly, Monthly, Custom */}
-            <div className="space-y-2">
+            {/* Cadence: How often */}
+            <div className="space-y-1.5">
               <label className="text-xs font-bold text-ink block">
-                {isArabic ? "وتيرة الاستقطاع:" : "Savings Frequency:"}
+                {t("onboarding.cadenceLabel")}
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { id: "daily", label: isArabic ? "يومي" : "Daily", desc: isArabic ? "كل يوم" : "Every day" },
                   { id: "weekly", label: isArabic ? "أسبوعي" : "Weekly", desc: isArabic ? "كل ٧ أيام" : "Every 7 days" },
@@ -358,21 +358,21 @@ export default function OnboardingPage() {
                     key={item.id}
                     type="button"
                     onClick={() => setCadence(item.id as any)}
-                    className={`p-3 rounded-2xl border-2 border-ink text-start space-y-0.5 transition-all cursor-pointer shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 ${
+                    className={`p-2.5 rounded-xl border-2 border-ink text-start space-y-0.5 transition-all cursor-pointer shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 ${
                       cadence === item.id
                         ? "bg-lime text-ink"
                         : "bg-surface text-muted hover:text-ink"
                     }`}
                   >
-                    <span className="font-black text-sm block text-ink">{item.label}</span>
-                    <span className="text-[11px] text-muted block font-medium">{item.desc}</span>
+                    <span className="font-extrabold text-xs sm:text-sm block text-ink">{item.label}</span>
+                    <span className="text-xs text-muted block font-medium">{item.desc}</span>
                   </button>
                 ))}
               </div>
 
               {/* Custom Cadence Slider */}
               {cadence === "custom" && (
-                <div className="p-4 rounded-2xl bg-bg border-2 border-ink space-y-2 mt-2">
+                <div className="p-3 rounded-xl bg-bg border-2 border-ink space-y-2 mt-2">
                   <div className="flex items-center justify-between text-xs font-bold text-ink">
                     <span>{isArabic ? "استقطاع تلقائي كل:" : "Auto-save every:"}</span>
                     <span className="font-extrabold text-sm text-violet">
@@ -387,7 +387,7 @@ export default function OnboardingPage() {
                     onChange={(e) => setCustomCadenceDays(Number(e.target.value))}
                     className="w-full accent-violet cursor-pointer"
                   />
-                  <div className="flex justify-between text-[10px] text-muted font-bold">
+                  <div className="flex justify-between text-xs text-muted font-bold">
                     <span>1 {isArabic ? "يوم" : "day"}</span>
                     <span>15 {isArabic ? "يوم" : "days"}</span>
                     <span>30 {isArabic ? "يوم" : "days"}</span>
@@ -396,17 +396,15 @@ export default function OnboardingPage() {
               )}
             </div>
 
-            {/* Incremental Savings (Micro-scaling) */}
-            <div className="space-y-2 pt-2 border-t-2 border-ink/10">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-ink block flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-violet" />
-                  <span>{isArabic ? "زيادة تدريجية ذكية (اختياري)" : "Incremental Savings Step (Optional)"}</span>
-                </label>
-              </div>
+            {/* Save a bit more each time (optional) */}
+            <div className="space-y-1.5 pt-2 border-t border-ink/10">
+              <label className="text-xs font-bold text-ink flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-violet" />
+                <span>{t("onboarding.incrementalLabel")}</span>
+              </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
-                  { type: "none", val: 0, label: isArabic ? "ثابت" : "Fixed Amount" },
+                  { type: "none", val: 0, label: t("onboarding.incrementalFixed") },
                   { type: "fixed", val: 0.1, label: "+100 fils" },
                   { type: "fixed", val: 0.25, label: "+250 fils" },
                   { type: "fixed", val: 1.0, label: "+1.0 KWD" },
@@ -418,7 +416,7 @@ export default function OnboardingPage() {
                       setIncrementalType(opt.type as any);
                       setIncrementalValue(opt.val);
                     }}
-                    className={`py-2 px-3 rounded-xl border-2 border-ink text-xs font-bold transition-all cursor-pointer shadow-[2px_2px_0_var(--ink)] ${
+                    className={`py-2 px-2.5 rounded-xl border-2 border-ink text-xs font-bold transition-all cursor-pointer shadow-[2px_2px_0_var(--ink)] ${
                       incrementalType === opt.type && incrementalValue === opt.val
                         ? "bg-violet text-white"
                         : "bg-surface text-ink hover:bg-bg"
@@ -428,15 +426,13 @@ export default function OnboardingPage() {
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-muted">
-                {isArabic
-                  ? "يزيد مبلغ التوفير تلقائياً بمقدار بسيط مع كل إيداع لرفع وتيرة التوفير بدون مجهود."
-                  : "Slightly scales up each tuck to accelerate your savings streak over time."}
+              <p className="text-xs text-muted">
+                {t("onboarding.incrementalDesc")}
               </p>
             </div>
 
             {/* Allowance / Salary Day */}
-            <div className="space-y-2 pt-2 border-t-2 border-ink/10">
+            <div className="space-y-1.5 pt-2 border-t border-ink/10">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-ink block">
                   {t("onboarding.allowanceDayLabel")}
@@ -449,30 +445,34 @@ export default function OnboardingPage() {
                 type="number"
                 min="1"
                 max="31"
+                autoComplete="off"
+                enterKeyHint="next"
                 value={allowanceDay}
                 onChange={(e) => setAllowanceDay(Number(e.target.value))}
-                className="w-full bg-bg border-2 border-ink text-ink rounded-xl px-4 py-3 text-sm font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-violet/30"
+                className="w-full bg-bg border-2 border-ink text-ink rounded-xl px-4 py-2.5 text-sm font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-violet/30"
               />
             </div>
 
-            <button
-              type="submit"
-              className="btn-hard w-full py-4 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 pt-3 cursor-pointer"
-            >
-              <span>{t("onboarding.nextAction")}</span>
-              <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-            </button>
+            <div className="pt-2">
+              <button
+                type="submit"
+                className="btn-hard w-full py-3.5 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>{t("onboarding.nextAction")}</span>
+                <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+              </button>
+            </div>
           </form>
         )}
 
         {/* ── STEP 3: Who keeps you honest? ── */}
         {step === 3 && (
-          <form onSubmit={handleNextStep3} className="space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-ink tracking-tight leading-tight font-heading">
+          <form onSubmit={handleNextStep3} className="space-y-4 sm:space-y-5">
+            <div className="space-y-1.5">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight leading-tight font-heading">
                 {t("onboarding.step3Title")}
               </h1>
-              <p className="text-sm sm:text-base text-muted font-medium">
+              <p className="text-xs sm:text-sm text-muted font-medium">
                 {t("onboarding.step3Sub")}
               </p>
             </div>
@@ -485,10 +485,12 @@ export default function OnboardingPage() {
               <input
                 type="text"
                 required
+                autoComplete="name"
+                enterKeyHint="next"
                 value={keyholderName}
                 onChange={(e) => setKeyholderName(e.target.value)}
                 placeholder="Ahmed"
-                className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-semibold"
+                className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-semibold"
               />
             </div>
 
@@ -498,16 +500,18 @@ export default function OnboardingPage() {
                 {t("onboarding.keyholderPhoneLabel")}
               </label>
               <div className="flex gap-2">
-                <span className="inline-flex items-center px-4 rounded-xl bg-bg border-2 border-ink text-xs font-extrabold text-ink font-mono select-none">
+                <span className="inline-flex items-center px-4 rounded-xl bg-bg border-2 border-ink text-xs font-extrabold text-ink select-none">
                   +965
                 </span>
                 <input
                   type="tel"
                   required
+                  autoComplete="tel"
+                  enterKeyHint="next"
                   value={keyholderPhone}
                   onChange={(e) => setKeyholderPhone(e.target.value)}
                   placeholder={t("onboarding.keyholderPhonePlaceholder")}
-                  className="flex-1 bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-mono font-bold"
+                  className="flex-1 bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-bold"
                 />
               </div>
               <p className="text-xs text-muted">
@@ -517,29 +521,26 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            {/* Keyholder 6-Digit Authorization PIN */}
-            <div className="space-y-1.5 p-4 rounded-2xl bg-bg border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-ink flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-violet" />
-                  <span>{isArabic ? "رمز PIN المعتمد لحامل المفتاح (٦ أرقام)" : "Keyholder 6-Digit Approval PIN"}</span>
-                </label>
-                <span className="text-[10px] bg-lime px-2 py-0.5 rounded-full border border-ink font-bold text-ink">
-                  {isArabic ? "حماية مضاعفة" : "High Security"}
-                </span>
-              </div>
+            {/* Keyholder 6-Digit Authorization PIN (High Security badge removed) */}
+            <div className="space-y-1.5 p-3.5 rounded-xl bg-bg border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
+              <label className="text-xs font-bold text-ink flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-violet" />
+                <span>{isArabic ? "رمز PIN المعتمد لحامل المفتاح (٦ أرقام)" : "Keyholder 6-Digit Approval PIN"}</span>
+              </label>
               <input
                 type="text"
                 maxLength={6}
+                autoComplete="off"
+                enterKeyHint="next"
                 value={keyholderPin}
                 onChange={(e) => setKeyholderPin(e.target.value.replace(/\D/g, ""))}
                 placeholder="123456"
-                className="w-full bg-surface border-2 border-ink text-ink font-mono font-extrabold tracking-widest text-lg rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet/30 text-center"
+                className="w-full bg-surface border-2 border-ink text-ink font-extrabold tracking-widest text-lg rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-violet/30 text-center"
               />
-              <p className="text-[11px] text-muted">
+              <p className="text-xs text-muted">
                 {isArabic
-                  ? `يقوم ${keyholderName || "أحمد"} بإدخال هذا الرمز للموافقة على فك القفل مع خصم ٥٪ فقط كرسوم تشغيل.`
-                  : `${keyholderName || "Ahmed"} must enter this PIN to authorize an unlock with only a 5% handling fee.`}
+                  ? `يقوم ${keyholderName || "صاحبك"} بإدخال هذا الرمز للموافقة على فك القفل مع خصم ${FRIEND_FEE_PCT}٪ رسوم طوارئ.`
+                  : `${keyholderName || "Your keyholder"} must enter this PIN to authorize an unlock with only a ${FRIEND_FEE_PCT}% emergency fee.`}
               </p>
             </div>
 
@@ -550,45 +551,49 @@ export default function OnboardingPage() {
               </label>
               <input
                 type="text"
+                autoComplete="off"
+                enterKeyHint="done"
                 value={keyholderRel}
                 onChange={(e) => setKeyholderRel(e.target.value)}
                 placeholder={t("onboarding.keyholderRelPlaceholder")}
-                className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-medium"
+                className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-medium"
               />
             </div>
 
-            <button
-              type="submit"
-              className="btn-hard w-full py-4 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 pt-3 cursor-pointer"
-            >
-              <span>{t("onboarding.nextAction")}</span>
-              <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-            </button>
+            <div className="pt-2">
+              <button
+                type="submit"
+                className="btn-hard w-full py-3.5 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>{t("onboarding.nextAction")}</span>
+                <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+              </button>
+            </div>
           </form>
         )}
 
         {/* ── STEP 4: Add your card ── */}
         {step === 4 && (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-ink tracking-tight leading-tight font-heading">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="space-y-1.5">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight leading-tight font-heading">
                 {t("onboarding.step4Title")}
               </h1>
-              <p className="text-sm sm:text-base text-muted font-medium">
+              <p className="text-xs sm:text-sm text-muted font-medium">
                 {t("onboarding.step4Sub")}
               </p>
             </div>
 
             {savedCard ? (
-              <div className="space-y-6">
-                <div className="p-6 rounded-2xl bg-bg border-2 border-ink shadow-[2px_2px_0_var(--ink)] space-y-4">
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-bg border-2 border-ink shadow-[2px_2px_0_var(--ink)] space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink shadow-[2px_2px_0_var(--ink)]">
-                        <CreditCard className="w-6 h-6" />
+                      <div className="w-10 h-10 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink shadow-[2px_2px_0_var(--ink)]">
+                        <CreditCard className="w-5 h-5" />
                       </div>
                       <div>
-                        <h3 className="font-extrabold text-base text-ink">
+                        <h3 className="font-extrabold text-sm sm:text-base text-ink">
                           {savedCard.brand} •••• {savedCard.last4}
                         </h3>
                         <p className="text-xs text-mint flex items-center gap-1.5 mt-0.5 font-bold">
@@ -611,7 +616,7 @@ export default function OnboardingPage() {
                   type="button"
                   disabled={loading}
                   onClick={handleCreateVault}
-                  className="btn-hard w-full py-4 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="btn-hard w-full py-3.5 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin" />
@@ -625,6 +630,8 @@ export default function OnboardingPage() {
               </div>
             ) : (
               <StripeCardForm
+                userName={currentUser?.name}
+                userEmail={currentUser?.email}
                 onSuccess={(card) => {
                   setSavedCard(card);
                   handleCreateVault();
