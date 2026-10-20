@@ -22,6 +22,7 @@ import {
   LogOut,
   ShieldCheck,
   ShieldAlert,
+  Trash2,
 } from "lucide-react";
 import { formatKWD, formatDate, cn } from "@/lib/utils";
 import { formatKwd } from "@/lib/money";
