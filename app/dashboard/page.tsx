@@ -208,6 +208,47 @@ function DashboardContent() {
     }
   };
 
+  // Delete Goal Handler (Anti-Impulse Discipline Enforced)
+  const [deletingGoal, setDeletingGoal] = useState(false);
+
+  const handleDeleteVault = async () => {
+    if (!vault) return;
+
+    if (vault.currentBalance > 0 && vault.status === "LOCKED") {
+      alert(
+        isArabic
+          ? `لا يمكن حذف هذا الهدف لأن به رصيد نشط (${formatKwd(vault.currentBalance, lang)}). لمنع اتخاذ قرارات متسرعة، يجب كسر الخزينة أو فك القفل أولاً.`
+          : `Cannot remove this goal because it holds active savings (${formatKwd(vault.currentBalance, lang)}). To maintain discipline, you must unlock or empty the vault before removing it.`
+      );
+      return;
+    }
+
+    const confirmMsg = isArabic
+      ? `هل أنت متأكد من حذف هدف "${vault.title}" نهائياً؟`
+      : `Are you sure you want to permanently remove the goal "${vault.title}"?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setDeletingGoal(true);
+      const res = await fetch(`/api/vault/${vault._id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || "Failed to remove goal");
+        return;
+      }
+
+      setVaults((prev) => prev.filter((v) => v._id !== vault._id));
+      setSelectedVaultIndex(0);
+    } catch (err: any) {
+      alert(err.message || "Failed to remove goal");
+    } finally {
+      setDeletingGoal(false);
+    }
+  };
+
   // Top Up Handler
   const handleTopUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -640,7 +681,7 @@ function DashboardContent() {
                 </div>
               )}
 
-              {/* Card Header: Goal Title & Small Flame Streak Counter */}
+              {/* Card Header: Goal Title & Small Flame Streak Counter + Remove Action */}
               <div className="flex items-center justify-between gap-3 pb-6 border-b-2 border-ink/10">
                 <div>
                   <h1 className="text-xl sm:text-2xl font-black text-ink tracking-tight font-heading">
@@ -651,15 +692,34 @@ function DashboardContent() {
                   </p>
                 </div>
 
-                {/* Flame Streak Counter (Hidden when streak is 0) */}
-                {(vault.streakCount ?? 0) > 0 && (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sun border-2 border-ink text-ink font-extrabold text-xs shadow-[2px_2px_0_var(--ink)]">
-                    <Flame className="w-4 h-4 text-ink fill-ink" />
-                    <span>
-                      {t("dashboard.savesInARow", { count: vault.streakCount })}
-                    </span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  {/* Flame Streak Counter (Hidden when streak is 0) */}
+                  {(vault.streakCount ?? 0) > 0 && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sun border-2 border-ink text-ink font-extrabold text-xs shadow-[2px_2px_0_var(--ink)]">
+                      <Flame className="w-4 h-4 text-ink fill-ink" />
+                      <span>
+                        {t("dashboard.savesInARow", { count: vault.streakCount })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Remove Goal Button */}
+                  <button
+                    type="button"
+                    id="remove-goal-header-btn"
+                    onClick={handleDeleteVault}
+                    disabled={deletingGoal}
+                    title={isArabic ? "حذف الهدف" : "Remove Goal"}
+                    aria-label={isArabic ? "حذف الهدف" : "Remove Goal"}
+                    className="p-2 rounded-full bg-surface hover:bg-coral/20 border-2 border-ink text-muted hover:text-coral transition-all shadow-[2px_2px_0_var(--ink)] cursor-pointer"
+                  >
+                    {deletingGoal ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-coral" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* 3D VAULT DIAL (Tactile Metallic Vault Wheel with Luminous Progress Arc) */}
@@ -802,32 +862,45 @@ function DashboardContent() {
                 <ArrowRight className="w-4 h-4 rtl:rotate-180" />
               </button>
 
-              {/* Secondary Ghost: I need to break it (or Pending state) */}
-              <button
-                type="button"
-                id="break-vault-action-btn"
-                disabled={isPendingBreak}
-                onClick={() => {
-                  if (isPendingBreak) return;
-                  setBreakStep("reason");
-                  setReasonText("");
-                  setShowBreakSheet(true);
-                }}
-                className={cn(
-                  "btn-hard flex-1 py-4 px-6 border-2 font-bold text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer",
-                  isPendingBreak
-                    ? "border-coral bg-coral/10 text-coral cursor-not-allowed opacity-90 shadow-[2px_2px_0_var(--coral)]"
-                    : "border-ink bg-surface text-ink hover:bg-coral/10 hover:text-coral shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5"
-                )}
-              >
-                <span>
-                  {isPendingBreak
-                    ? isArabic
-                      ? "طلب الكسر بانتظار الموافقة"
-                      : "Break Request Pending"
-                    : t("dashboard.breakAction")}
-                </span>
-              </button>
+              {/* Secondary Ghost: I need to break it, or Remove if already UNLOCKED */}
+              {vault.status === "UNLOCKED" ? (
+                <button
+                  type="button"
+                  id="remove-unlocked-goal-btn"
+                  onClick={handleDeleteVault}
+                  disabled={deletingGoal}
+                  className="btn-hard flex-1 py-4 px-6 border-2 border-coral bg-coral/15 text-coral hover:bg-coral hover:text-white font-extrabold text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[4px_4px_0_var(--ink)]"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{isArabic ? "حذف هذا الهدف المفتوح" : "Remove Unlocked Goal"}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  id="break-vault-action-btn"
+                  disabled={isPendingBreak}
+                  onClick={() => {
+                    if (isPendingBreak) return;
+                    setBreakStep("reason");
+                    setReasonText("");
+                    setShowBreakSheet(true);
+                  }}
+                  className={cn(
+                    "btn-hard flex-1 py-4 px-6 border-2 font-bold text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer",
+                    isPendingBreak
+                      ? "border-coral bg-coral/10 text-coral cursor-not-allowed opacity-90 shadow-[2px_2px_0_var(--coral)]"
+                      : "border-ink bg-surface text-ink hover:bg-coral/10 hover:text-coral shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5"
+                  )}
+                >
+                  <span>
+                    {isPendingBreak
+                      ? isArabic
+                        ? "طلب الكسر بانتظار الموافقة"
+                        : "Break Request Pending"
+                      : t("dashboard.breakAction")}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
 
