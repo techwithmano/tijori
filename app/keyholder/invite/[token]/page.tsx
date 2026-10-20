@@ -28,7 +28,8 @@ interface VaultInviteData {
   applicantName: string;
   keyholder: {
     name: string;
-    phone: string;
+    phone?: string;
+    email?: string;
     relationship?: string;
   };
   keyholderInviteAccepted: boolean;
@@ -50,6 +51,7 @@ export default function KeyholderInvitePage({
 
   // Form State
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [relationship, setRelationship] = useState("Best Friend");
   const [pin, setPin] = useState("");
@@ -69,6 +71,7 @@ export default function KeyholderInvitePage({
         if (data.success && data.vault) {
           setVault(data.vault);
           setName(data.vault.keyholder?.name || "");
+          setEmail(data.vault.keyholder?.email || "");
           setPhone(data.vault.keyholder?.phone?.replace(/^\+965/, "") || "");
           setRelationship(data.vault.keyholder?.relationship || "Best Friend");
           if (data.vault.keyholderInviteAccepted) {
@@ -123,6 +126,7 @@ export default function KeyholderInvitePage({
           pin: cleanPin,
           confirmPin: cleanConfirm,
           name: name.trim() || vault?.keyholder?.name,
+          email: email.trim() || vault?.keyholder?.email,
           phone: fullPhone,
           relationship: relationship.trim() || "Best Friend",
         }),
@@ -320,24 +324,19 @@ export default function KeyholderInvitePage({
               />
             </div>
 
-            {/* Friend's WhatsApp Number */}
+            {/* Friend's Email Address */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-ink block">
-                {isArabic ? "رقم واتساب (+965)" : "WhatsApp Number (+965)"}
+                {isArabic ? "بريدك الإلكتروني" : "Your Email Address"}
               </label>
-              <div className="flex gap-2">
-                <span className="inline-flex items-center px-3.5 rounded-xl bg-bg border-2 border-ink text-xs font-black text-ink select-none">
-                  +965
-                </span>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="99887766"
-                  className="flex-1 bg-bg border-2 border-ink text-ink rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-violet/30"
-                />
-              </div>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="friend@example.com"
+                className="w-full bg-bg border-2 border-ink text-ink rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-violet/30"
+              />
             </div>
 
             {/* Relationship */}

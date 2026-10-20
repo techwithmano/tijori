@@ -105,9 +105,9 @@ async function run() {
 
     console.log("Onboarding Step 3...");
     const step3Inputs = await page.$$("input");
-    // step3Inputs: 0 is keyholderName, 1 is keyholderPhone, 2 is keyholderRel
+    // step3Inputs: 0 is keyholderName, 1 is keyholderEmail, 2 is keyholderRel
     await step3Inputs[0].type("Fahad Al-Mutawa");
-    await step3Inputs[1].type("99887766");
+    await step3Inputs[1].type("fahad@example.com");
     await new Promise((r) => setTimeout(r, 400));
 
     await page.screenshot({

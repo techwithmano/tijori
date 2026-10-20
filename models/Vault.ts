@@ -12,7 +12,8 @@ export interface ITransaction {
 
 export interface IKeyholder {
   name: string;
-  phone: string;
+  phone?: string;
+  email?: string;
   relationship?: string;
   avatar?: string;
 }
@@ -46,6 +47,7 @@ export interface IVault extends Document {
   keyholderName?: string;
   keyholderNameAr?: string;
   keyholderPhone?: string;
+  keyholderEmail?: string;
   keyholderPin?: string | null;
   inviteToken?: string | null;
   keyholderInviteAccepted?: boolean;
@@ -120,12 +122,14 @@ const VaultSchema = new Schema<IVault>(
     friendFeeRate: { type: Number, default: 0.05 },
     keyholder: {
       name: { type: String, required: true },
-      phone: { type: String, required: true },
+      phone: { type: String, default: "" },
+      email: { type: String, default: "" },
       relationship: { type: String, default: "Best Friend" },
     },
     keyholderName: { type: String, default: null },
     keyholderNameAr: { type: String, default: null },
     keyholderPhone: { type: String, default: null },
+    keyholderEmail: { type: String, default: null },
     keyholderPin: { type: String, default: "123456" },
     inviteToken: { type: String, default: null, index: true },
     keyholderInviteAccepted: { type: Boolean, default: false },

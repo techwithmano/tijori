@@ -68,6 +68,7 @@ async function runVirtualBoxTests() {
     targetAmount: '750',
     pullAmount: '25',
     keyholderName: 'Nasser Al-Sabah',
+    keyholderEmail: 'nasser.keyholder@example.com',
     keyholderPhone: '99112233',
     keyholderRel: 'Best Friend',
     keyholderPin: '654321',
@@ -122,7 +123,14 @@ async function runVirtualBoxTests() {
       throw new Error(`Step 3 not reached. Current: "${step3Title}"`);
     }
     await page.fill('input[placeholder="Ahmed"]', testUser.keyholderName);
-    await page.fill('input[type="tel"]', testUser.keyholderPhone);
+    const emailInput = await page.$('input[type="email"]');
+    if (emailInput) {
+      await emailInput.fill(testUser.keyholderEmail);
+    }
+    const telInput = await page.$('input[type="tel"]');
+    if (telInput) {
+      await telInput.fill(testUser.keyholderPhone);
+    }
     // Verify Keyholder Invite link is generated & PIN input is hidden from user
     const hasPinInput = await page.$('input[placeholder="123456"]');
     if (hasPinInput) {

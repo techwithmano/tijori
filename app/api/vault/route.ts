@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db";
 import { Vault } from "@/models/Vault";
 import { User } from "@/models/User";
 import { getCurrentUser } from "@/lib/auth";
+import { sendKeyholderInviteEmail } from "@/lib/resend";
 
 export async function GET(req: NextRequest) {
   try {
@@ -136,6 +137,11 @@ export async function POST(req: NextRequest) {
       ? String(keyholderPin).replace(/\D/g, "").slice(0, 6).padStart(6, "0")
       : "123456";
 
+    const khName = keyholder?.name?.trim() || "Ahmed";
+    const khEmail = keyholder?.email?.trim() || "";
+    const khPhone = keyholder?.phone?.trim() || "";
+    const khRel = keyholder?.relationship?.trim() || "Best Friend";
+
     const newVault = await Vault.create({
       userId: session.userId,
       title: title.trim(),
@@ -157,15 +163,37 @@ export async function POST(req: NextRequest) {
       totalProtected: 0,
       streakCount: 0,
       keyholder: {
-        name: keyholder?.name?.trim() || "Ahmed",
-        phone: keyholder?.phone?.trim() || "+96599887766",
-        relationship: keyholder?.relationship?.trim() || "Best Friend",
+        name: khName,
+        phone: khPhone,
+        email: khEmail,
+        relationship: khRel,
       },
+      keyholderName: khName,
+      keyholderEmail: khEmail || null,
+      keyholderPhone: khPhone || null,
       keyholderPin: cleanPin,
       inviteToken,
       keyholderInviteAccepted: false,
       transactions: [],
     });
+
+    // Auto-dispatch Resend email invite if email is provided
+    if (khEmail) {
+      const owner = await User.findById(session.userId).select("name");
+      const ownerName = owner?.name || session.name || "Your Friend";
+      const origin = req.nextUrl.origin || "http://localhost:3000";
+      const inviteUrl = `${origin}/keyholder/invite/${inviteToken}`;
+
+      sendKeyholderInviteEmail({
+        to: khEmail,
+        keyholderName: khName,
+        applicantName: ownerName,
+        goalTitle: title.trim(),
+        targetAmount: Number(targetAmount),
+        inviteUrl,
+        isArabic: false,
+      }).catch((err) => console.error("Auto sendKeyholderInviteEmail error:", err));
+    }
 
     return NextResponse.json({ success: true, vault: newVault }, { status: 201 });
   } catch (error: any) {

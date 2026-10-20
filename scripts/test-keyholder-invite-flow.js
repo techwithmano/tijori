@@ -24,11 +24,8 @@ async function runTest() {
   await page.fill('input[type="email"]', testEmail);
   await page.fill('input[type="password"]', testPassword);
   await page.click('button[type="submit"]');
-  await page.waitForTimeout(2000);
-
-  console.log('\n=== 2. Navigating to Onboarding ===');
-  await page.goto(`${BASE_URL}/onboarding`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(800);
+  await page.waitForURL('**/onboarding', { timeout: 15000 });
+  await page.waitForTimeout(500);
 
   // Step 1: Goal
   console.log('Completing Step 1 (Goal)...');
@@ -61,13 +58,20 @@ async function runTest() {
   }
   console.log('PASSED: Keyholder invite link card is present.');
 
-  // Check WhatsApp share button
-  const waBtn = await page.$('a[href*="wa.me"]');
-  if (!waBtn) {
-    throw new Error('FAILED: WhatsApp share button not found.');
+  // Check Email input
+  const emailInput = await page.$('input[type="email"]');
+  if (!emailInput) {
+    throw new Error('FAILED: Keyholder email input not found.');
   }
-  const waHref = await waBtn.getAttribute('href');
-  console.log('PASSED: WhatsApp share link verified:', waHref.slice(0, 60) + '...');
+  await emailInput.fill('fahad.keyholder@example.com');
+  console.log('PASSED: Keyholder email input filled.');
+
+  // Check Send Email Invite button
+  const sendEmailBtn = await page.getByText(/Send Email Invite|إرسال الدعوة/i).first();
+  if (!sendEmailBtn) {
+    throw new Error('FAILED: Send Email Invite button not found.');
+  }
+  console.log('PASSED: Send Email Invite button verified.');
 
   // Extract the generated invite URL from Step 3
   const inviteUrl = await page.evaluate(() => {
@@ -75,12 +79,6 @@ async function runTest() {
     const monoBox = document.querySelector('div.font-mono');
     if (monoBox && monoBox.textContent && monoBox.textContent.includes('/keyholder/invite/')) {
       return monoBox.textContent.trim();
-    }
-    const waLink = document.querySelector('a[href*="wa.me"]');
-    if (waLink) {
-      const decoded = decodeURIComponent(waLink.href);
-      const match = decoded.match(/https?:\/\/[^\s&"'>]+\/keyholder\/invite\/[a-zA-Z0-9_-]+/);
-      if (match) return match[0];
     }
     return null;
   });
@@ -92,7 +90,6 @@ async function runTest() {
 
   // Fill in Keyholder details
   await page.fill('input[placeholder="Ahmed"]', 'Fahad Al-Mutawa');
-  await page.fill('input[type="tel"]', '99887766');
 
   // Test Copy Link Button
   const copyBtn = await page.getByText(/Copy Link|نسخ الرابط/i).first();
@@ -102,8 +99,13 @@ async function runTest() {
     console.log('PASSED: Clicked Copy Link button.');
   }
 
+  // Test Send Email Invite Button click
+  await sendEmailBtn.click();
+  await page.waitForTimeout(1500);
+  console.log('PASSED: Clicked Send Email Invite button.');
+
   // Take screenshot of new Step 3 UI
-  const step3Screenshot = path.join(SCREENSHOTS_DIR, 'step3-keyholder-invite-link.png');
+  const step3Screenshot = path.join(SCREENSHOTS_DIR, 'step3-keyholder-email-invite.png');
   await page.screenshot({ path: step3Screenshot });
   console.log(`Screenshot captured: ${step3Screenshot}`);
 
@@ -113,20 +115,25 @@ async function runTest() {
 
   // Step 4: Card Skip & Create Vault
   console.log('\n=== 4. Completing Step 4 & Creating Vault ===');
-  const skipBtn = await page.getByText(/Skip for now|تخطي الآن/i).first();
-  if (skipBtn) {
+  try {
+    await page.waitForSelector('button:has-text("Skip"), button:has-text("تخطي")', { timeout: 10000 });
+    const skipBtn = await page.$('button:has-text("Skip"), button:has-text("تخطي")');
+    if (!skipBtn) {
+      throw new Error('Skip button not found on Step 4');
+    }
+    console.log('Clicking Skip button...');
     await skipBtn.click();
-  } else {
-    await page.click('button[type="submit"]');
+    console.log('Waiting for URL /dashboard...');
+    await page.waitForURL('**/dashboard', { timeout: 15000 });
+    console.log('PASSED: Vault created and redirected to dashboard.');
+  } catch (err) {
+    const dbgScreenshot = path.join(SCREENSHOTS_DIR, 'debug-step4-failure.png');
+    await page.screenshot({ path: dbgScreenshot });
+    console.error(`Debug screenshot captured: ${dbgScreenshot}`);
+    const bodyText = await page.innerText('body');
+    console.error(`Current URL: ${page.url()}\nPage Text:\n${bodyText}`);
+    throw err;
   }
-  await page.waitForTimeout(3000);
-
-  // Verify redirection to dashboard
-  console.log(`Current URL after vault creation: ${page.url()}`);
-  if (!page.url().includes('/dashboard')) {
-    throw new Error(`Expected redirection to /dashboard, got: ${page.url()}`);
-  }
-  console.log('PASSED: Vault created and redirected to dashboard.');
 
   // === 5. Testing the Friend's Setup Page ===
   console.log('\n=== 5. Friend opening private invite link ===');

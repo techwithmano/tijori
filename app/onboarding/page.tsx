@@ -13,7 +13,8 @@ import {
   TrendingUp,
   Copy,
   Check,
-  Share2,
+  Mail,
+  Send,
   Sparkles,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
@@ -80,13 +81,14 @@ export default function OnboardingPage() {
 
   // Step 3: Keyholder (Friend who holds the key)
   const [keyholderName, setKeyholderName] = useState("Ahmed");
-  const [keyholderPhone, setKeyholderPhone] = useState("");
+  const [keyholderEmail, setKeyholderEmail] = useState("");
   const [keyholderRel, setKeyholderRel] = useState("Best Friend");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSentNotice, setEmailSentNotice] = useState<string | null>(null);
 
-  // Phone Validation: Kuwait mobile numbers are 8 digits
-  const validatePhone = (num: string): boolean => {
-    const cleaned = num.replace(/\s+/g, "").replace(/^\+965/, "");
-    return /^[569]\d{7}$/.test(cleaned) || cleaned.length === 8;
+  // Email Validation
+  const validateEmail = (mail: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail.trim());
   };
 
   const handleNextStep1 = (e: React.FormEvent) => {
@@ -120,20 +122,57 @@ export default function OnboardingPage() {
       setError(isArabic ? "يرجى إدخال اسم حامل المفتاح." : "Please enter your keyholder's name.");
       return;
     }
-    if (!validatePhone(keyholderPhone)) {
-      setError(t("onboarding.phoneValidation"));
+    if (!keyholderEmail.trim() || !validateEmail(keyholderEmail)) {
+      setError(t("onboarding.emailValidation"));
       return;
     }
     setStep(4);
+  };
+
+  const handleSendEmailInvite = async () => {
+    setError(null);
+    if (!keyholderEmail.trim() || !validateEmail(keyholderEmail)) {
+      setError(t("onboarding.emailValidation"));
+      return;
+    }
+
+    try {
+      setSendingEmail(true);
+      const res = await fetch("/api/keyholder/invite/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: keyholderEmail.trim(),
+          keyholderName: keyholderName.trim() || "Friend",
+          applicantName: currentUser?.name || "Your Friend",
+          goalTitle: goalName.trim() || "Savings Goal",
+          targetAmount: Number(targetAmount) || 500,
+          inviteToken,
+          lang: isArabic ? "ar" : "en",
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setEmailSentNotice(
+          isArabic
+            ? `تم إرسال الدعوة إلى ${keyholderEmail.trim()}! ✉️`
+            : `Invite email sent to ${keyholderEmail.trim()}! ✉️`
+        );
+      } else {
+        setError(data.error || "Failed to send email invite.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Network error. Please try again.");
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const handleCreateVault = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const cleanedPhone = keyholderPhone.replace(/\s+/g, "").replace(/^\+965/, "");
-      const fullPhone = `+965${cleanedPhone}`;
 
       const res = await fetch("/api/vault", {
         method: "POST",
@@ -149,7 +188,7 @@ export default function OnboardingPage() {
           allowanceDay: Number(allowanceDay) || 25,
           keyholder: {
             name: keyholderName.trim(),
-            phone: fullPhone,
+            email: keyholderEmail.trim(),
             relationship: keyholderRel.trim() || "Best Friend",
           },
           inviteToken,
@@ -183,15 +222,6 @@ export default function OnboardingPage() {
     typeof window !== "undefined" && inviteToken
       ? `${window.location.origin}/keyholder/invite/${inviteToken}`
       : `/keyholder/invite/${inviteToken}`;
-
-  const cleanedPhoneForWa = keyholderPhone.replace(/\s+/g, "").replace(/^\+965/, "");
-  const waRecipient = cleanedPhoneForWa ? `965${cleanedPhoneForWa}` : "";
-  const whatsAppMessage = isArabic
-    ? `سلام يا ${keyholderName.trim() || "صاحبي"}! سويت لي خزينة توفير في تِجوري لهدفي (${goalName.trim() || "هدفي"}). اخترتك تكون حامل المفتاح وحارس التزامي! اضغط هالرابط عشان تحط رقمك السري (PIN) الخاص المكوّن من ٦ أرقام اللي ما أعرفه: ${inviteUrl}`
-    : `Salam ${keyholderName.trim() || "friend"}! I'm creating a locked savings vault on Tijori for my goal "${goalName.trim() || "my goal"}". I chose you as my Keyholder to keep me honest! Please tap this private link to set your secret 6-digit approval PIN that only you know: ${inviteUrl}`;
-  const whatsAppUrl = waRecipient
-    ? `https://wa.me/${waRecipient}?text=${encodeURIComponent(whatsAppMessage)}`
-    : `https://wa.me/?text=${encodeURIComponent(whatsAppMessage)}`;
 
   const progressPercentage = (step / 4) * 100;
 
@@ -531,30 +561,28 @@ export default function OnboardingPage() {
               />
             </div>
 
-            {/* Keyholder WhatsApp Number with +965 default */}
+            {/* Keyholder Email Address */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-ink block">
-                {t("onboarding.keyholderPhoneLabel")}
+                {t("onboarding.keyholderEmailLabel")}
               </label>
-              <div className="flex gap-2">
-                <span className="inline-flex items-center px-4 rounded-xl bg-bg border-2 border-ink text-xs font-extrabold text-ink select-none">
-                  +965
-                </span>
-                <input
-                  type="tel"
-                  required
-                  autoComplete="tel"
-                  enterKeyHint="next"
-                  value={keyholderPhone}
-                  onChange={(e) => setKeyholderPhone(e.target.value)}
-                  placeholder={t("onboarding.keyholderPhonePlaceholder")}
-                  className="flex-1 bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-bold"
-                />
-              </div>
+              <input
+                type="email"
+                required
+                autoComplete="email"
+                enterKeyHint="next"
+                value={keyholderEmail}
+                onChange={(e) => {
+                  setKeyholderEmail(e.target.value);
+                  if (emailSentNotice) setEmailSentNotice(null);
+                }}
+                placeholder={t("onboarding.keyholderEmailPlaceholder")}
+                className="w-full bg-bg border-2 border-ink text-ink placeholder:text-muted/60 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all font-semibold"
+              />
               <p className="text-xs text-muted">
                 {isArabic
-                  ? "رقم واتساب كويتي صالح (٨ أرقام). تُرسل له طلبات الإذن بكسر الخزينة."
-                  : "Must be an active Kuwait WhatsApp number. Single-use unlock requests are sent here."}
+                  ? "سنرسل بريداً إلكترونياً رسمياً لصاحبك برابط خاص ليحدد رمزه السري لحفظ انضباطك."
+                  : "We'll email your keyholder a private invite to set their secret approval PIN."}
               </p>
             </div>
 
@@ -633,20 +661,33 @@ export default function OnboardingPage() {
                 </button>
               </div>
 
-              {/* Direct WhatsApp Share Button */}
-              <a
-                href={whatsAppUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-hard w-full py-2.5 px-4 bg-[#25D366] text-white font-extrabold text-xs sm:text-sm shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              {/* Send Email Invite Action */}
+              <button
+                type="button"
+                disabled={sendingEmail}
+                onClick={handleSendEmailInvite}
+                className="btn-hard w-full py-2.5 px-4 bg-violet text-white font-extrabold text-xs sm:text-sm shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                <Share2 className="w-4 h-4" />
-                <span>
-                  {isArabic
-                    ? `إرسال الرابط لـ ${keyholderName || "حامل المفتاح"} عبر واتساب`
-                    : `Send Invite to ${keyholderName || "Keyholder"} on WhatsApp`}
-                </span>
-              </a>
+                {sendingEmail ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4" />
+                    <span>
+                      {isArabic
+                        ? `إرسال الدعوة إلى ${keyholderName || "حامل المفتاح"} عبر الإيميل`
+                        : `Send Email Invite to ${keyholderName || "Keyholder"}`}
+                    </span>
+                  </>
+                )}
+              </button>
+
+              {emailSentNotice && (
+                <div className="p-3 rounded-xl bg-lime/30 border-2 border-ink text-ink font-bold text-xs flex items-center gap-2 shadow-[2px_2px_0_var(--ink)]">
+                  <CheckCircle2 className="w-4 h-4 text-ink shrink-0" />
+                  <span>{emailSentNotice}</span>
+                </div>
+              )}
             </div>
 
             <div className="pt-2">

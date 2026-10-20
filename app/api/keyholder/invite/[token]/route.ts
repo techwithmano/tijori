@@ -81,7 +81,7 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { pin, confirmPin, name, phone, relationship } = body;
+    const { pin, confirmPin, name, phone, email, relationship } = body;
 
     const cleanPin = String(pin || "").replace(/\D/g, "");
 
@@ -107,9 +107,15 @@ export async function POST(
 
     if (name && typeof name === "string") {
       vault.keyholder.name = name.trim();
+      vault.keyholderName = name.trim();
+    }
+    if (email && typeof email === "string") {
+      vault.keyholder.email = email.trim();
+      vault.keyholderEmail = email.trim();
     }
     if (phone && typeof phone === "string") {
       vault.keyholder.phone = phone.trim();
+      vault.keyholderPhone = phone.trim();
     }
     if (relationship && typeof relationship === "string") {
       vault.keyholder.relationship = relationship.trim();
