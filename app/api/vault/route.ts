@@ -4,6 +4,7 @@ import { Vault } from "@/models/Vault";
 import { User } from "@/models/User";
 import { getCurrentUser } from "@/lib/auth";
 import { sendKeyholderInviteEmail } from "@/lib/resend";
+import { getRequestOrigin } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   try {
@@ -181,18 +182,23 @@ export async function POST(req: NextRequest) {
     if (khEmail) {
       const owner = await User.findById(session.userId).select("name");
       const ownerName = owner?.name || session.name || "Your Friend";
-      const origin = req.nextUrl.origin || "http://localhost:3000";
+      const origin = getRequestOrigin(req);
       const inviteUrl = `${origin}/keyholder/invite/${inviteToken}`;
+      const isArabic = body.lang === "ar";
 
-      sendKeyholderInviteEmail({
-        to: khEmail,
-        keyholderName: khName,
-        applicantName: ownerName,
-        goalTitle: title.trim(),
-        targetAmount: Number(targetAmount),
-        inviteUrl,
-        isArabic: false,
-      }).catch((err) => console.error("Auto sendKeyholderInviteEmail error:", err));
+      try {
+        await sendKeyholderInviteEmail({
+          to: khEmail,
+          keyholderName: khName,
+          applicantName: ownerName,
+          goalTitle: title.trim(),
+          targetAmount: Number(targetAmount),
+          inviteUrl,
+          isArabic,
+        });
+      } catch (err) {
+        console.error("Auto sendKeyholderInviteEmail error:", err);
+      }
     }
 
     return NextResponse.json({ success: true, vault: newVault }, { status: 201 });

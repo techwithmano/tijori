@@ -42,3 +42,28 @@ export function formatDate(
     year: "numeric",
   }).format(d);
 }
+
+/**
+ * Resolves the public base URL of the application from incoming Next.js requests.
+ * Safely handles Vercel deployments, custom domains, and local dev.
+ */
+export function getRequestOrigin(req: {
+  headers: { get: (name: string) => string | null };
+  nextUrl?: { origin: string };
+}): string {
+  const forwardedHost = req.headers.get("x-forwarded-host");
+  const forwardedProto = req.headers.get("x-forwarded-proto") || "https";
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+  const host = req.headers.get("host");
+  if (host && !host.includes("localhost") && !host.includes("127.0.0.1")) {
+    const proto = host.includes("vercel.app") ? "https" : forwardedProto;
+    return `${proto}://${host}`;
+  }
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  }
+  return req.nextUrl?.origin || "http://localhost:3000";
+}
+

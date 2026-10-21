@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db";
 import { Vault } from "@/models/Vault";
 import { User } from "@/models/User";
 import { sendKeyholderInviteEmail } from "@/lib/resend";
+import { getRequestOrigin } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     // Ensure valid invite URL
     if (!finalInviteUrl && inviteToken) {
-      const origin = req.nextUrl.origin || "http://localhost:3000";
+      const origin = getRequestOrigin(req);
       finalInviteUrl = `${origin}/keyholder/invite/${inviteToken}`;
     }
 

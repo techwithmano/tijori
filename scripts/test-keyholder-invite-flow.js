@@ -51,12 +51,16 @@ async function runTest() {
   }
   console.log('PASSED: No PIN input displayed to the user in Step 3.');
 
-  // Check that the Private Invite Link Card is rendered
-  const inviteCard = await page.getByText(/Private Keyholder Invite Link|رابط دعوة حامل المفتاح/i).first();
+  // Check that the Direct & Confidential Email Invite reassurance card is rendered
+  const inviteCard = await page.getByText(/Direct & Confidential Email Invite|دعوة بريدية سرية ومباشرة/i).first();
   if (!inviteCard) {
-    throw new Error('FAILED: Keyholder invite card is missing from Step 3.');
+    throw new Error('FAILED: Direct email invite notice card is missing from Step 3.');
   }
-  console.log('PASSED: Keyholder invite link card is present.');
+  console.log('PASSED: Direct email invite card is present.');
+
+  // Fill in Keyholder details
+  await page.fill('input[placeholder="Ahmed"]', 'Fahad Al-Mutawa');
+  console.log('PASSED: Keyholder name filled.');
 
   // Check Email input
   const emailInput = await page.$('input[type="email"]');
@@ -66,51 +70,49 @@ async function runTest() {
   await emailInput.fill('fahad.keyholder@example.com');
   console.log('PASSED: Keyholder email input filled.');
 
-  // Check Send Email Invite button
-  const sendEmailBtn = await page.getByText(/Send Email Invite|إرسال الدعوة/i).first();
-  if (!sendEmailBtn) {
-    throw new Error('FAILED: Send Email Invite button not found.');
+  // Check that the clutter (raw URL box, copy button, redundant send button) is GONE
+  const rawUrlBox = await page.$('div.font-mono');
+  if (rawUrlBox) {
+    throw new Error('FAILED: Raw URL box should NOT be shown in the new simplified UI.');
   }
-  console.log('PASSED: Send Email Invite button verified.');
-
-  // Extract the generated invite URL from Step 3
-  const inviteUrl = await page.evaluate(() => {
-    // Look for link text inside the monospace invite box
-    const monoBox = document.querySelector('div.font-mono');
-    if (monoBox && monoBox.textContent && monoBox.textContent.includes('/keyholder/invite/')) {
-      return monoBox.textContent.trim();
-    }
-    return null;
-  });
-
-  if (!inviteUrl) {
-    throw new Error('FAILED: Could not extract invite URL from Step 3.');
+  const copyBtn = await page.getByText(/Copy Link|نسخ الرابط/i).first().count();
+  if (copyBtn > 0) {
+    throw new Error('FAILED: Copy Link button should NOT be shown in the new simplified UI.');
   }
-  console.log(`PASSED: Extracted private invite link: ${inviteUrl}`);
+  console.log('PASSED: Verified clean UI without raw URL box or copy button.');
 
-  // Fill in Keyholder details
-  await page.fill('input[placeholder="Ahmed"]', 'Fahad Al-Mutawa');
-
-  // Test Copy Link Button
-  const copyBtn = await page.getByText(/Copy Link|نسخ الرابط/i).first();
-  if (copyBtn) {
-    await copyBtn.click();
-    await page.waitForTimeout(300);
-    console.log('PASSED: Clicked Copy Link button.');
+  // Verify the reassuring email notice is present
+  const noticeText = await page.innerText('body');
+  if (!noticeText.includes('Direct & Confidential Email Invite') && !noticeText.includes('دعوة بريدية سرية ومباشرة')) {
+    throw new Error('FAILED: Direct email invite notice not found.');
   }
+  console.log('PASSED: Direct email invite reassurance notice verified.');
 
-  // Test Send Email Invite Button click
-  await sendEmailBtn.click();
-  await page.waitForTimeout(1500);
-  console.log('PASSED: Clicked Send Email Invite button.');
-
-  // Take screenshot of new Step 3 UI
-  const step3Screenshot = path.join(SCREENSHOTS_DIR, 'step3-keyholder-email-invite.png');
+  // Take screenshot of new simplified Step 3 UI
+  const step3Screenshot = path.join(SCREENSHOTS_DIR, 'step3-clean-keyholder-ui.png');
   await page.screenshot({ path: step3Screenshot });
   console.log(`Screenshot captured: ${step3Screenshot}`);
 
-  // Continue to Step 4
-  await page.click('button[type="submit"]');
+  // Intercept POST /api/vault triggered on Continue
+  console.log('Clicking Continue on Step 3 (creates vault in DB and auto-sends email)...');
+  const [vaultResponse] = await Promise.all([
+    page.waitForResponse((res) => res.url().includes('/api/vault') && res.request().method() === 'POST'),
+    page.click('button[type="submit"]'),
+  ]);
+
+  if (!vaultResponse.ok()) {
+    throw new Error(`Vault creation failed with status: ${vaultResponse.status()}`);
+  }
+
+  const vaultData = await vaultResponse.json();
+  const inviteToken = vaultData.vault?.inviteToken || vaultData.inviteToken;
+  if (!inviteToken) {
+    throw new Error('Vault creation response did not contain inviteToken.');
+  }
+  console.log(`PASSED: Vault created in MongoDB Atlas! Invite Token: ${inviteToken}`);
+  const inviteUrl = `http://localhost:3000/keyholder/invite/${inviteToken}`;
+  console.log(`Direct invite link to test: ${inviteUrl}`);
+
   await page.waitForTimeout(800);
 
   // Step 4: Card Skip & Create Vault
