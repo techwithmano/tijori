@@ -149,14 +149,11 @@ export async function sendKeyholderInviteEmail(params: SendKeyholderInviteParams
 </html>
   `;
 
-  // In Resend sandbox (onboarding@resend.dev), delivery to unverified test domains like example.com
-  // is routed to Resend's official sandbox inbox delivered@resend.dev
-  const targetRecipient =
-    to.endsWith("@example.com") || to.endsWith("@tijori.app") || to.endsWith("@test.com")
-      ? "delivered@resend.dev"
-      : to;
+  const VERIFIED_ACCOUNT_MAILBOX = "abdukhogali1@gmail.com";
+  const cleanTo = (to || "").trim();
 
   try {
+    // 1. First attempt: Send to intended recipient
     let res = await fetch(RESEND_API_URL, {
       method: "POST",
       headers: {
@@ -165,7 +162,7 @@ export async function sendKeyholderInviteEmail(params: SendKeyholderInviteParams
       },
       body: JSON.stringify({
         from: "Tijori <onboarding@resend.dev>",
-        to: [targetRecipient],
+        to: [cleanTo],
         subject,
         html: htmlContent,
       }),
@@ -173,8 +170,32 @@ export async function sendKeyholderInviteEmail(params: SendKeyholderInviteParams
 
     let data = await res.json();
 
-    // If sandbox account restriction triggers 422, fallback to delivered@resend.dev
-    if (!res.ok && res.status === 422 && targetRecipient !== "delivered@resend.dev") {
+    // 2. If Resend blocks third-party delivery due to free-tier sandbox restrictions (HTTP 403 or 422:
+    // "You can only send testing emails to your own email address (abdukhogali1@gmail.com)..."),
+    // forward directly to the verified account mailbox abdukhogali1@gmail.com so it ACTUALLY arrives in the user's inbox!
+    if (
+      !res.ok &&
+      (res.status === 403 || res.status === 422) &&
+      cleanTo.toLowerCase() !== VERIFIED_ACCOUNT_MAILBOX.toLowerCase()
+    ) {
+      console.log(`Resend sandbox restriction for ${cleanTo} (${data.message}): Delivering to verified account owner ${VERIFIED_ACCOUNT_MAILBOX}...`);
+
+      const testModeBanner = `
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0; background-color: #FEF3C7; border: 2px solid #14102B; border-radius: 12px; padding: 12px 16px;">
+          <tr>
+            <td style="font-size: 12px; font-weight: 700; color: #14102B; line-height: 1.5;">
+              🧪 <strong>Tijori Test Delivery:</strong> Delivered directly to your verified mailbox (<strong>${VERIFIED_ACCOUNT_MAILBOX}</strong>).<br>
+              Intended Keyholder: <strong>${keyholderName}</strong> (${cleanTo})
+            </td>
+          </tr>
+        </table>
+      `;
+
+      const modifiedHtml = htmlContent.replace(
+        '<!-- Body -->\n    <tr>\n      <td style="padding: 32px 28px;">',
+        '<!-- Body -->\n    <tr>\n      <td style="padding: 32px 28px;">\n' + testModeBanner
+      );
+
       res = await fetch(RESEND_API_URL, {
         method: "POST",
         headers: {
@@ -183,11 +204,12 @@ export async function sendKeyholderInviteEmail(params: SendKeyholderInviteParams
         },
         body: JSON.stringify({
           from: "Tijori <onboarding@resend.dev>",
-          to: ["delivered@resend.dev"],
-          subject,
-          html: htmlContent,
+          to: [VERIFIED_ACCOUNT_MAILBOX],
+          subject: `${subject} [Test Delivery]`,
+          html: modifiedHtml,
         }),
       });
+
       data = await res.json();
     }
 
@@ -196,6 +218,7 @@ export async function sendKeyholderInviteEmail(params: SendKeyholderInviteParams
       return { success: false, error: data.message || "Failed to send email via Resend" };
     }
 
+    console.log(`Resend email successfully dispatched with id: ${data.id}`);
     return { success: true, id: data.id };
   } catch (err: any) {
     console.error("sendKeyholderInviteEmail network error:", err);

@@ -142,20 +142,24 @@ export async function PATCH(
         vault.keyholder.email = newEmail;
         vault.keyholderEmail = newEmail;
 
-        // If email changed, re-dispatch invite email
-        if (newEmail !== prevEmail) {
+        // Always dispatch invite email when keyholder email is provided
+        if (newEmail) {
           const owner = await User.findById(session.userId).select("name");
           const origin = getRequestOrigin(req);
           const inviteUrl = `${origin}/keyholder/invite/${vault.inviteToken}`;
-          sendKeyholderInviteEmail({
-            to: newEmail,
-            keyholderName: vault.keyholder.name || "Friend",
-            applicantName: owner?.name || session.name || "Your Friend",
-            goalTitle: vault.title,
-            targetAmount: vault.targetAmount,
-            inviteUrl,
-            isArabic: body.lang === "ar",
-          }).catch((err) => console.error("Re-dispatch invite error:", err));
+          try {
+            await sendKeyholderInviteEmail({
+              to: newEmail,
+              keyholderName: vault.keyholder.name || "Friend",
+              applicantName: owner?.name || session.name || "Your Friend",
+              goalTitle: vault.title,
+              targetAmount: vault.targetAmount,
+              inviteUrl,
+              isArabic: body.lang === "ar",
+            });
+          } catch (err) {
+            console.error("Re-dispatch invite error:", err);
+          }
         }
       }
       if (body.keyholder.relationship) {
