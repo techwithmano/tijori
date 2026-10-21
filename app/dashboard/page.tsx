@@ -31,6 +31,10 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import BrandLogo from "@/components/BrandLogo";
 import { useT } from "@/lib/i18n";
 import StripeCardForm from "@/components/StripeCardForm";
+import DecisionModal, {
+  DecisionModalType,
+  DecisionFinancialBreakdown,
+} from "@/components/DecisionModal";
 import {
   FRIEND_FEE_PCT,
   SOLO_FEE_PCT,
@@ -198,55 +202,131 @@ function DashboardContent() {
     fetchData();
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
-      router.refresh();
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
+  // Custom Neo-Brutalist Decision Modal State
+  const [decisionModal, setDecisionModal] = useState<{
+    isOpen: boolean;
+    type?: DecisionModalType;
+    title: string;
+    badge?: string;
+    description: React.ReactNode;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    hideCancel?: boolean;
+    onConfirm?: () => Promise<void> | void;
+    financialBreakdown?: DecisionFinancialBreakdown;
+  } | null>(null);
+  const [modalConfirming, setModalConfirming] = useState(false);
+
+  const handleLogout = () => {
+    setDecisionModal({
+      isOpen: true,
+      type: "info",
+      badge: isArabic ? "تسجيل الخروج" : "Sign Out",
+      title: isArabic ? "هل ترغب في تسجيل الخروج؟" : "Sign out of your account?",
+      description: isArabic
+        ? "سيتعين عليك تسجيل الدخول مرة أخرى للوصول إلى أهدافك وخزائنك المحمية."
+        : "You will need to sign in again to access your protected vaults and savings milestones.",
+      confirmLabel: isArabic ? "تسجيل الخروج" : "Sign Out",
+      cancelLabel: isArabic ? "البقاء" : "Stay Logged In",
+      onConfirm: async () => {
+        try {
+          await fetch("/api/auth/logout", { method: "POST" });
+          router.push("/login");
+          router.refresh();
+        } catch (err) {
+          console.error("Logout error:", err);
+        }
+      },
+    });
   };
 
-  // Delete Goal Handler (Anti-Impulse Discipline Enforced)
+  // Delete Goal Handler (Anti-Impulse Discipline Enforced with Neo-Brutalist Modal)
   const [deletingGoal, setDeletingGoal] = useState(false);
 
-  const handleDeleteVault = async () => {
+  const executeDeleteVault = async () => {
     if (!vault) return;
-
-    if (vault.currentBalance > 0 && vault.status === "LOCKED") {
-      alert(
-        isArabic
-          ? `لا يمكن حذف هذا الهدف لأن به رصيد نشط (${formatKwd(vault.currentBalance, lang)}). لمنع اتخاذ قرارات متسرعة، يجب كسر الخزينة أو فك القفل أولاً.`
-          : `Cannot remove this goal because it holds active savings (${formatKwd(vault.currentBalance, lang)}). To maintain discipline, you must unlock or empty the vault before removing it.`
-      );
-      return;
-    }
-
-    const confirmMsg = isArabic
-      ? `هل أنت متأكد من حذف هدف "${vault.title}" نهائياً؟`
-      : `Are you sure you want to permanently remove the goal "${vault.title}"?`;
-
-    if (!window.confirm(confirmMsg)) return;
-
     try {
+      setModalConfirming(true);
       setDeletingGoal(true);
       const res = await fetch(`/api/vault/${vault._id}`, {
         method: "DELETE",
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        alert(data.error || "Failed to remove goal");
+        setDecisionModal({
+          isOpen: true,
+          type: "danger",
+          badge: isArabic ? "خطأ" : "Error",
+          title: isArabic ? "فشل حذف الهدف" : "Failed to Remove Goal",
+          description: data.error || (isArabic ? "تعذر حذف الهدف، يرجى المحاولة لاحقاً." : "Failed to remove goal"),
+          hideCancel: true,
+          confirmLabel: isArabic ? "إغلاق" : "Close",
+        });
         return;
       }
 
+      setDecisionModal(null);
       setVaults((prev) => prev.filter((v) => v._id !== vault._id));
       setSelectedVaultIndex(0);
     } catch (err: any) {
-      alert(err.message || "Failed to remove goal");
+      setDecisionModal({
+        isOpen: true,
+        type: "danger",
+        badge: isArabic ? "خطأ" : "Error",
+        title: isArabic ? "خطأ في الشبكة" : "Network Error",
+        description: err.message || (isArabic ? "فشل الاتصال بالخادم" : "Failed to remove goal"),
+        hideCancel: true,
+        confirmLabel: isArabic ? "إغلاق" : "Close",
+      });
     } finally {
       setDeletingGoal(false);
+      setModalConfirming(false);
     }
+  };
+
+  const handleDeleteVault = () => {
+    if (!vault) return;
+
+    // Discipline Enforcement: Cannot remove goal if it holds locked funds
+    if (vault.currentBalance > 0 && vault.status === "LOCKED") {
+      setDecisionModal({
+        isOpen: true,
+        type: "discipline",
+        badge: isArabic ? "انضباط مالي محمي" : "Discipline Protected",
+        title: isArabic ? "لا يمكن حذف هدف نشط ومقفل" : "Cannot Remove Locked Goal",
+        description: (
+          <div className="space-y-2">
+            <p>
+              {isArabic
+                ? `هذا الهدف يحتوي على مدخرات نشطة بقيمة ${formatKwd(vault.currentBalance, lang)}. لمنع اتخاذ قرارات متسرعة، ينص نظام التجوري على وجوب فك القفل أو كسر الخزينة وسحب الأموال أولاً.`
+                : `This goal currently holds active protected savings of ${formatKwd(vault.currentBalance, lang)}. To prevent impulse decisions, you must unlock or empty the vault before removing it.`}
+            </p>
+            <p className="text-xs text-muted">
+              {isArabic
+                ? "يمكنك طلب فك القفل من رفيقك أو إجراء كسر طوارئ فوري من خلال خيار كسر الخزينة."
+                : "You can request unlock approval from your Keyholder or execute an emergency break."}
+            </p>
+          </div>
+        ),
+        hideCancel: true,
+        confirmLabel: isArabic ? "فهمت ذلك" : "Understood",
+      });
+      return;
+    }
+
+    // Confirmation for empty or already-unlocked goals
+    setDecisionModal({
+      isOpen: true,
+      type: "danger",
+      badge: isArabic ? "تأكيد الحذف النهائي" : "Permanent Deletion",
+      title: isArabic ? `حذف هدف "${vault.title}" نهائياً؟` : `Permanently remove "${vault.title}"?`,
+      description: isArabic
+        ? "هل أنت متأكد من رغبتك في حذف هذا الهدف نهائياً؟ سيتم مسح كافة سجلات التحويلات والبيانات المرتبطة بهذا الهدف ولا يمكن التراجع عن هذا الإجراء."
+        : `Are you sure you want to permanently remove the goal "${vault.title}"? All pacing history and milestones for this goal will be cleared. This action cannot be undone.`,
+      confirmLabel: isArabic ? "نعم، احذف الهدف نهائياً" : "Yes, Permanently Remove",
+      cancelLabel: isArabic ? "إلغاء والاحتفاظ بالهدف" : "Cancel & Keep Goal",
+      onConfirm: executeDeleteVault,
+    });
   };
 
   // Top Up Handler
@@ -357,24 +437,36 @@ function DashboardContent() {
         setWhatsappUrl(data.whatsappUrl || "");
         setBreakStep("share");
       } else {
-        alert(data.error || "Failed to submit break request");
+        setDecisionModal({
+          isOpen: true,
+          type: "danger",
+          badge: isArabic ? "خطأ" : "Error",
+          title: isArabic ? "فشل إرسال طلب الفك" : "Failed to Submit Request",
+          description: data.error || (isArabic ? "تعذر إرسال طلب الفك، يرجى المحاولة لاحقاً." : "Failed to submit break request"),
+          hideCancel: true,
+          confirmLabel: isArabic ? "إغلاق" : "Close",
+        });
       }
     } catch (err: any) {
-      alert(err.message || "Failed to create request");
+      setDecisionModal({
+        isOpen: true,
+        type: "danger",
+        badge: isArabic ? "خطأ" : "Error",
+        title: isArabic ? "خطأ في الشبكة" : "Network Error",
+        description: err.message || (isArabic ? "تعذر الاتصال بالخادم" : "Failed to create request"),
+        hideCancel: true,
+        confirmLabel: isArabic ? "إغلاق" : "Close",
+      });
     } finally {
       setSubmittingBreak(false);
     }
   };
 
-  // Emergency Solo Break (15% emergency fee, 85% refund)
-  const handleEmergencyBreak = async () => {
+  // Emergency Solo Break Execution
+  const executeEmergencyBreak = async () => {
     if (!vault) return;
-    const confirmMsg = isArabic
-      ? `هل أنت متأكد من الكسر الفوري دون موافقة رفيقك؟ سيتم اقتطاع ${SOLO_FEE_PCT}٪ رسوم طوارئ واسترداد ${SOLO_RETURN_PCT}٪.`
-      : `Are you sure you want to break immediately alone? A ${SOLO_FEE_PCT}% emergency fee will be deducted (${SOLO_RETURN_PCT}% refund).`;
-    if (!window.confirm(confirmMsg)) return;
-
     try {
+      setModalConfirming(true);
       setSubmittingBreak(true);
       const res = await fetch(`/api/vault/${vault._id}/unlock`, {
         method: "POST",
@@ -385,15 +477,71 @@ function DashboardContent() {
       if (data.success && data.vault) {
         updateCurrentVault(data.vault);
         setShowBreakSheet(false);
-        alert(isArabic ? `تم كسر الخزينة بنجاح واقتطاع ${SOLO_FEE_PCT}٪ رسوم طوارئ.` : `Vault emergency broken. ${SOLO_RETURN_PCT}% refund initiated.`);
+        setDecisionModal({
+          isOpen: true,
+          type: "success",
+          badge: isArabic ? "تم الكسر بنجاح" : "Emergency Break Complete",
+          title: isArabic ? "تم كسر الخزينة واسترداد الرصيد" : "Vault Broken & Refund Initiated",
+          description: isArabic
+            ? `تم كسر الخزينة بنجاح واقتطاع ${SOLO_FEE_PCT}٪ رسوم انضباط طوارئ. تم بدء استرداد ${SOLO_RETURN_PCT}٪ من الرصيد إلى بطاقتك البنكية المسجلة.`
+            : `Vault emergency broken successfully. A ${SOLO_FEE_PCT}% emergency discipline fee was deducted, and an ${SOLO_RETURN_PCT}% refund has been initiated to your registered card.`,
+          hideCancel: true,
+          confirmLabel: isArabic ? "العودة للوحة التحكم" : "Back to Dashboard",
+        });
       } else {
-        alert(data.error || "Failed to execute emergency break");
+        setDecisionModal({
+          isOpen: true,
+          type: "danger",
+          badge: isArabic ? "خطأ" : "Error",
+          title: isArabic ? "فشل كسر الخزينة" : "Emergency Break Failed",
+          description: data.error || (isArabic ? "تعذر كسر الخزينة حالياً" : "Failed to execute emergency break"),
+          hideCancel: true,
+          confirmLabel: isArabic ? "إغلاق" : "Close",
+        });
       }
     } catch (err: any) {
-      alert(err.message || "Failed to emergency break");
+      setDecisionModal({
+        isOpen: true,
+        type: "danger",
+        badge: isArabic ? "خطأ" : "Error",
+        title: isArabic ? "خطأ في الاتصال" : "Connection Error",
+        description: err.message || (isArabic ? "فشل الاتصال بالخادم" : "Failed to emergency break"),
+        hideCancel: true,
+        confirmLabel: isArabic ? "إغلاق" : "Close",
+      });
     } finally {
       setSubmittingBreak(false);
+      setModalConfirming(false);
     }
+  };
+
+  // Emergency Solo Break Confirmation (Opens custom Neo-Brutalist popup)
+  const handleEmergencyBreak = () => {
+    if (!vault) return;
+    const currentBalance = vault.currentBalance || 0;
+    const feeAmount = currentBalance * (SOLO_FEE_PCT / 100);
+    const refundAmount = currentBalance * (SOLO_RETURN_PCT / 100);
+
+    setDecisionModal({
+      isOpen: true,
+      type: "danger",
+      badge: isArabic ? `كسر فوري - خصم ${SOLO_FEE_PCT}٪` : `Emergency Break (${SOLO_FEE_PCT}% Fee)`,
+      title: isArabic ? "كسر الخزينة منفرداً بدون موافقة؟" : "Break Vault Alone Without Approval?",
+      description: isArabic
+        ? `أنت على وشك كسر الخزينة فوراً وبشكل منفرد دون موافقة رفيقك (${keyholderFirstName}). سيتم اقتطاع ${SOLO_FEE_PCT}٪ كرسوم ردع مالي للانضباط، وسيُسترد ${SOLO_RETURN_PCT}٪ إلى بطاقتك البنكية.`
+        : `Are you sure you want to break immediately alone without your Keyholder (${keyholderFirstName})? A ${SOLO_FEE_PCT}% anti-impulse discipline fee will be deducted, and ${SOLO_RETURN_PCT}% will be refunded to your card.`,
+      financialBreakdown: {
+        balanceLabel: isArabic ? "الرصيد في الخزينة:" : "Locked Balance:",
+        balanceValue: `${formatKwd(currentBalance, lang)}`,
+        feeLabel: isArabic ? `رسوم كسر الانضباط (${SOLO_FEE_PCT}٪):` : `Discipline Fee (${SOLO_FEE_PCT}%):`,
+        feeValue: `- ${formatKwd(feeAmount, lang)}`,
+        refundLabel: isArabic ? `المبلغ المسترد للبطاقة (${SOLO_RETURN_PCT}٪):` : `Refund to Card (${SOLO_RETURN_PCT}%):`,
+        refundValue: `+ ${formatKwd(refundAmount, lang)}`,
+      },
+      confirmLabel: isArabic ? `تأكيد الكسر واقتطاع ${SOLO_FEE_PCT}٪` : `Confirm Break & Deduct ${SOLO_FEE_PCT}%`,
+      cancelLabel: isArabic ? "تراجع وإبقاء الخزينة مقفلة" : "Keep Vault Locked",
+      onConfirm: executeEmergencyBreak,
+    });
   };
 
   const copyToClipboard = (text: string) => {
@@ -1384,6 +1532,27 @@ function DashboardContent() {
             />
           </div>
         </div>
+      )}
+
+      {/* Neo-brutalist Decision & Feedback Modal */}
+      {decisionModal && (
+        <DecisionModal
+          isOpen={decisionModal.isOpen}
+          onClose={() => {
+            if (!modalConfirming) setDecisionModal(null);
+          }}
+          type={decisionModal.type}
+          title={decisionModal.title}
+          badge={decisionModal.badge}
+          description={decisionModal.description}
+          confirmLabel={decisionModal.confirmLabel}
+          cancelLabel={decisionModal.cancelLabel}
+          hideCancel={decisionModal.hideCancel}
+          onConfirm={decisionModal.onConfirm}
+          isConfirming={modalConfirming}
+          financialBreakdown={decisionModal.financialBreakdown}
+          isArabic={isArabic}
+        />
       )}
     </div>
   );

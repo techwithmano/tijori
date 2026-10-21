@@ -21,6 +21,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import BrandLogo from "@/components/BrandLogo";
 import { useT } from "@/lib/i18n";
 import { FRIEND_FEE_PCT, FRIEND_RETURN_PCT } from "@/lib/config";
+import DecisionModal, { DecisionModalType } from "@/components/DecisionModal";
 
 interface VaultData {
   _id: string;
@@ -61,6 +62,18 @@ export default function KeyholderTokenUnlockPage({
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState<string | null>(null);
+
+  const [decisionModal, setDecisionModal] = useState<{
+    isOpen: boolean;
+    type?: DecisionModalType;
+    title: string;
+    badge?: string;
+    description: React.ReactNode;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    hideCancel?: boolean;
+    onConfirm?: () => Promise<void> | void;
+  } | null>(null);
 
   useEffect(() => {
     async function fetchVault() {
@@ -112,7 +125,17 @@ export default function KeyholderTokenUnlockPage({
         }
       }
     } catch {
-      alert("Network error processing decision.");
+      setDecisionModal({
+        isOpen: true,
+        type: "danger",
+        badge: isArabic ? "خطأ في الشبكة" : "Network Error",
+        title: isArabic ? "تعذر معالجة القرار" : "Processing Failed",
+        description: isArabic
+          ? "حدث خطأ أثناء معالجة قرارك، يرجى التحقق من اتصالك بالإنترنت والمحاولة مجدداً."
+          : "Network error processing decision. Please check your connection and try again.",
+        hideCancel: true,
+        confirmLabel: isArabic ? "إغلاق" : "Close",
+      });
     } finally {
       setProcessingAction(null);
     }
@@ -121,6 +144,24 @@ export default function KeyholderTokenUnlockPage({
   const isArabic = lang === "ar";
   const keyholderFirstName = vault?.keyholder?.name ? vault.keyholder.name.split(" ")[0] : (isArabic ? "أحمد" : "Ahmed");
   const applicantName = isArabic ? "عبدالرحمن" : "Abdulrahman";
+
+  const handleDenyClick = () => {
+    setDecisionModal({
+      isOpen: true,
+      type: "discipline",
+      badge: isArabic ? "حماية الانضباط المالي" : "Enforce Discipline",
+      title: isArabic ? "تأكيد رفض طلب الكسر وإبقاء الخزينة مقفلة؟" : "Deny break request & keep vault locked?",
+      description: isArabic
+        ? `بصفتك حامل المفتاح الموثوق، فإن رفضك للطلب يحمي مدخرات ${applicantName} ويمنعه من كسر التزامه بهدفه (${vault?.title}). لن يتم خصم أي فلس.`
+        : `As ${applicantName}'s trusted Keyholder, denying this request protects their locked savings and keeps their streak alive for "${vault?.title}". 0% will be charged.`,
+      confirmLabel: isArabic ? "نعم، خله مقفول" : "Yes, Keep It Locked",
+      cancelLabel: isArabic ? "تراجع" : "Cancel",
+      onConfirm: async () => {
+        setDecisionModal(null);
+        await handleDecision("DENY");
+      },
+    });
+  };
 
   // 1. Loading State
   if (loading) {
@@ -300,7 +341,7 @@ export default function KeyholderTokenUnlockPage({
           <button
             type="button"
             disabled={processingAction !== null}
-            onClick={() => handleDecision("DENY")}
+            onClick={handleDenyClick}
             className="btn-hard w-full py-4 px-6 bg-lime text-ink font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer shadow-[4px_4px_0_var(--ink)]"
           >
             <Lock className="w-4 h-4" />
@@ -396,6 +437,23 @@ export default function KeyholderTokenUnlockPage({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Custom Neo-Brutalist Decision Modal */}
+      {decisionModal && (
+        <DecisionModal
+          isOpen={decisionModal.isOpen}
+          onClose={() => setDecisionModal(null)}
+          type={decisionModal.type}
+          title={decisionModal.title}
+          badge={decisionModal.badge}
+          description={decisionModal.description}
+          confirmLabel={decisionModal.confirmLabel}
+          cancelLabel={decisionModal.cancelLabel}
+          hideCancel={decisionModal.hideCancel}
+          onConfirm={decisionModal.onConfirm}
+          isArabic={isArabic}
+        />
       )}
     </div>
   );
