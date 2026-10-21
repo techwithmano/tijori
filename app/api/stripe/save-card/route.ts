@@ -99,6 +99,39 @@ export async function POST(req: NextRequest) {
       { $set: { needsAttention: false, needsAttentionReason: null } }
     );
 
+    // Initial Save Trigger: If user has active vaults with 0 balance and 0 transactions,
+    // execute the first scheduled save TODAY right now upon entering the card!
+    const activeVaults = await Vault.find({ userId: user._id, status: "LOCKED" });
+    for (const v of activeVaults) {
+      if (v.currentBalance === 0 && (!v.transactions || v.transactions.length === 0)) {
+        const firstAmount = Number(v.pullAmount) || 25;
+        v.currentBalance = firstAmount;
+        v.totalProtected = firstAmount;
+        v.streakCount = 1;
+        v.transactions = v.transactions || [];
+        v.transactions.push({
+          type: "SCHEDULED_PULL",
+          amount: firstAmount,
+          status: "SUCCESS",
+          note: "Initial micro-save (Card linked)",
+          createdAt: new Date(),
+        } as any);
+
+        // Schedule next pull 1 cadence from today
+        const nextDate = new Date();
+        const cadence = v.cadence || "weekly";
+        let stepDays = 7;
+        if (cadence === "daily") stepDays = 1;
+        else if (cadence === "biweekly") stepDays = 14;
+        else if (cadence === "monthly") stepDays = 30;
+        else if (cadence === "custom") stepDays = Math.max(1, Math.min(30, Number(v.customCadenceDays) || 7));
+        nextDate.setDate(nextDate.getDate() + stepDays);
+        v.nextPullAt = nextDate;
+
+        await v.save();
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: "Card saved successfully",

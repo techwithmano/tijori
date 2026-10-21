@@ -23,6 +23,9 @@ import {
   ShieldCheck,
   ShieldAlert,
   Trash2,
+  Hourglass,
+  Target,
+  TrendingUp,
 } from "lucide-react";
 import { formatKWD, formatDate, cn } from "@/lib/utils";
 import { formatKwd } from "@/lib/money";
@@ -98,6 +101,9 @@ interface IUser {
 
 function getHumanLedgerTitle(tx: { note?: string; type: string; amount?: number }, isArabic: boolean): string {
   const note = tx.note || "";
+  if (note.includes("Initial") || note.includes("First save") || note.includes("التوفير الأول")) {
+    return isArabic ? "التوفير الأول (تم تفعيل البطاقة)" : "Initial Save (Card Activated)";
+  }
   if (note.includes("Weekend saver micro-pull") || note.includes("Scheduled auto-pull") || note.includes("Scheduled save") || note.includes("Allowance Tuck")) {
     return isArabic ? "توفير أسبوعي" : "Weekly save";
   }
@@ -123,6 +129,66 @@ function getHumanLedgerTitle(tx: { note?: string; type: string; amount?: number 
     return isArabic ? "تم رفض الكسر وبقي القفل" : "Break rejected (funds locked)";
   }
   return note || (isArabic ? "حركة توفير" : "Vault activity");
+}
+
+function getCoachMessage(
+  percentFunded: number,
+  userName: string | undefined,
+  vaultTitle: string | undefined,
+  isArabic: boolean,
+  remainingSavesCount: number
+) {
+  const firstName = userName ? userName.split(" ")[0] : (isArabic ? "عبدالرحمن" : "Abdulrahman");
+  const goalTitle = vaultTitle || (isArabic ? "هدفك المالي" : "your goal");
+
+  if (percentFunded >= 100) {
+    return {
+      emoji: "🏆",
+      badge: isArabic ? "تم إنجاز الهدف بنجاح!" : "Goal Complete!",
+      title: isArabic ? `مبروك يا ${firstName}!` : `Congratulations ${firstName}!`,
+      message: isArabic
+        ? `ما شاء الله عليك يا ${firstName}! حققت هدف "${goalTitle}" بالكامل. التزامك المالي حديدي!`
+        : `Incredible work, ${firstName}! You've fully funded your "${goalTitle}" goal! Your discipline paid off completely.`,
+    };
+  }
+  if (percentFunded >= 75) {
+    return {
+      emoji: "🏁",
+      badge: isArabic ? "المرحلة النهائية" : "Final Stretch",
+      title: isArabic ? `أنت في الأمتار الأخيرة يا ${firstName}!` : `Almost there, ${firstName}!`,
+      message: isArabic
+        ? `تبقى ${remainingSavesCount} توفيرات فقط على إكمال "${goalTitle}". واصل بنفس القوة والانضباط!`
+        : `Only ${remainingSavesCount} saves left to complete "${goalTitle}". Keep your momentum going strong!`,
+    };
+  }
+  if (percentFunded >= 50) {
+    return {
+      emoji: "🔥",
+      badge: isArabic ? "تجاوزت منتصف الطريق" : "Halfway Conquered",
+      title: isArabic ? `نصف الهدف تم يا ${firstName}!` : `Past the halfway mark, ${firstName}!`,
+      message: isArabic
+        ? `أكثر من ٥٠٪ من "${goalTitle}" تم توفيرها بنجاح. استمر بنفس الحماس والالتزام، النتيجة تقترب كل أسبوع!`
+        : `Over 50% locked safely away in "${goalTitle}". Keep your momentum burning strong — the finish line is in sight!`,
+    };
+  }
+  if (percentFunded >= 25) {
+    return {
+      emoji: "⚡",
+      badge: isArabic ? "زخم مالي مستمر" : "Building Momentum",
+      title: isArabic ? `استمر يا ${firstName}!` : `Great consistency, ${firstName}!`,
+      message: isArabic
+        ? `كل استقطاع دوري يقربك خطوة إضافية من "${goalTitle}". انضباطك المالي أصبح عادة راسخة!`
+        : `Every scheduled micro-save brings you closer to "${goalTitle}". Consistency is your superpower!`,
+    };
+  }
+  return {
+    emoji: "🌱",
+    badge: isArabic ? "انطلاقة قوية" : "Strong Start",
+    title: isArabic ? `بداية ممتازة يا ${firstName}!` : `Off to a great start, ${firstName}!`,
+    message: isArabic
+      ? `عاش يا ${firstName}! البداية هي أهم خطوة وأول توفير أصبح محمياً في الخزينة. واصل المسيرة نحو "${goalTitle}"!`
+      : `Your first save is safely secured in your vault. Stick to your schedule and you'll reach "${goalTitle}" right on time!`,
+  };
 }
 
 function DashboardContent() {
@@ -678,6 +744,44 @@ function DashboardContent() {
     ? formatDate(vault.nextPullAt, lang)
     : isArabic ? "الأحد القادم" : "Sunday";
 
+  // ── TIMELINE & COMPLETION STATS CALCULATION ──
+  const currentBalance = Number(vault.currentBalance) || 0;
+  const targetAmount = Math.max(1, Number(vault.targetAmount) || 500);
+  const remainingAmount = Math.max(0, targetAmount - currentBalance);
+
+  let remainingSavesCount = 0;
+  let simulatedBalance = currentBalance;
+
+  if (remainingAmount > 0) {
+    while (simulatedBalance < targetAmount && remainingSavesCount < 1000) {
+      let stepAmount = basePull;
+      if (incType === "fixed") {
+        stepAmount = basePull + remainingSavesCount * incVal;
+      } else if (incType === "percentage") {
+        stepAmount = Math.round(basePull * Math.pow(1 + incVal / 100, remainingSavesCount));
+      }
+      simulatedBalance += Math.max(0.1, stepAmount);
+      remainingSavesCount++;
+    }
+  }
+
+  const completionDate = remainingSavesCount > 0
+    ? new Date(startPullDate.getTime() + Math.max(0, remainingSavesCount - 1) * stepDays * 24 * 60 * 60 * 1000)
+    : new Date();
+
+  const nowTime = Date.now();
+  const daysRemaining = Math.max(0, Math.ceil((completionDate.getTime() - nowTime) / (1000 * 60 * 60 * 24)));
+  const weeksRemaining = Math.max(0, Math.ceil(daysRemaining / 7));
+
+  const formattedCompletionDate = new Intl.DateTimeFormat(isArabic ? "ar-KW" : "en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(completionDate);
+
+  // Motivational Coach Message
+  const coachMessage = getCoachMessage(percentFunded, user?.name, vault.title, isArabic, remainingSavesCount);
+
   return (
     <div className="min-h-screen bg-bg text-ink selection:bg-lime selection:text-ink pb-16 overflow-x-clip">
       {/* ── 1. TOP BAR: Greeting + Language Switcher + Avatar (No mobile overflow) ── */}
@@ -980,6 +1084,26 @@ function DashboardContent() {
                     </span>
                   </p>
                 </div>
+
+                {/* Motivational Milestone Coach Banner */}
+                <div className="mt-5 p-4 rounded-2xl bg-bg border-2 border-ink shadow-[2px_2px_0_var(--ink)] flex items-start gap-3.5 text-start">
+                  <div className="w-10 h-10 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-xl shrink-0 shadow-[1px_1px_0_var(--ink)]">
+                    {coachMessage.emoji}
+                  </div>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-lime text-ink border border-ink shadow-[1px_1px_0_var(--ink)]">
+                        {coachMessage.badge}
+                      </span>
+                      <span className="text-xs font-black text-ink font-heading">
+                        {coachMessage.title}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted font-medium leading-relaxed">
+                      {coachMessage.message}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Real Denials Pill (Only shown if real denials exist in DB) */}
@@ -1054,6 +1178,91 @@ function DashboardContent() {
 
           {/* ── RIGHT COLUMN (lg:col-span-5): WEEKLY PACING + LEDGER ── */}
           <div className="lg:col-span-5 space-y-6">
+            {/* ── GOAL TIMELINE & FINISH ESTIMATION CARD ── */}
+            <div className="card-hard bg-surface border-2 border-ink p-5 sm:p-6 shadow-[4px_4px_0_var(--ink)] space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink shadow-[2px_2px_0_var(--ink)]">
+                      <Hourglass className="w-4 h-4 text-ink" />
+                    </div>
+                    <h3 className="font-extrabold text-base text-ink font-heading">
+                      {t("dashboard.timelineTitle")}
+                    </h3>
+                  </div>
+                  <p className="text-xs text-muted font-medium mt-1">
+                    {t("dashboard.timelineSubtitle")}
+                  </p>
+                </div>
+
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-lime border-2 border-ink text-xs font-black text-ink shadow-[2px_2px_0_var(--ink)] shrink-0">
+                  <Sparkles className="w-3.5 h-3.5 text-ink" />
+                  <span>{t("dashboard.onTrack")}</span>
+                </span>
+              </div>
+
+              {/* Hero Time-to-Goal Countdown Box */}
+              <div className="p-4 rounded-2xl bg-bg border-2 border-ink shadow-[2px_2px_0_var(--ink)] flex items-center justify-between gap-3 flex-wrap">
+                <div className="space-y-0.5">
+                  <span className="text-[11px] font-extrabold text-muted uppercase tracking-wider block">
+                    {t("dashboard.timeToGoal")}
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl sm:text-3xl font-black text-ink font-heading tabular-nums">
+                      {percentFunded >= 100
+                        ? (isArabic ? "مكتمل! 🎉" : "Completed! 🎉")
+                        : `${weeksRemaining} ${isArabic ? "أسبوع" : "weeks"}`}
+                    </span>
+                    {percentFunded < 100 && (
+                      <span className="text-xs font-bold text-muted tabular-nums">
+                        ({daysRemaining} {isArabic ? "يوم" : "days"})
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-end space-y-0.5">
+                  <span className="text-[11px] font-extrabold text-muted uppercase tracking-wider block">
+                    {t("dashboard.estimatedFinish")}
+                  </span>
+                  <span className="text-sm sm:text-base font-extrabold text-violet font-heading block tabular-nums">
+                    {percentFunded >= 100 ? (isArabic ? "اليوم" : "Today") : formattedCompletionDate}
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick 3-Metric Stats Grid */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+                <div className="p-2.5 sm:p-3 rounded-xl bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-center space-y-0.5">
+                  <span className="text-[10px] font-bold text-muted block truncate">
+                    {t("dashboard.savesRemaining")}
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-ink tabular-nums block">
+                    {remainingSavesCount} {isArabic ? "توفير" : "saves"}
+                  </span>
+                </div>
+
+                <div className="p-2.5 sm:p-3 rounded-xl bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-center space-y-0.5">
+                  <span className="text-[10px] font-bold text-muted block truncate">
+                    {t("dashboard.amountRemaining")}
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-ink tabular-nums block">
+                    {formatKwd(remainingAmount, lang)}
+                  </span>
+                </div>
+
+                <div className="p-2.5 sm:p-3 rounded-xl bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-center space-y-0.5">
+                  <span className="text-[10px] font-bold text-muted block truncate">
+                    {t("dashboard.disciplineStreak")}
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-ink tabular-nums flex items-center justify-center gap-1">
+                    <Flame className="w-3.5 h-3.5 text-coral fill-coral shrink-0" />
+                    <span>{vault.streakCount || (vault.currentBalance > 0 ? 1 : 0)}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* WEEKLY PACING: Clean 4-bar chart rendering at full height immediately */}
             <div className="card-hard bg-surface border-2 border-ink p-6 shadow-[4px_4px_0_var(--ink)] space-y-4">
               <div>

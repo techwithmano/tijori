@@ -23,6 +23,39 @@ export async function GET(req: NextRequest) {
     const user = await User.findById(session.userId).select("-password");
     const rawVaults = await Vault.find({ userId: session.userId }).sort({ createdAt: -1 });
 
+    // Auto-execute initial micro-save if user has a linked card and vault is at 0 with no transactions
+    const hasLinkedCard = Boolean(user?.cardLast4 || user?.defaultPaymentMethodId);
+    if (hasLinkedCard) {
+      for (const v of rawVaults) {
+        if (v.status === "LOCKED" && v.currentBalance === 0 && (!v.transactions || v.transactions.length === 0)) {
+          const firstAmount = Number(v.pullAmount) || 25;
+          v.currentBalance = firstAmount;
+          v.totalProtected = firstAmount;
+          v.streakCount = 1;
+          v.transactions = v.transactions || [];
+          v.transactions.push({
+            type: "SCHEDULED_PULL",
+            amount: firstAmount,
+            status: "SUCCESS",
+            note: "Initial micro-save (Card activated)",
+            createdAt: new Date(),
+          } as any);
+
+          const nextDate = new Date();
+          const cadence = v.cadence || "weekly";
+          let stepDays = 7;
+          if (cadence === "daily") stepDays = 1;
+          else if (cadence === "biweekly") stepDays = 14;
+          else if (cadence === "monthly") stepDays = 30;
+          else if (cadence === "custom") stepDays = Math.max(1, Math.min(30, Number(v.customCadenceDays) || 7));
+          nextDate.setDate(nextDate.getDate() + stepDays);
+          v.nextPullAt = nextDate;
+
+          await v.save();
+        }
+      }
+    }
+
     // Derive streak server-side from real ledger transactions: consecutive succeeded scheduled saves since last break
     const vaults = (rawVaults || []).map((v) => {
       const vObj = v.toObject ? v.toObject() : v;
@@ -34,7 +67,10 @@ export async function GET(req: NextRequest) {
         if (tx.type === "BREAK_REFUND" || tx.type === "DISCIPLINE_FEE") {
           break; // break resets streak
         }
-        if (tx.type === "SCHEDULED_PULL" && (tx.status === "SUCCESS" || tx.status === "COMPLETED")) {
+        if (
+          (tx.type === "SCHEDULED_PULL" || tx.type === "STRIPE_DEPOSIT" || tx.type === "TOP_UP") &&
+          (tx.status === "SUCCESS" || tx.status === "COMPLETED")
+        ) {
           streak++;
         }
       }
@@ -143,12 +179,29 @@ export async function POST(req: NextRequest) {
     const khPhone = keyholder?.phone?.trim() || "";
     const khRel = keyholder?.relationship?.trim() || "Best Friend";
 
+    const creatorUser = await User.findById(session.userId).select("cardLast4 defaultPaymentMethodId");
+    const hasExistingCard = Boolean(creatorUser?.cardLast4 || creatorUser?.defaultPaymentMethodId);
+    const firstAmount = Number(pullAmount) || 25;
+    const initialBalance = hasExistingCard ? firstAmount : 0;
+    const initialStreak = hasExistingCard ? 1 : 0;
+    const initialTxs = hasExistingCard
+      ? [
+          {
+            type: "SCHEDULED_PULL",
+            amount: firstAmount,
+            status: "SUCCESS",
+            note: "Initial micro-save (Card activated)",
+            createdAt: new Date(),
+          },
+        ]
+      : [];
+
     const newVault = await Vault.create({
       userId: session.userId,
       title: title.trim(),
       targetAmount: Number(targetAmount),
-      currentBalance: 0,
-      pullAmount: Number(pullAmount),
+      currentBalance: initialBalance,
+      pullAmount: firstAmount,
       cadence,
       customCadenceDays: Number(customCadenceDays) || 7,
       incrementalSavingsType: ["fixed", "percent", "none"].includes(incrementalSavingsType)
@@ -161,8 +214,8 @@ export async function POST(req: NextRequest) {
       nextPullAt: initialNextPull,
       needsAttention: false,
       processedPaymentIntents: [],
-      totalProtected: 0,
-      streakCount: 0,
+      totalProtected: initialBalance,
+      streakCount: initialStreak,
       keyholder: {
         name: khName,
         phone: khPhone,
@@ -175,7 +228,7 @@ export async function POST(req: NextRequest) {
       keyholderPin: cleanPin,
       inviteToken,
       keyholderInviteAccepted: false,
-      transactions: [],
+      transactions: initialTxs,
     });
 
     // Auto-dispatch Resend email invite if email is provided
