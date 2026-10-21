@@ -232,15 +232,17 @@ export async function POST(req: NextRequest) {
     });
 
     // Auto-dispatch Resend email invite if email is provided
+    let emailResult: any = null;
+    const origin = getRequestOrigin(req);
+    const inviteUrl = `${origin}/keyholder/invite/${inviteToken}`;
+    const isArabic = body.lang === "ar";
+
     if (khEmail) {
       const owner = await User.findById(session.userId).select("name");
       const ownerName = owner?.name || session.name || "Your Friend";
-      const origin = getRequestOrigin(req);
-      const inviteUrl = `${origin}/keyholder/invite/${inviteToken}`;
-      const isArabic = body.lang === "ar";
 
       try {
-        await sendKeyholderInviteEmail({
+        emailResult = await sendKeyholderInviteEmail({
           to: khEmail,
           keyholderName: khName,
           applicantName: ownerName,
@@ -249,12 +251,22 @@ export async function POST(req: NextRequest) {
           inviteUrl,
           isArabic,
         });
-      } catch (err) {
+      } catch (err: any) {
         console.error("Auto sendKeyholderInviteEmail error:", err);
+        emailResult = { success: false, error: err.message };
       }
     }
 
-    return NextResponse.json({ success: true, vault: newVault }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        vault: newVault,
+        inviteToken,
+        inviteUrl,
+        emailResult,
+      },
+      { status: 201 }
+    );
   } catch (error: any) {
     console.error("POST /api/vault error:", error);
     return NextResponse.json(

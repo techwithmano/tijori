@@ -66,8 +66,22 @@ export async function POST(req: NextRequest) {
     });
 
     if (!emailResult.success) {
+      if (emailResult.sandboxRestriction) {
+        return NextResponse.json({
+          success: false,
+          sandboxRestriction: true,
+          deliveredToOwnerSandbox: emailResult.deliveredToOwnerSandbox,
+          error: emailResult.error,
+          inviteUrl: finalInviteUrl,
+          message:
+            lang === "ar"
+              ? "نطاق البريد في وضع الاختبار (Resend Sandbox). تم إرسال نسخة للمعاينة إلى بريدك المسجل، ويمكنك إرسال الرابط لصاحبك مباشرة عبر واتساب أو نسخه."
+              : "Email service is in test sandbox mode. A preview was sent to your registered email. You can share the link with your friend via WhatsApp or copy it below.",
+        });
+      }
+
       return NextResponse.json(
-        { success: false, error: emailResult.error || "Failed to send email via Resend" },
+        { success: false, error: emailResult.error || "Failed to send email via Resend", inviteUrl: finalInviteUrl },
         { status: 500 }
       );
     }
@@ -76,6 +90,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: `Keyholder invitation email sent to ${targetEmail}`,
       id: emailResult.id,
+      inviteUrl: finalInviteUrl,
     });
   } catch (error: any) {
     console.error("POST /api/keyholder/invite/send-email error:", error);

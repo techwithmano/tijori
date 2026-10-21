@@ -127,6 +127,7 @@ export async function PATCH(
     }
 
     const body = await req.json();
+    let emailResult: any = null;
     if (body.title) vault.title = body.title.trim();
     if (body.targetAmount) vault.targetAmount = Number(body.targetAmount);
     if (body.pullAmount) vault.pullAmount = Number(body.pullAmount);
@@ -148,7 +149,7 @@ export async function PATCH(
           const origin = getRequestOrigin(req);
           const inviteUrl = `${origin}/keyholder/invite/${vault.inviteToken}`;
           try {
-            await sendKeyholderInviteEmail({
+            emailResult = await sendKeyholderInviteEmail({
               to: newEmail,
               keyholderName: vault.keyholder.name || "Friend",
               applicantName: owner?.name || session.name || "Your Friend",
@@ -157,8 +158,9 @@ export async function PATCH(
               inviteUrl,
               isArabic: body.lang === "ar",
             });
-          } catch (err) {
+          } catch (err: any) {
             console.error("Re-dispatch invite error:", err);
+            emailResult = { success: false, error: err.message };
           }
         }
       }
@@ -168,7 +170,16 @@ export async function PATCH(
     }
 
     await vault.save();
-    return NextResponse.json({ success: true, vault });
+    const origin = getRequestOrigin(req);
+    const inviteUrl = `${origin}/keyholder/invite/${vault.inviteToken}`;
+
+    return NextResponse.json({
+      success: true,
+      vault,
+      inviteToken: vault.inviteToken,
+      inviteUrl,
+      emailResult,
+    });
   } catch (error: any) {
     console.error("PATCH /api/vault/[id] error:", error);
     return NextResponse.json(
