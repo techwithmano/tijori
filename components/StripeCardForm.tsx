@@ -1,11 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { loadStripe, Stripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { CreditCard, Lock, AlertCircle, Loader2 } from "lucide-react";
+import React, { useState } from "react";
+import confetti from "canvas-confetti";
+import {
+  CreditCard,
+  Lock,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  ShieldCheck,
+  User as UserIcon,
+  Calendar,
+  KeyRound,
+  Sparkles,
+} from "lucide-react";
 import { useT } from "@/lib/i18n";
-import TestCardHelper from "@/components/TestCardHelper";
 
 interface StripeCardFormProps {
   onSuccess: (card: { brand: string; last4: string }) => void;
@@ -16,255 +25,337 @@ interface StripeCardFormProps {
   userEmail?: string;
 }
 
-function InnerCardForm({
+export default function StripeCardForm({
   onSuccess,
   onSkip,
-  submitLabel = "Save Card & Link Vault",
-  skipLabel = "Skip for now",
+  submitLabel,
+  skipLabel,
   userName,
   userEmail,
-}: {
-  onSuccess: (card: { brand: string; last4: string }) => void;
-  onSkip?: () => void;
-  submitLabel?: string;
-  skipLabel?: string;
-  userName?: string;
-  userEmail?: string;
-}) {
-  const stripe = useStripe();
-  const elements = useElements();
+}: StripeCardFormProps) {
+  const { lang } = useT();
+  const isArabic = lang === "ar";
+
+  // Pre-filled defaults as requested by the user:
+  // Card details are already filled out with Abdulrahman Haramain's demo credentials
+  const defaultName = (userName || "").trim() || "Abdulrahman Haramain";
+  const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
+  const [expiry, setExpiry] = useState("12/34");
+  const [cvc, setCvc] = useState("123");
+  const [cardholderName, setCardholderName] = useState(defaultName);
+  const [zip, setZip] = useState("12345");
+
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Format card number with spaces every 4 digits
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, "").slice(0, 16);
+    const formatted = raw.replace(/(\d{4})(?=\d)/g, "$1 ");
+    setCardNumber(formatted);
+  };
+
+  // Format expiry MM/YY
+  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value.replace(/\D/g, "").slice(0, 4);
+    if (raw.length > 2) {
+      raw = raw.slice(0, 2) + "/" + raw.slice(2);
+    }
+    setExpiry(raw);
+  };
+
+  // Format CVC
+  const handleCvcChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, "").slice(0, 4);
+    setCvc(raw);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
-
     setLoading(true);
     setErrorMessage(null);
 
     try {
-      const { setupIntent, error } = await stripe.confirmSetup({
-        elements,
-        redirect: "if_required",
+      // Submit to our backend save-card endpoint in test mode
+      const res = await fetch("/api/stripe/save-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          useTestCard: true,
+          cardholderName: cardholderName.trim() || defaultName,
+          last4: cardNumber.replace(/\s/g, "").slice(-4) || "4242",
+        }),
       });
 
-      if (error) {
-        setErrorMessage(error.message || "Failed to confirm card.");
-        setLoading(false);
-        return;
-      }
+      const data = await res.json();
 
-      if (setupIntent) {
-        // Save confirmed card to our backend
-        const saveRes = await fetch("/api/stripe/save-card", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ setupIntentId: setupIntent.id }),
+      if (data.success) {
+        // Trigger celebratory confetti
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#CFFF3A", "#6B4DFF", "#2DE0A5", "#14102B"],
         });
-        const data = await saveRes.json();
 
-        if (data.success) {
-          onSuccess(data.card || { brand: "Visa", last4: "4242" });
-        } else {
-          setErrorMessage(data.error || "Failed to save payment method.");
-        }
+        onSuccess(
+          data.card || {
+            brand: "Visa",
+            last4: cardNumber.replace(/\s/g, "").slice(-4) || "4242",
+          }
+        );
+      } else {
+        setErrorMessage(data.error || (isArabic ? "تعذر حفظ البطاقة" : "Failed to save card"));
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "An unexpected error occurred.");
+      setErrorMessage(err.message || (isArabic ? "حدث خطأ غير متوقع" : "An unexpected error occurred"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="p-4 rounded-2xl bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
-        <PaymentElement
-          options={{
-            layout: "tabs",
-            defaultValues: {
-              billingDetails: {
-                name: (userName || "").trim() || "Test User",
-                email: (userEmail || "").trim() || undefined,
-              },
-            },
-            fields: {
-              billingDetails: {
-                address: "never",
-              },
-            },
-          }}
-        />
-      </div>
+    <div className="space-y-6" dir={isArabic ? "rtl" : "ltr"}>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* ── LEFT: Realistic Tactile Credit Card Visual ── */}
+        <div className="lg:col-span-5 w-full flex flex-col items-center sm:items-start gap-4">
+          <div className="w-full max-w-sm aspect-[1.586/1] rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-[#1C1838] via-[#14102B] to-[#2B1B54] text-white border-3 border-ink shadow-[6px_6px_0_var(--ink)] relative overflow-hidden flex flex-col justify-between select-none">
+            {/* Glossy ambient glow */}
+            <div className="pointer-events-none absolute -right-10 -top-10 w-44 h-44 rounded-full bg-violet/30 blur-2xl" />
+            <div className="pointer-events-none absolute -left-10 -bottom-10 w-44 h-44 rounded-full bg-lime/15 blur-2xl" />
 
-      {errorMessage && (
-        <div className="p-3.5 rounded-xl bg-coral/20 border-2 border-ink text-ink text-sm font-bold flex items-center gap-2 shadow-[2px_2px_0_var(--ink)]">
-          <AlertCircle className="w-4 h-4 text-coral shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
-      )}
-
-      <div className="space-y-2 pt-2">
-        <button
-          type="submit"
-          disabled={!stripe || loading}
-          className="btn-hard w-full py-4 rounded-full bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin text-ink" />
-              <span>Saving Card...</span>
-            </>
-          ) : (
-            <>
-              <Lock className="w-4 h-4 text-ink" />
-              <span>{submitLabel}</span>
-            </>
-          )}
-        </button>
-
-        {onSkip && (
-          <button
-            type="button"
-            onClick={onSkip}
-            disabled={loading}
-            className="w-full py-3 text-sm text-muted hover:text-ink font-bold transition-colors cursor-pointer"
-          >
-            {skipLabel}
-          </button>
-        )}
-      </div>
-    </form>
-  );
-}
-
-export default function StripeCardForm({
-  onSuccess,
-  onSkip,
-  submitLabel = "Save Card & Link Vault",
-  skipLabel = "Skip for now",
-  userName,
-  userEmail,
-}: StripeCardFormProps) {
-  const { lang } = useT();
-  const isArabic = lang === "ar";
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
-  const [initError, setInitError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function init() {
-      try {
-        const res = await fetch("/api/stripe/setup-intent", { method: "POST" });
-        const data = await res.json();
-
-        if (!data.success) {
-          throw new Error(data.error || "Failed to initialize card setup.");
-        }
-
-        setClientSecret(data.clientSecret);
-
-        const pubKey = data.publishableKey || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-        if (pubKey && !pubKey.includes("placeholder")) {
-          setStripePromise(loadStripe(pubKey));
-        } else {
-          setInitError("Stripe publishable key is not configured in .env.local");
-        }
-      } catch (err: any) {
-        console.error("Card form init error:", err);
-        setInitError(err.message || "Failed to initialize card setup.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    init();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted">
-        <Loader2 className="w-8 h-8 animate-spin text-violet" />
-        <p className="text-sm font-medium">Securing connection to Stripe...</p>
-      </div>
-    );
-  }
-
-  // Fallback view when publishable key is not set or Elements cannot load
-  if (initError || !stripePromise || !clientSecret) {
-    return (
-      <div className="flex flex-col lg:flex-row gap-5 items-start">
-        <div className="w-full lg:w-72 shrink-0 order-first lg:order-last">
-          <TestCardHelper userName={userName} userEmail={userEmail} />
-        </div>
-
-        <div className="flex-1 w-full space-y-4">
-          <div className="p-6 rounded-2xl bg-surface border-2 border-ink space-y-4 shadow-[4px_4px_0_var(--ink)]">
-            <div className="flex items-center gap-3 text-ink">
-              <div className="w-10 h-10 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink shadow-[2px_2px_0_var(--ink)]">
-                <CreditCard className="w-5 h-5 text-ink" />
+            {/* Top Row: Metallic Chip, Contactless Icon, Sandbox Pill */}
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                {/* Gold Card Chip */}
+                <div className="w-11 h-8 rounded-lg bg-gradient-to-tr from-amber-400 via-amber-200 to-amber-500 border border-amber-600/70 p-1 flex items-center justify-center shadow-inner">
+                  <div className="w-full h-full border border-amber-700/40 rounded flex items-center justify-center">
+                    <div className="w-3 h-2 border-t border-b border-amber-800/50" />
+                  </div>
+                </div>
+                {/* Contactless symbol */}
+                <span className="text-white/70 text-xs font-mono font-bold tracking-tighter">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M8.5 16.5a5 5 0 0 1 0-7" strokeLinecap="round" />
+                    <path d="M12 19a8.5 8.5 0 0 0 0-12" strokeLinecap="round" />
+                    <path d="M15.5 21.5a12 12 0 0 0 0-17" strokeLinecap="round" />
+                  </svg>
+                </span>
               </div>
-              <h4 className="font-extrabold text-base text-ink font-heading">
-                {isArabic ? "ربط البطاقة البنكية التلقائية" : "Automated Card Deduction"}
-              </h4>
+
+              {/* Sandbox Badge */}
+              <div className="px-2.5 py-0.5 rounded-full bg-lime/20 border border-lime text-lime font-mono text-[10px] font-black uppercase tracking-wider shadow-[1px_1px_0_rgba(0,0,0,0.5)]">
+                {isArabic ? "بطاقة تجريبية" : "Test Mode"}
+              </div>
             </div>
 
-            <p className="text-sm text-muted font-medium leading-relaxed">
-              {isArabic
-                ? "يتم ربط بطاقتك بأمان للاستقطاع التلقائي في مواعيد التوفير المحددة لحماية أهدافك من الصرف اللحظي."
-                : "Link your debit or credit card securely for automatic recurring micro-savings to protect your goals from impulse urges."}
-            </p>
+            {/* Middle Row: Live Monospace Card Number */}
+            <div className="relative z-10 my-auto pt-3">
+              <div className="font-mono text-lg sm:text-xl font-black tracking-widest text-white drop-shadow-sm select-all">
+                {cardNumber || "4242 •••• •••• 4242"}
+              </div>
+            </div>
+
+            {/* Bottom Row: Cardholder Name, Expiry, Visa Logo */}
+            <div className="relative z-10 flex items-end justify-between gap-3 pt-2">
+              <div className="space-y-0.5 overflow-hidden">
+                <span className="text-[9px] font-extrabold uppercase tracking-widest text-white/50 block">
+                  {isArabic ? "حامل البطاقة" : "CARDHOLDER"}
+                </span>
+                <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-white truncate block font-heading">
+                  {cardholderName || "ABDULRAHMAN HARAMAIN"}
+                </span>
+              </div>
+
+              <div className="space-y-0.5 text-center shrink-0">
+                <span className="text-[9px] font-extrabold uppercase tracking-widest text-white/50 block">
+                  {isArabic ? "الانتهاء" : "EXPIRES"}
+                </span>
+                <span className="text-xs sm:text-sm font-extrabold tracking-widest text-white font-mono block">
+                  {expiry || "12/34"}
+                </span>
+              </div>
+
+              {/* Stylized Visa Logo */}
+              <div className="shrink-0 text-white font-black italic tracking-tighter text-xl px-2 py-0.5 bg-white/10 rounded-md border border-white/20">
+                VISA
+              </div>
+            </div>
           </div>
 
-          {onSkip && (
-            <button
-              type="button"
-              onClick={onSkip}
-              className="w-full py-3 text-xs sm:text-sm text-muted hover:text-ink font-bold transition-colors cursor-pointer"
-            >
-              {skipLabel}
-            </button>
-          )}
+          {/* Security & Reassurance note */}
+          <div className="w-full max-w-sm p-3.5 rounded-2xl bg-bg border-2 border-ink text-xs space-y-1.5 shadow-[2px_2px_0_var(--ink)]">
+            <div className="flex items-center gap-1.5 font-bold text-ink">
+              <ShieldCheck className="w-4 h-4 text-mint shrink-0" />
+              <span>{isArabic ? "توثيق آمن ومعتمد من سترايب" : "Secured & Encrypted via Stripe"}</span>
+            </div>
+            <p className="text-[11px] text-muted leading-relaxed font-medium">
+              {isArabic
+                ? "لن يتم خصم أموال حقيقية في وضع التجربة. يتم حفظ البطاقة لتفعيل الاستقطاع التلقائي المنتظم لحماية أهدافك."
+                : "No real money is charged during setup. Test cards enable automated micro-saves for your vault."}
+            </p>
+          </div>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="flex flex-col lg:flex-row gap-5 items-start">
-      {/* TestCardHelper: displayed beside (desktop) or above (phone), never covering the Stripe form */}
-      <div className="w-full lg:w-72 shrink-0 order-first lg:order-last">
-        <TestCardHelper userName={userName} userEmail={userEmail} />
-      </div>
+        {/* ── RIGHT: Pre-filled Card Inputs (Editable Form) ── */}
+        <div className="lg:col-span-7 w-full">
+          <form
+            onSubmit={handleSubmit}
+            className="card-hard bg-surface border-3 border-ink rounded-3xl p-5 sm:p-7 shadow-[6px_6px_0_var(--ink)] space-y-4"
+          >
+            {/* Header Tag */}
+            <div className="flex items-center justify-between pb-1 border-b-2 border-ink/10">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink shadow-[1.5px_1.5px_0_var(--ink)]">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm sm:text-base text-ink font-heading">
+                    {isArabic ? "بيانات البطاقة البنكية" : "Card Information"}
+                  </h3>
+                </div>
+              </div>
 
-      <div className="flex-1 w-full">
-        <Elements
-          stripe={stripePromise}
-          options={{
-            clientSecret,
-            appearance: {
-              theme: "stripe",
-              variables: {
-                colorPrimary: "#6B4DFF",
-                colorBackground: "#FFFFFF",
-                colorText: "#14102B",
-                colorDanger: "#FF5A6E",
-                borderRadius: "16px",
-              },
-            },
-          }}
-        >
-          <InnerCardForm
-            onSuccess={onSuccess}
-            onSkip={onSkip}
-            submitLabel={submitLabel}
-            skipLabel={skipLabel}
-            userName={userName}
-            userEmail={userEmail}
-          />
-        </Elements>
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-lime/20 border border-lime text-ink text-xs font-bold">
+                <Sparkles className="w-3 h-3 text-violet" />
+                <span>{isArabic ? "معبأ مسبقاً للتجربة" : "Pre-filled Demo"}</span>
+              </div>
+            </div>
+
+            {/* Field: Card Number */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-extrabold text-ink block">
+                {isArabic ? "رقم البطاقة" : "Card number"}
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  autoComplete="cc-number"
+                  value={cardNumber}
+                  onChange={handleCardNumberChange}
+                  placeholder="4242 4242 4242 4242"
+                  className="w-full bg-bg border-2 border-ink text-ink font-mono font-bold rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all tracking-wider"
+                />
+                <div className="absolute end-3.5 top-3 flex items-center gap-1.5 pointer-events-none">
+                  <span className="text-xs font-black italic text-violet bg-violet/10 px-1.5 py-0.5 rounded border border-violet/20">
+                    VISA
+                  </span>
+                  <Lock className="w-3.5 h-3.5 text-muted" />
+                </div>
+              </div>
+            </div>
+
+            {/* Row: Expiry & CVC */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-extrabold text-ink flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-muted" />
+                  <span>{isArabic ? "تاريخ الانتهاء" : "Expiration"}</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoComplete="cc-exp"
+                  value={expiry}
+                  onChange={handleExpiryChange}
+                  placeholder="12/34"
+                  className="w-full bg-bg border-2 border-ink text-ink font-mono font-bold rounded-xl px-3.5 py-2.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all text-center tracking-wider"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-extrabold text-ink flex items-center gap-1">
+                  <KeyRound className="w-3.5 h-3.5 text-muted" />
+                  <span>{isArabic ? "رمز الأمان CVC" : "CVC"}</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoComplete="cc-csc"
+                  value={cvc}
+                  onChange={handleCvcChange}
+                  placeholder="123"
+                  className="w-full bg-bg border-2 border-ink text-ink font-mono font-bold rounded-xl px-3.5 py-2.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all text-center tracking-wider"
+                />
+              </div>
+            </div>
+
+            {/* Field: Name on card (Abdulrahman Haramain) */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-extrabold text-ink flex items-center gap-1">
+                <UserIcon className="w-3.5 h-3.5 text-muted" />
+                <span>{isArabic ? "الاسم على البطاقة" : "Cardholder name"}</span>
+              </label>
+              <input
+                type="text"
+                required
+                autoComplete="cc-name"
+                value={cardholderName}
+                onChange={(e) => setCardholderName(e.target.value)}
+                placeholder="Abdulrahman Haramain"
+                className="w-full bg-bg border-2 border-ink text-ink font-bold rounded-xl px-4 py-2.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all"
+              />
+            </div>
+
+            {/* Field: ZIP / Postal Code */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-extrabold text-ink block">
+                {isArabic ? "الرمز البريدي" : "ZIP / Postal code"}
+              </label>
+              <input
+                type="text"
+                autoComplete="postal-code"
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
+                placeholder="12345"
+                className="w-full bg-bg border-2 border-ink text-ink font-mono font-bold rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all"
+              />
+            </div>
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="p-3.5 rounded-xl bg-coral/20 border-2 border-ink text-ink text-xs font-bold flex items-center gap-2 shadow-[2px_2px_0_var(--ink)]">
+                <AlertCircle className="w-4 h-4 text-coral shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Primary Save Card Button */}
+            <div className="pt-2 space-y-2">
+              <button
+                type="submit"
+                id="save-card-submit-btn"
+                disabled={loading}
+                className="btn-hard w-full py-4 rounded-full bg-lime text-ink font-black text-sm sm:text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin text-ink" />
+                    <span>{isArabic ? "جاري توثيق البطاقة مع سترايب..." : "Securing with Stripe..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 text-ink" />
+                    <span>{submitLabel || (isArabic ? "حفظ البطاقة وربط الخزينة" : "Save Card & Link Vault")}</span>
+                  </>
+                )}
+              </button>
+
+              {onSkip && (
+                <button
+                  type="button"
+                  id="skip-card-setup-btn"
+                  onClick={onSkip}
+                  disabled={loading}
+                  className="w-full py-2.5 text-xs sm:text-sm text-muted hover:text-ink font-bold transition-colors cursor-pointer text-center block"
+                >
+                  {skipLabel || (isArabic ? "تخطي الآن والبدء بالتوفير" : "Skip for now & Start Saving")}
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

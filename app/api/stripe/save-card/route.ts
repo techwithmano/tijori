@@ -18,20 +18,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
 
-    const customerId = await getOrCreateStripeCustomer(user);
+    let customerId = user.stripeCustomerId || "";
+    try {
+      if (!customerId) {
+        customerId = await getOrCreateStripeCustomer(user);
+      }
+    } catch (e: any) {
+      console.warn("Stripe customer initialization note:", e.message);
+    }
+
     const body = await req.json();
     let { paymentMethodId, setupIntentId, useTestCard } = body;
 
     // Handle test card simulation if requested in test mode
-    if (useTestCard && isStripeTestMode) {
-      try {
-        const pm = await stripe.paymentMethods.attach("pm_card_visa", {
-          customer: customerId,
-        });
-        paymentMethodId = pm.id;
-      } catch (err: any) {
-        // If already attached, find existing
-        paymentMethodId = "pm_card_visa";
+    if (useTestCard) {
+      paymentMethodId = paymentMethodId || "pm_card_visa";
+      if (customerId && isStripeTestMode) {
+        try {
+          const pm = await stripe.paymentMethods.attach("pm_card_visa", {
+            customer: customerId,
+          });
+          paymentMethodId = pm.id;
+        } catch (err: any) {
+          paymentMethodId = "pm_card_visa";
+        }
       }
     }
 

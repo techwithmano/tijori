@@ -1520,7 +1520,7 @@ function DashboardContent() {
             </div>
 
             <StripeCardForm
-              userName={user?.name}
+              userName={user?.name || "Abdulrahman Haramain"}
               userEmail={user?.email}
               onSuccess={() => {
                 setShowCardModal(false);
