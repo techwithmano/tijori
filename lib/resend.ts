@@ -149,7 +149,7 @@ export async function sendKeyholderInviteEmail(params: SendKeyholderInviteParams
 </html>
   `;
 
-  const VERIFIED_ACCOUNT_MAILBOX = "abdukhogali1@gmail.com";
+  const verifiedAccountMailbox = process.env.RESEND_ACCOUNT_EMAIL?.trim() || "";
   const cleanTo = (to || "").trim();
   const fromAddress = process.env.RESEND_FROM_EMAIL?.trim() || "Tijori <onboarding@resend.dev>";
 
@@ -172,7 +172,7 @@ export async function sendKeyholderInviteEmail(params: SendKeyholderInviteParams
     let data = await res.json();
 
     // 2. Check if Resend blocked third-party delivery due to free-tier sandbox restrictions (HTTP 403 or 422:
-    // "You can only send testing emails to your own email address (abdukhogali1@gmail.com)...")
+    // "You can only send testing emails to your own email address...")
     const isSandboxRestriction =
       !res.ok &&
       (res.status === 403 || res.status === 422) &&
@@ -181,51 +181,53 @@ export async function sendKeyholderInviteEmail(params: SendKeyholderInviteParams
 
     if (isSandboxRestriction) {
       console.warn(
-        `Resend sandbox restriction for ${cleanTo}: ${data.message}. Sending preview copy to account owner ${VERIFIED_ACCOUNT_MAILBOX}...`
+        `Resend sandbox restriction for ${cleanTo}: ${data.message}.`
       );
 
-      const testModeBanner = `
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0; background-color: #FEF3C7; border: 2px solid #14102B; border-radius: 12px; padding: 12px 16px;">
-          <tr>
-            <td style="font-size: 12px; font-weight: 700; color: #14102B; line-height: 1.5;">
-              🧪 <strong>Tijori Test Delivery:</strong> Delivered directly to your verified mailbox (<strong>${VERIFIED_ACCOUNT_MAILBOX}</strong>).<br>
-              Intended Keyholder: <strong>${keyholderName}</strong> (${cleanTo})<br>
-              <em>To deliver directly to external friends via Resend, verify a custom domain at resend.com/domains.</em>
-            </td>
-          </tr>
-        </table>
-      `;
+      if (verifiedAccountMailbox) {
+        const testModeBanner = `
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0; background-color: #FEF3C7; border: 2px solid #14102B; border-radius: 12px; padding: 12px 16px;">
+            <tr>
+              <td style="font-size: 12px; font-weight: 700; color: #14102B; line-height: 1.5;">
+                🧪 <strong>Tijori Test Delivery:</strong> Delivered to verified mailbox.<br>
+                Intended Keyholder: <strong>${keyholderName}</strong> (${cleanTo})<br>
+                <em>To deliver directly to external friends via Resend, verify a custom domain at resend.com/domains.</em>
+              </td>
+            </tr>
+          </table>
+        `;
 
-      const modifiedHtml = htmlContent.replace(
-        '<!-- Body -->\n    <tr>\n      <td style="padding: 32px 28px;">',
-        '<!-- Body -->\n    <tr>\n      <td style="padding: 32px 28px;">\n' + testModeBanner
-      );
+        const modifiedHtml = htmlContent.replace(
+          '<!-- Body -->\n    <tr>\n      <td style="padding: 32px 28px;">',
+          '<!-- Body -->\n    <tr>\n      <td style="padding: 32px 28px;">\n' + testModeBanner
+        );
 
-      try {
-        await fetch(RESEND_API_URL, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: "Tijori <onboarding@resend.dev>",
-            to: [VERIFIED_ACCOUNT_MAILBOX],
-            subject: `${subject} [Sandbox Test Preview]`,
-            html: modifiedHtml,
-          }),
-        });
-      } catch (previewErr) {
-        console.error("Failed to deliver sandbox preview copy:", previewErr);
+        try {
+          await fetch(RESEND_API_URL, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: "Tijori <onboarding@resend.dev>",
+              to: [verifiedAccountMailbox],
+              subject: `${subject} [Sandbox Test Preview]`,
+              html: modifiedHtml,
+            }),
+          });
+        } catch (previewErr) {
+          console.error("Failed to deliver sandbox preview copy:", previewErr);
+        }
       }
 
       // Explicitly return sandboxRestriction so the frontend/app can notify user and provide direct WhatsApp/Copy link!
       return {
         success: false,
         sandboxRestriction: true,
-        deliveredToOwnerSandbox: true,
+        deliveredToOwnerSandbox: Boolean(verifiedAccountMailbox),
         recipient: cleanTo,
-        error: `Resend Sandbox Mode: Direct delivery to ${cleanTo} requires a verified domain in Resend. A preview was sent to ${VERIFIED_ACCOUNT_MAILBOX}. Share the private invite link directly with ${keyholderName}.`,
+        error: `Resend Sandbox Mode: Direct delivery to ${cleanTo} requires a verified domain in Resend. Share the private invite link directly with ${keyholderName}.`,
       };
     }
 

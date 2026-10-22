@@ -143,7 +143,7 @@ function getCoachMessage(
   isArabic: boolean,
   remainingSavesCount: number
 ) {
-  const firstName = userName ? userName.split(" ")[0] : (isArabic ? "عبدالرحمن" : "Abdulrahman");
+  const firstName = userName ? userName.split(" ")[0] : (isArabic ? "يا بطل" : "Saver");
   const goalTitle = vaultTitle || (isArabic ? "هدفك المالي" : "your goal");
 
   if (percentFunded >= 100) {
@@ -1930,7 +1930,7 @@ function DashboardContent() {
             </div>
 
             <StripeCardForm
-              userName={user?.name || "Abdulrahman Haramain"}
+              userName={user?.name || ""}
               userEmail={user?.email}
               onSuccess={() => {
                 setShowCardModal(false);

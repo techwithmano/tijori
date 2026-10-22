@@ -8,12 +8,12 @@ const fs = require('fs');
   const page = await context.newPage();
 
   const timestamp = Date.now();
-  const email = `abdulrahman_${timestamp}@example.com`;
+  const email = `demo_user_${timestamp}@example.com`;
   const password = 'Password123!';
 
   console.log(`1. Signing up user: ${email}`);
   await page.goto('http://localhost:3000/signup', { waitUntil: 'networkidle' });
-  await page.fill('input[type="text"]', 'Abdulrahman Haramain');
+  await page.fill('input[type="text"]', 'Tijori Demo User');
   await page.fill('input[type="email"]', email);
   await page.fill('input[type="password"]', password);
   await page.click('button[type="submit"]');

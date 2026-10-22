@@ -23,8 +23,7 @@ export const stripe = new Proxy({} as Stripe, {
 
 /**
  * Currency configuration:
- * As verified via Stripe API check on account acct_1UQrWeRWDBcPMWBH (US account):
- * KWD is not directly supported as a charge currency on standard US Stripe accounts.
+ * KWD is not directly supported as a charge currency on standard US/international Stripe accounts.
  * Therefore, charges are processed in USD using a fixed rate constant, while all UI,
  * ledger records, and vault balances remain strictly in Kuwaiti Dinar (KWD).
  */

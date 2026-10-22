@@ -142,8 +142,8 @@ export default function KeyholderTokenUnlockPage({
   };
 
   const isArabic = lang === "ar";
-  const keyholderFirstName = vault?.keyholder?.name ? vault.keyholder.name.split(" ")[0] : (isArabic ? "أحمد" : "Ahmed");
-  const applicantName = isArabic ? "عبدالرحمن" : "Abdulrahman";
+  const keyholderFirstName = vault?.keyholder?.name ? vault.keyholder.name.split(" ")[0] : (isArabic ? "يا رفيقي" : "Friend");
+  const applicantName = (vault as any)?.applicantName || (isArabic ? "صاحبك" : "Your friend");
 
   const handleDenyClick = () => {
     setDecisionModal({

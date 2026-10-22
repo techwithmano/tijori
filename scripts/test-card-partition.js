@@ -8,7 +8,7 @@ if (!fs.existsSync(SCREENSHOTS_DIR)) {
 }
 
 async function testCardPartition() {
-  console.log('=== Validating Pre-filled Card Partition with Abdulrahman Haramain ===');
+  console.log('=== Validating Pre-filled Card Partition with Tijori User ===');
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
@@ -17,10 +17,10 @@ async function testCardPartition() {
   const testEmail = `card_test_${timestamp}@tijori.app`;
   const testPassword = 'Password123!';
 
-  // 1. Register test user named Abdulrahman Haramain
-  console.log(`1. Registering user as Abdulrahman Haramain (${testEmail})...`);
+  // 1. Register test user named Tijori User
+  console.log(`1. Registering user as Tijori User (${testEmail})...`);
   await page.goto('http://localhost:3000/register', { waitUntil: 'networkidle' });
-  await page.fill('input[type="text"]', 'Abdulrahman Haramain');
+  await page.fill('input[type="text"]', 'Tijori User');
   await page.fill('input[type="email"]', testEmail);
   await page.fill('input[type="password"]', testPassword);
   await page.click('button[type="submit"]');
@@ -53,10 +53,10 @@ async function testCardPartition() {
 
   // Check card visual text
   const pageContent = await page.innerText('body');
-  if (!pageContent.includes('ABDULRAHMAN HARAMAIN')) {
-    throw new Error('FAILED: Visual credit card does not display ABDULRAHMAN HARAMAIN!');
+  if (!pageContent.includes('TIJORI USER')) {
+    throw new Error('FAILED: Visual credit card does not display TIJORI USER!');
   }
-  console.log('✓ Visual card displays cardholder: ABDULRAHMAN HARAMAIN');
+  console.log('✓ Visual card displays cardholder: TIJORI USER');
 
   if (!pageContent.includes('4242') && !pageContent.includes('12/34')) {
     throw new Error('FAILED: Visual credit card does not display test card number or expiry!');
@@ -67,7 +67,7 @@ async function testCardPartition() {
   const cardNumValue = await page.$eval('input[placeholder="4242 4242 4242 4242"]', (el) => el.value);
   const expiryValue = await page.$eval('input[placeholder="12/34"]', (el) => el.value);
   const cvcValue = await page.$eval('input[placeholder="123"]', (el) => el.value);
-  const nameValue = await page.$eval('input[placeholder="Abdulrahman Haramain"]', (el) => el.value);
+  const nameValue = await page.$eval('input[autoComplete="cc-name"]', (el) => el.value);
 
   console.log(`Pre-filled values in inputs:`);
   console.log(`- Card Number: "${cardNumValue}"`);
@@ -75,7 +75,7 @@ async function testCardPartition() {
   console.log(`- CVC: "${cvcValue}"`);
   console.log(`- Name on Card: "${nameValue}"`);
 
-  if (!cardNumValue.includes('4242') || expiryValue !== '12/34' || cvcValue !== '123' || !nameValue.includes('Abdulrahman')) {
+  if (!cardNumValue.includes('4242') || expiryValue !== '12/34' || cvcValue !== '123' || !nameValue.includes('Tijori User')) {
     throw new Error('FAILED: Card inputs are not properly pre-filled with demo credentials!');
   }
   console.log('✓ All card inputs are properly pre-filled!');

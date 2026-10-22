@@ -777,7 +777,7 @@ export default function OnboardingPage() {
               </div>
             ) : (
               <StripeCardForm
-                userName={currentUser?.name || "Abdulrahman Haramain"}
+                userName={currentUser?.name || ""}
                 userEmail={currentUser?.email}
                 onSuccess={(card) => {
                   setSavedCard(card);

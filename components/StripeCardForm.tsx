@@ -36,9 +36,8 @@ export default function StripeCardForm({
   const { lang } = useT();
   const isArabic = lang === "ar";
 
-  // Pre-filled defaults as requested by the user:
-  // Card details are already filled out with Abdulrahman Haramain's demo credentials
-  const defaultName = (userName || "").trim() || "Abdulrahman Haramain";
+  // Default cardholder name
+  const defaultName = (userName || "").trim() || (isArabic ? "اسم حامل البطاقة" : "Cardholder Name");
   const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
   const [expiry, setExpiry] = useState("12/34");
   const [cvc, setCvc] = useState("123");
@@ -281,7 +280,7 @@ export default function StripeCardForm({
               </div>
             </div>
 
-            {/* Field: Name on card (Abdulrahman Haramain) */}
+            {/* Field: Name on card */}
             <div className="space-y-1.5">
               <label className="text-xs font-extrabold text-ink flex items-center gap-1">
                 <UserIcon className="w-3.5 h-3.5 text-muted" />
@@ -293,7 +292,7 @@ export default function StripeCardForm({
                 autoComplete="cc-name"
                 value={cardholderName}
                 onChange={(e) => setCardholderName(e.target.value)}
-                placeholder="Abdulrahman Haramain"
+                placeholder={isArabic ? "اسم حامل البطاقة" : "Cardholder Name"}
                 className="w-full bg-bg border-2 border-ink text-ink font-bold rounded-xl px-4 py-2.5 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-violet/30 transition-all"
               />
             </div>

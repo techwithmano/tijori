@@ -7,9 +7,8 @@ try {
   // Ignore restricted environments
 }
 
-// Direct replica set host list (bypasses Windows/ISP DNS SRV querySrv EBADRESP limitations)
-const DIRECT_FALLBACK_URI =
-  "mongodb://abdukhogali1_db_user:aaFC6cPgRd4hxOqq@ac-ahiop6y-shard-00-00.sfdjb0j.mongodb.net:27017,ac-ahiop6y-shard-00-01.sfdjb0j.mongodb.net:27017,ac-ahiop6y-shard-00-02.sfdjb0j.mongodb.net:27017/tijori?ssl=true&replicaSet=atlas-dychyr-shard-0&authSource=admin&retryWrites=true&w=majority";
+// Direct replica set host list can optionally be specified in environment via MONGODB_DIRECT_URI
+const directFallbackUri = process.env.MONGODB_DIRECT_URI;
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -32,17 +31,19 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     return cached.conn;
   }
 
-  const uri = process.env.MONGODB_URI || DIRECT_FALLBACK_URI;
-  if (!uri) {
+  const uri = process.env.MONGODB_URI;
+  if (!uri && !directFallbackUri) {
     throw new Error(
-      "Please define the MONGODB_URI environment variable inside .env.local or Vercel Settings"
+      "Please define the MONGODB_URI environment variable inside .env.local or your deployment settings."
     );
   }
+
+  const connectionTarget = uri || directFallbackUri!;
 
   if (!cached.promise) {
     const primaryOpts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 4000,
+      serverSelectionTimeoutMS: 5000,
     };
 
     const directOpts = {
@@ -50,19 +51,21 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
       serverSelectionTimeoutMS: 10000,
     };
 
-    // Attempt primary connection with rapid fallback to direct replica set on DNS SRV failure
     cached.promise = mongoose
-      .connect(uri, primaryOpts)
+      .connect(connectionTarget, primaryOpts)
       .then((instance) => {
         console.log("Connected to MongoDB Atlas cluster successfully.");
         return instance;
       })
       .catch(async (primaryErr) => {
-        console.warn("Primary MongoDB SRV failed, switching immediately to direct replica fallback:", primaryErr.message);
-        return mongoose.connect(DIRECT_FALLBACK_URI, directOpts).then((instance) => {
-          console.log("Connected to MongoDB Atlas via direct replica fallback.");
-          return instance;
-        });
+        if (directFallbackUri && connectionTarget !== directFallbackUri) {
+          console.warn("Primary MongoDB SRV failed, switching to direct replica fallback:", primaryErr.message);
+          return mongoose.connect(directFallbackUri, directOpts).then((instance) => {
+            console.log("Connected to MongoDB Atlas via direct replica fallback.");
+            return instance;
+          });
+        }
+        throw primaryErr;
       });
   }
 

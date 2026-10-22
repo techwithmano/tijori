@@ -24,6 +24,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
       }
     } else {
+      if (process.env.NODE_ENV === "production") {
+        console.error("CRITICAL SECURITY ERROR: STRIPE_WEBHOOK_SECRET is not configured in production.");
+        return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+      }
       // In local dev without STRIPE_WEBHOOK_SECRET, parse the event directly
       console.warn("⚠️ STRIPE_WEBHOOK_SECRET not set, parsing event payload without signature verification.");
       event = JSON.parse(rawBody) as Stripe.Event;

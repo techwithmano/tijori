@@ -8,12 +8,12 @@ const fs = require('fs');
   const ownerPage = await ownerContext.newPage();
 
   const timestamp = Date.now();
-  const email = `abdulrahman_${timestamp}@example.com`;
+  const email = `demo_user_${timestamp}@example.com`;
   const password = 'Password123!';
 
   console.log(`1. Signing up user: ${email}`);
   await ownerPage.goto('http://localhost:3000/signup', { waitUntil: 'networkidle' });
-  await ownerPage.fill('input[type="text"]', 'Abdulrahman Haramain');
+  await ownerPage.fill('input[type="text"]', 'Tijori Demo User');
   await ownerPage.fill('input[type="email"]', email);
   await ownerPage.fill('input[type="password"]', password);
   await ownerPage.click('button[type="submit"]');

@@ -17,7 +17,7 @@ Tijori (تِجوري) is a behavioral anti-impulse micro-savings web platform co
 1. **Dynamic Database Layer (MongoDB & Mongoose):**
    - Zero hardcoded mock numbers in UI components: all statistics, balances, streaks, keyholder profiles, and transaction logs are dynamically queried from live MongoDB Atlas collections.
    - Cached global connection pool in `lib/db.ts` with replica set resilience.
-   - Auto-seeder engine (`/api/seed` and 1-Click Demo Login) initializing `demo@tijori.app` (`password123`) with Abdulrahman Haramain's active vault ("Japan Summer Trip 🇯🇵", 125/500 KWD, 380 KWD protected, 18-day streak, 4 ledger events).
+   - Auto-seeder engine (`/api/seed` and 1-Click Demo Login) initializing `demo@tijori.app` (`password123`) with Demo User's active vault ("Japan Summer Trip 🇯🇵", 125/500 KWD, 380 KWD protected, 18-day streak, 4 ledger events).
 
 2. **Custom JWT Authentication (`lib/auth.ts`):**
    - Password hashing via `bcryptjs`.
@@ -86,7 +86,7 @@ All 15 automated integration tests passed with zero failures:
 >>> 1. Testing Authentication Engine...
 [AUTH] ✓ PASS: Demo Login (demo@tijori.app) (User ID: 6ad5148939873aaf9bd99ddc)
 [AUTH] ✓ PASS: Invalid Password Rejection (Correctly rejected with 401)
-[AUTH] ✓ PASS: Session Verification (GET /api/auth/me) (Authenticated as: Abdulrahman Haramain)
+[AUTH] ✓ PASS: Session Verification (GET /api/auth/me) (Authenticated as: Demo User)
 [AUTH] ✓ PASS: Unauthenticated /api/auth/me Rejection (Unauthorized properly flagged)
 [AUTH] ✓ PASS: New User Registration + Starter Vault Seeding (Registered: test_...@tijori.app)
 

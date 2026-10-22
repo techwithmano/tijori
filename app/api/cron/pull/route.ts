@@ -10,6 +10,11 @@ export async function GET(req: NextRequest) {
     const authHeader = req.headers.get("authorization");
 
     // Secure authentication check
+    if (process.env.NODE_ENV === "production" && !cronSecret) {
+      console.error("CRITICAL SECURITY ERROR: CRON_SECRET is not configured in production.");
+      return NextResponse.json({ success: false, error: "Server configuration error" }, { status: 500 });
+    }
+
     if (cronSecret) {
       if (!authHeader || authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });

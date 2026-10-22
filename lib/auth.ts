@@ -3,7 +3,17 @@ import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
-const JWT_SECRET = process.env.JWT_SECRET || "tijori_ultra_secure_jwt_secret_token_2026_gcc_fintech";
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("CRITICAL SECURITY ERROR: JWT_SECRET environment variable is missing in production.");
+    }
+    return "tijori_dev_fallback_secret_change_in_production";
+  }
+  return secret;
+}
+
 const COOKIE_NAME = "tijori_session";
 const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60;
 
@@ -23,14 +33,14 @@ export async function comparePassword(password: string, hash: string): Promise<b
 }
 
 export function signToken(payload: SessionUser): string {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, getJwtSecret(), {
     expiresIn: "7d",
   });
 }
 
 export function verifyToken(token: string): SessionUser | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as SessionUser;
+    const decoded = jwt.verify(token, getJwtSecret()) as SessionUser;
     return decoded;
   } catch (err) {
     return null;

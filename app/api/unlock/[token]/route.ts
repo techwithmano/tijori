@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { Vault } from "@/models/Vault";
+import { User } from "@/models/User";
 import { stripe, kwdToUsdCents } from "@/lib/stripe";
 import { calculateFriendRelease, FRIEND_FEE_PCT, FRIEND_RETURN_PCT } from "@/lib/config";
 
@@ -33,7 +34,16 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, vault });
+    let applicantName = "";
+    if (vault.userId) {
+      const owner = await User.findById(vault.userId).select("name");
+      if (owner?.name) applicantName = owner.name;
+    }
+
+    const vaultObj = vault.toObject();
+    (vaultObj as any).applicantName = applicantName;
+
+    return NextResponse.json({ success: true, vault: vaultObj });
   } catch (error: any) {
     console.error("GET /api/unlock/[token] error:", error);
     return NextResponse.json(

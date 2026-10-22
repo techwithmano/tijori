@@ -19,16 +19,10 @@ async function testCronCharge() {
   }
 
   // Connect to DB directly via mongoose
-  let uri = process.env.MONGODB_URI;
-  if (uri && uri.includes("cluster0.sfdjb0j.mongodb.net")) {
-    uri = uri.replace("mongodb+srv://", "mongodb://");
-    const atIdx = uri.indexOf("@");
-    const slashIdx = uri.indexOf(".mongodb.net");
-    if (atIdx !== -1 && slashIdx !== -1) {
-      const userPass = uri.substring(10, atIdx);
-      const hosts = "ac-pfx0iut-shard-00-00.sfdjb0j.mongodb.net:27017,ac-pfx0iut-shard-00-01.sfdjb0j.mongodb.net:27017,ac-pfx0iut-shard-00-02.sfdjb0j.mongodb.net:27017";
-      uri = `mongodb://${userPass}@${hosts}/tijori?ssl=true&replicaSet=atlas-135w4u-shard-0&authSource=admin&retryWrites=true&w=majority`;
-    }
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.error("MONGODB_URI environment variable is missing.");
+    process.exit(1);
   }
 
   await mongoose.connect(uri);
