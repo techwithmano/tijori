@@ -84,9 +84,11 @@ export default function LandingPage() {
   const [roastExcuse, setRoastExcuse] = useState("");
   const [roastResult, setRoastResult] = useState("");
   const [roastLoading, setRoastLoading] = useState(false);
+  const [roastGender, setRoastGender] = useState<"female" | "male">("female");
 
-  const handleFetchLandingRoast = async (excuseToTest?: string) => {
+  const handleFetchLandingRoast = async (excuseToTest?: string, genderToUse?: "female" | "male") => {
     const textToTest = excuseToTest !== undefined ? excuseToTest : roastExcuse;
+    const targetGender = genderToUse || roastGender;
     if (!textToTest.trim()) return;
     setRoastLoading(true);
     try {
@@ -97,7 +99,8 @@ export default function LandingPage() {
           excuse: textToTest,
           goal: isArabic ? "سفرة اليابان" : "Japan Summer Trip",
           currentBalance: 125,
-          keyholderName: isArabic ? "أحمد" : "Ahmed",
+          keyholderName: targetGender === "female" ? (isArabic ? "سارة" : "Sara") : (isArabic ? "أحمد" : "Ahmed"),
+          gender: targetGender,
           lang,
         }),
       });
@@ -106,8 +109,12 @@ export default function LandingPage() {
     } catch {
       setRoastResult(
         isArabic
-          ? "يا صاحبي، كسر الخزينة بيكلّفك ١٥٪ كرسوم طوارئ على تعبك. فكّر بهدفك وخلك قد كلمتك!"
-          : "Wallah bro, you'll burn a 15% emergency fee on your hard-earned savings. Put the card away and let your money grow!"
+          ? (targetGender === "female"
+              ? "يا الحبيبة، كسر الخزينة بيكلّفج ١٥٪ كرسوم طوارئ على تعبج. فكّري بهدفج وخليج قد التحدي!"
+              : "يا الحبيب، كسر الخزينة بيكلّفك ١٥٪ كرسوم طوارئ على تعبك. فكّر بهدفك وخلك قد كلمتك!")
+          : (targetGender === "female"
+              ? "Wallah habibti, you'll burn a 15% emergency fee on your hard-earned savings. Put the card away and protect your goal!"
+              : "Wallah bro, you'll burn a 15% emergency fee on your hard-earned savings. Put the card away and let your money grow!")
       );
     } finally {
       setRoastLoading(false);
@@ -831,17 +838,66 @@ export default function LandingPage() {
           </div>
 
           <div className="max-w-2xl mx-auto space-y-4">
+            {/* Persona Switcher (Her vs Him) */}
+            <div className="flex items-center justify-center gap-2 pb-1">
+              <span className="text-xs font-bold text-muted me-2">
+                {isArabic ? "لمن المراجعة؟" : "Audience:"}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setRoastGender("female");
+                  setRoastExcuse("");
+                  setRoastResult("");
+                }}
+                className={`px-4 py-1.5 rounded-full text-xs font-black border-2 border-ink transition-all cursor-pointer flex items-center gap-1.5 shadow-[2px_2px_0_var(--ink)] ${
+                  roastGender === "female"
+                    ? "bg-violet text-white scale-105"
+                    : "bg-surface text-ink hover:bg-bg"
+                }`}
+              >
+                <span>👩</span>
+                <span>{isArabic ? "بنات / For Her" : "For Her (Girls)"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRoastGender("male");
+                  setRoastExcuse("");
+                  setRoastResult("");
+                }}
+                className={`px-4 py-1.5 rounded-full text-xs font-black border-2 border-ink transition-all cursor-pointer flex items-center gap-1.5 shadow-[2px_2px_0_var(--ink)] ${
+                  roastGender === "male"
+                    ? "bg-lime text-ink scale-105"
+                    : "bg-surface text-ink hover:bg-bg"
+                }`}
+              >
+                <span>👨</span>
+                <span>{isArabic ? "شباب / For Him" : "For Him (Guys)"}</span>
+              </button>
+            </div>
+
             {/* Quick-Pick Inspiration Chips */}
             <div className="flex items-center gap-2 flex-wrap justify-center">
               <span className="text-xs font-bold text-muted me-1">
                 {isArabic ? "أعذار شائعة:" : "Popular excuses:"}
               </span>
-              {(isArabic
-                ? ["سنيكر ليمتد بمجمع ٣٦٠", "ويكند شاليه مع الربع", "نزل آيفون جديد اليوم"]
+              {(roastGender === "female"
+                ? isArabic
+                  ? ["كولكشن عبايات ليمتد", "عطورات وميك أب دروب", "عشا وماتشا مع البنات", "تنزيلات الأفنيوز"]
+                  : [
+                      "Limited abaya collection",
+                      "Luxury perfume & makeup drop",
+                      "Matcha & dinner with girls",
+                      "The Avenues flash sale",
+                    ]
+                : isArabic
+                ? ["سنيكر ليمتد بمجمع ٣٦٠", "ويكند شاليه مع الربع", "نزل آيفون جديد اليوم", "ساعة ليمتد"]
                 : [
                     "Flash sneaker drop at 360 Mall",
                     "Chalet weekend with the boys",
                     "New iPhone just dropped",
+                    "Limited edition watch",
                   ]
               ).map((chip) => (
                 <button
@@ -849,7 +905,7 @@ export default function LandingPage() {
                   type="button"
                   onClick={() => {
                     setRoastExcuse(chip);
-                    handleFetchLandingRoast(chip);
+                    handleFetchLandingRoast(chip, roastGender);
                   }}
                   className="px-3 py-1 rounded-full bg-bg hover:bg-lime border border-ink text-xs font-bold text-ink transition-colors cursor-pointer"
                 >
@@ -870,7 +926,15 @@ export default function LandingPage() {
                 type="text"
                 value={roastExcuse}
                 onChange={(e) => setRoastExcuse(e.target.value)}
-                placeholder={t("landing.roasterPlaceholder")}
+                placeholder={
+                  roastGender === "female"
+                    ? isArabic
+                      ? "مثال: بطلب عطر ليمتد نزل اليوم، أو طلعة مطعم مع البنات..."
+                      : "e.g. Limited perfume drop, or dinner with the girls..."
+                    : isArabic
+                    ? "مثال: سنيكر ليمتد بمجمع ٣٦٠، أو حجزت شاليه مع الربع..."
+                    : "e.g. Flash sneaker drop at 360 Mall, or chalet trip..."
+                }
                 enterKeyHint="send"
                 className="input-hard flex-1 text-sm sm:text-base py-3.5 px-4 bg-bg focus:bg-surface"
               />

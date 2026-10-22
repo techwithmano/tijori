@@ -481,6 +481,8 @@ function DashboardContent() {
           currentBalance: vault.currentBalance,
           targetAmount: vault.targetAmount,
           keyholderName: vault.keyholder?.name || "Ahmed",
+          userName: user?.name,
+          relationship: vault.keyholder?.relationship,
           lang,
         }),
       });
@@ -491,8 +493,8 @@ function DashboardContent() {
     } catch {
       setRoastText(
         isArabic
-          ? "يا صاحبي اذكر الله وفكر بهدفك قبل لا تطير فلوسك وتضيع تعبك!"
-          : "Bro, think about your goal before blowing your savings on impulse spending!"
+          ? "اذكر الله وفكر بهدفك قبل لا تضيع فلوسك وتخسر تعبك!"
+          : "Think about your goal before blowing your savings on impulse urges!"
       );
       setBreakStep("roast");
     } finally {
