@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { Vault } from "@/models/Vault";
 import { User } from "@/models/User";
+import { sendKeyholderPinRecoveryEmail } from "@/lib/resend";
+import { getRequestOrigin } from "@/lib/utils";
 
 export async function GET(
   req: NextRequest,
@@ -123,10 +125,38 @@ export async function POST(
 
     await vault.save();
 
+    // Automatically send PIN confirmation & recovery email to keyholder
+    let recoveryEmailSent = false;
+    const khEmail = vault.keyholderEmail || vault.keyholder?.email;
+    if (khEmail) {
+      try {
+        let ownerName = "Your Friend";
+        if (vault.userId) {
+          const owner = await User.findById(vault.userId).select("name");
+          if (owner?.name) ownerName = owner.name;
+        }
+        const origin = getRequestOrigin(req);
+        const recoveryUrl = `${origin}/keyholder/invite/${vault.inviteToken}?action=recover`;
+
+        const emailResult = await sendKeyholderPinRecoveryEmail({
+          to: khEmail,
+          keyholderName: vault.keyholder?.name || "Friend",
+          applicantName: ownerName,
+          goalTitle: vault.title,
+          recoveryUrl,
+          isArabic: false,
+        });
+        recoveryEmailSent = Boolean(emailResult.success);
+      } catch (emailErr) {
+        console.error("Auto sendKeyholderPinRecoveryEmail error:", emailErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: "Secret Keyholder PIN saved successfully.",
       keyholder: vault.keyholder,
+      recoveryEmailSent,
     });
   } catch (error: any) {
     console.error("POST /api/keyholder/invite/[token] error:", error);

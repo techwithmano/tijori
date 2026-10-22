@@ -431,3 +431,162 @@ export async function sendKeyholderUnlockEmail(params: SendKeyholderUnlockParams
     return { success: false, error: err.message || "Network error sending email via Resend" };
   }
 }
+
+export interface SendKeyholderPinRecoveryParams {
+  to: string;
+  keyholderName: string;
+  applicantName: string;
+  goalTitle: string;
+  recoveryUrl: string;
+  isArabic?: boolean;
+}
+
+export async function sendKeyholderPinRecoveryEmail(params: SendKeyholderPinRecoveryParams) {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) {
+    console.warn("sendKeyholderPinRecoveryEmail: RESEND_API_KEY is not defined in environment.");
+    return { success: false, error: "RESEND_API_KEY is not configured." };
+  }
+
+  const {
+    to,
+    keyholderName,
+    applicantName,
+    goalTitle,
+    recoveryUrl,
+    isArabic = false,
+  } = params;
+
+  const subject = isArabic
+    ? `🔑 رابط استعادة وتحديث رقمك السري لخزينة ${applicantName}`
+    : `🔑 Your Secret PIN Recovery Link for ${applicantName}'s Vault`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="${isArabic ? "ar" : "en"}" dir="${isArabic ? "rtl" : "ltr"}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 24px 12px; background-color: #FAF8F5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #14102B;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; margin: 0 auto; background-color: #FFFFFF; border: 2px solid #14102B; border-radius: 20px; box-shadow: 4px 4px 0 #14102B; overflow: hidden;">
+    <!-- Header -->
+    <tr>
+      <td style="padding: 24px 28px; background-color: #CFFF3A; border-bottom: 2px solid #14102B;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+          <tr>
+            <td>
+              <span style="display: inline-block; padding: 6px 12px; background-color: #14102B; color: #FFFFFF; font-weight: 900; font-size: 16px; border-radius: 10px; letter-spacing: -0.5px;">
+                🔑 Tijori • تِجوري
+              </span>
+            </td>
+            <td align="${isArabic ? "left" : "right"}">
+              <span style="font-size: 12px; font-weight: 800; color: #14102B; text-transform: uppercase;">
+                ${isArabic ? "استعادة الرمز السري" : "PIN Recovery"}
+              </span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Body -->
+    <tr>
+      <td style="padding: 32px 28px;">
+        <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 900; color: #14102B; line-height: 1.25;">
+          ${
+            isArabic
+              ? `سلام يا ${keyholderName}!`
+              : `Salam ${keyholderName}!`
+          }
+        </h1>
+
+        <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #4B4668;">
+          ${
+            isArabic
+              ? `بصفتك حامل المفتاح الموثوق لخزينة <strong>"${goalTitle}"</strong> الخاصة بصديقك <strong>${applicantName}</strong>، إليك رابط استعادة وتحديث رقمك السري (PIN) الخاص المكوّن من ٦ أرقام في حال نسيته.`
+              : `As the trusted Keyholder for <strong>${applicantName}</strong>'s <strong>"${goalTitle}"</strong> vault, here is your private link to recover or change your secret 6-digit PIN in case you ever forget it.`
+          }
+        </p>
+
+        <!-- Security Reminder Box -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0; background-color: #F3EFFE; border: 2px solid #14102B; border-radius: 14px; padding: 16px;">
+          <tr>
+            <td style="padding: 4px 8px; font-size: 13px; font-weight: 800; color: #6B4DFF;">
+              ${isArabic ? "🔒 احتفظ بهذا البريد الإلكتروني:" : "🔒 Keep this email safe:"}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 8px; font-size: 13px; line-height: 1.5; color: #14102B; font-weight: 500;">
+              ${
+                isArabic
+                  ? `هذا الرابط خاص بك وحدك. <strong>${applicantName} لا يمكنه الوصول إلى هذا الرابط أو معرفة رقمك السري أبداً</strong>. يمكنك فتح هذا الرابط في أي وقت لتحديث رقمك السري.`
+                  : `This link belongs exclusively to you. <strong>${applicantName} will never have access to this link or your PIN</strong>. You can use it anytime to reset or update your PIN.`
+              }
+            </td>
+          </tr>
+        </table>
+
+        <!-- CTA Button -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0;">
+          <tr>
+            <td align="center">
+              <a href="${recoveryUrl}" target="_blank" style="display: block; width: 100%; box-sizing: border-box; text-align: center; padding: 16px 24px; background-color: #CFFF3A; color: #14102B; font-size: 16px; font-weight: 900; text-decoration: none; border: 2px solid #14102B; border-radius: 14px; box-shadow: 3px 3px 0 #14102B;">
+                ${isArabic ? "استعادة أو تعديل رقمي السري 🔑" : "Recover or Update My PIN 🔑"}
+              </a>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Fallback Link -->
+        <p style="margin: 0; font-size: 11px; line-height: 1.5; color: #8F8AA8; text-align: center; word-break: break-all;">
+          ${isArabic ? "أو افتح رابط الاستعادة مباشرة:" : "Or open this recovery link directly:"}<br>
+          <a href="${recoveryUrl}" style="color: #6B4DFF; font-weight: 700;">${recoveryUrl}</a>
+        </p>
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td style="padding: 16px 28px; background-color: #FAF8F5; border-top: 2px solid #14102B; text-align: center; font-size: 11px; font-weight: 600; color: #8F8AA8;">
+        Tijori (تِجوري) • Anti-Impulse Discipline Protocol • Kuwait
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  const cleanTo = (to || "").trim();
+  const fromAddress = process.env.RESEND_FROM_EMAIL?.trim() || "Tijori <security@abdulrahmanharamain.com>";
+
+  try {
+    const res = await fetch(RESEND_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromAddress,
+        to: [cleanTo],
+        subject,
+        html: htmlContent,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      console.warn("sendKeyholderPinRecoveryEmail API warning:", data);
+      return { success: false, error: data.message || "Failed to send PIN recovery email via Resend" };
+    }
+
+    console.log(`PIN recovery email dispatched to ${cleanTo} with id: ${data.id}`);
+    return { success: true, id: data.id, recipient: cleanTo };
+  } catch (err: any) {
+    console.error("sendKeyholderPinRecoveryEmail network error:", err);
+    return { success: false, error: err.message || "Network error sending email via Resend" };
+  }
+}

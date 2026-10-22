@@ -62,6 +62,30 @@ export default function KeyholderTokenUnlockPage({
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState<string | null>(null);
+  const [sendingRecovery, setSendingRecovery] = useState(false);
+  const [recoverySent, setRecoverySent] = useState(false);
+
+  const handleForgotPin = async () => {
+    try {
+      setSendingRecovery(true);
+      setPinError(null);
+      const res = await fetch("/api/keyholder/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unlockToken: token, lang: isArabic ? "ar" : "en" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRecoverySent(true);
+      } else {
+        setPinError(data.error || "Failed to send recovery email");
+      }
+    } catch (err: any) {
+      setPinError(err.message || "Failed to send recovery email");
+    } finally {
+      setSendingRecovery(false);
+    }
+  };
 
   const [decisionModal, setDecisionModal] = useState<{
     isOpen: boolean;
@@ -211,11 +235,7 @@ export default function KeyholderTokenUnlockPage({
   if (decisionRecorded) {
     const isDeny = decisionRecorded === "DENY";
     return (
-      <div className="min-h-screen bg-bg text-ink flex flex-col">
-        <header className="border-b-2 border-ink bg-surface px-4 py-3 flex items-center justify-between">
-          <BrandLogo href="/" size="sm" showTagline={false} />
-          <LanguageSwitcher />
-        </header>
+      <div className="min-h-screen bg-bg text-ink flex flex-col pt-[calc(var(--nav-h)+24px)]">
 
         <main className="flex-1 max-w-[420px] w-full mx-auto p-4 sm:p-6 flex flex-col justify-center items-center text-center space-y-6">
           <div className="card-hard bg-surface p-8 space-y-6 w-full text-center">
@@ -413,9 +433,24 @@ export default function KeyholderTokenUnlockPage({
                 placeholder="••••••"
                 className="w-full text-center text-2xl tracking-[0.5em] font-mono font-black py-3.5 bg-bg border-2 border-ink rounded-xl focus:outline-none focus:ring-2 focus:ring-violet"
               />
-              <p className="text-xs text-muted text-center pt-1 font-medium">
-                {isArabic ? "الرمز الافتراضي: 123456" : "Default PIN: 123456"}
-              </p>
+              {recoverySent ? (
+                <div className="p-2.5 rounded-xl bg-mint/20 border border-mint/40 text-mint text-xs font-bold text-center">
+                  {isArabic
+                    ? "✓ تم إرسال رابط استعادة الرمز السري إلى بريدك الإلكتروني!"
+                    : "✓ PIN recovery link sent to your email!"}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={sendingRecovery}
+                  onClick={handleForgotPin}
+                  className="text-xs text-muted hover:text-ink font-bold underline block mx-auto pt-1 cursor-pointer"
+                >
+                  {sendingRecovery
+                    ? (isArabic ? "جاري إرسال الرابط..." : "Sending link...")
+                    : (isArabic ? "نسيت الرمز السري؟ أرسل رابط الاستعادة لبريدي" : "Forgot PIN? Send recovery link to my email")}
+                </button>
+              )}
             </div>
 
             <div className="flex gap-3 pt-2">
