@@ -103,15 +103,21 @@ export async function POST(req: NextRequest) {
     if (isRateLimited(ip)) {
       let fallbackRoast = "";
       if (isArabic) {
-        fallbackRoast =
-          detectedGender === "female"
-            ? `خفي علينا يا الحبيبة! طلبتِ مراجعات وايد بدقيقة وحدة. خلك مع هدفج "${cleanGoal}" ولا تدفعين رسوم طوارئ ${SOLO_FEE_PCT}٪.`
-            : `خف علينا يا الحبيب! طلبت مراجعات وايد بدقيقة وحدة. خلك مع هدفك "${cleanGoal}" ولا تدفع رسوم طوارئ ${SOLO_FEE_PCT}٪.`;
+        if (detectedGender === "female") {
+          fallbackRoast = `خفي علينا يا الحبيبة! طلبتِ مراجعات وايد بدقيقة وحدة. خلك مع هدفج "${cleanGoal}" ولا تدفعين رسوم طوارئ ${SOLO_FEE_PCT}٪.`;
+        } else if (detectedGender === "male") {
+          fallbackRoast = `خف علينا يا الحبيب! طلبت مراجعات وايد بدقيقة وحدة. خلك مع هدفك "${cleanGoal}" ولا تدفع رسوم طوارئ ${SOLO_FEE_PCT}٪.`;
+        } else {
+          fallbackRoast = `خفوا علينا شوي! طلبات مراجعة وايد بدقيقة وحدة. خلك مع هدف "${cleanGoal}" ولا تدفع رسوم طوارئ ${SOLO_FEE_PCT}٪.`;
+        }
       } else {
-        fallbackRoast =
-          detectedGender === "female"
-            ? `Slow down, girl! You've triggered too many roasts this minute. Focus on "${cleanGoal}" instead of burning ${SOLO_FEE_PCT}% on emergency fees.`
-            : `Slow down, habibi! You've triggered too many roasts this minute. Focus on "${cleanGoal}" instead of burning ${SOLO_FEE_PCT}% on emergency fees.`;
+        if (detectedGender === "female") {
+          fallbackRoast = `Slow down, girl! You've triggered too many roasts this minute. Focus on "${cleanGoal}" instead of burning ${SOLO_FEE_PCT}% on emergency fees.`;
+        } else if (detectedGender === "male") {
+          fallbackRoast = `Slow down, habibi! You've triggered too many roasts this minute. Focus on "${cleanGoal}" instead of burning ${SOLO_FEE_PCT}% on emergency fees.`;
+        } else {
+          fallbackRoast = `Slow down a bit! You've triggered too many reality checks this minute. Stay focused on "${cleanGoal}" instead of burning ${SOLO_FEE_PCT}% on emergency fees.`;
+        }
       }
 
       return NextResponse.json({
@@ -133,8 +139,8 @@ export async function POST(req: NextRequest) {
         : `The user is a male ${userName ? `named "${userName}"` : ""}. Address him using natural Kuwaiti youth English slang (e.g., "habibi", "bro", "ya rayal", "my guy"). Warn him about facing his friend/keyholder ${keyholderName}.`;
     } else {
       genderInstruction = isArabic
-        ? `خاطب المستخدم بأسلوب كويتي ذكي ومحايد يناسب الشباب والبنات على حد سواء بدون تكلف، ولا تستخدم عبارات ذكورية حصرية مثل "خلك رجال".`
-        : `Address the user in a witty, gender-neutral Kuwaiti youth style suitable for anyone. Avoid awkward assumptions.`;
+        ? `الجنس غير مؤكد أو غير محدد (قد يكون شاباً أو فتاة). بما أنك غير متأكد من جنس المستخدم، فيجب عليك حصراً وتأكيداً صياغة الرد بأسلوب محايد عام يناسب الجميع دون أي صيغة مذكر أو مؤنث حصرية (مثال: "اذكر الله وفكر بهدفك وبالمبلغ اللي تعبت عليه"، "ليش تخسر رسوم طوارئ عشان هالعذر؟"، "حط الفون على جنب واحفظ فلوسك"). تجنب تماماً الألفاظ الذكورية أو المؤنثة الحصرية مثل "خلك رجال" أو "يا صاحبي" أو "يا الحبيب" أو "شلونج" أو "يا بنت الحلال".`
+        : `The user's gender is unspecified, ambiguous, or uncertain (could be female or male). Because you are unsure of their gender, you MUST strictly formulate a completely gender-neutral response that works universally for anyone. Focus on financial discipline, their goal "${cleanGoal}", and the cost without assuming gender. Strictly avoid gendered terms like "bro", "my guy", "man up", "ya rayal", "girl", "habibti", or "sister".`;
     }
 
     const prompt = isArabic
@@ -192,13 +198,20 @@ Roast their excuse in strictly 2 punchy, hilarious sentences in Gulf youth Engli
             `والله حسافة تخسرين ${SOLO_FEE_PCT}٪ كرسوم طوارئ من تعبج بـ ${currentBalance} د.ك عشان "${excuse}". اثبتي مكانج وخليج قد التحدي!`,
           ];
           realityCheck = femaleFallbacks[Math.floor(Math.random() * femaleFallbacks.length)];
-        } else {
+        } else if (detectedGender === "male") {
           const maleFallbacks = [
             `يعني صدق بتطير فلوسك وتدفع رسوم طوارئ ${SOLO_FEE_PCT}٪ (${soloFeeFormatted} د.ك) عشان "${excuse}" وتنسى هدفك "${cleanGoal}"؟ اذكر الله وخلك قد كلمتك قبل لا تحرج نفسك مع ${keyholderName}!`,
             `يا الحبيب، "${excuse}" بتكلفك رسوم طوارئ ${SOLO_FEE_PCT}٪ (${soloFeeFormatted} د.ك) تؤخذ كرسوم من تعبك لهدف "${cleanGoal}". حط الفون على جنب ولا تخلي ${keyholderName} يضحك عليك!`,
             `والله حسافة تخسر ${SOLO_FEE_PCT}٪ كرسوم طوارئ من تعبك في ${currentBalance} د.ك عشان "${excuse}". اثبت مكانك وخلك قد التحدي!`,
           ];
           realityCheck = maleFallbacks[Math.floor(Math.random() * maleFallbacks.length)];
+        } else {
+          const neutralFallbacks = [
+            `يعني صدق بتطير فلوسك وتدفع رسوم طوارئ ${SOLO_FEE_PCT}٪ (${soloFeeFormatted} د.ك) عشان "${excuse}" وتنسى هدف "${cleanGoal}"؟ اذكر الله وفكر عدل قبل لا تضيع التعب!`,
+            `"${excuse}" بتكلف رسوم طوارئ ${SOLO_FEE_PCT}٪ (${soloFeeFormatted} د.ك) تؤخذ كرسوم فورية من مدخرات "${cleanGoal}". حط الفون على جنب واحفظ فلوسك قبل لا تنحرج مع ${keyholderName}!`,
+            `والله حسافة تضيع ${SOLO_FEE_PCT}٪ كرسوم طوارئ من تعب ${currentBalance} د.ك عشان "${excuse}". فكر بهدفك وخلك قد التحدي!`,
+          ];
+          realityCheck = neutralFallbacks[Math.floor(Math.random() * neutralFallbacks.length)];
         }
       } else {
         if (detectedGender === "female") {
@@ -208,13 +221,20 @@ Roast their excuse in strictly 2 punchy, hilarious sentences in Gulf youth Engli
             `Think about "${cleanGoal}" before throwing away ${SOLO_FEE_PCT}% in emergency fees over "${excuse}". Take a breath, close the app, and protect your savings!`,
           ];
           realityCheck = femaleEnFallbacks[Math.floor(Math.random() * femaleEnFallbacks.length)];
-        } else {
+        } else if (detectedGender === "male") {
           const maleEnFallbacks = [
             `You really want to blow ${currentBalance} KWD on "${excuse}" and surrender a ${SOLO_FEE_PCT}% emergency fee (${soloFeeFormatted} KWD) when you're this close to "${cleanGoal}"? Bro, put the phone down before ${keyholderName} roasts you.`,
             `Wallah bro, "${excuse}" is pure impulse talking—you'll lose ${SOLO_FEE_PCT}% (${soloFeeFormatted} KWD kept as a fee) on your ${currentBalance} KWD fund for "${cleanGoal}". Keep your dignity and let your vault stay locked!`,
             `Ya rayal, think about "${cleanGoal}" before throwing away ${SOLO_FEE_PCT}% in emergency fees over "${excuse}". Take a breath, put the card away, and let your money grow.`,
           ];
           realityCheck = maleEnFallbacks[Math.floor(Math.random() * maleEnFallbacks.length)];
+        } else {
+          const neutralEnFallbacks = [
+            `You really want to blow ${currentBalance} KWD on "${excuse}" and surrender a ${SOLO_FEE_PCT}% emergency fee (${soloFeeFormatted} KWD) when you're this close to "${cleanGoal}"? Put the card down and think twice before throwing away your savings!`,
+            `Spending ${currentBalance} KWD on "${excuse}" means burning a ${SOLO_FEE_PCT}% emergency fee (${soloFeeFormatted} KWD kept as a fee) on your "${cleanGoal}" fund. Keep the vault locked and protect your progress before facing ${keyholderName}!`,
+            `Think about "${cleanGoal}" before throwing away ${SOLO_FEE_PCT}% in emergency fees over "${excuse}". Take a deep breath, close the app, and let your savings grow.`,
+          ];
+          realityCheck = neutralEnFallbacks[Math.floor(Math.random() * neutralEnFallbacks.length)];
         }
       }
     }
@@ -231,7 +251,7 @@ Roast their excuse in strictly 2 punchy, hilarious sentences in Gulf youth Engli
         success: false,
         error: error.message || "Failed to generate reality check",
         realityCheck:
-          "Wallah, think about your goal before blowing your savings on temporary urges. Put the phone down and keep it locked!",
+          "Think about your goal before blowing your savings on temporary urges. Put the phone down and keep it locked!",
       },
       { status: 500 }
     );
