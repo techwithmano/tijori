@@ -237,9 +237,19 @@ export default function OnboardingPage() {
         </div>
 
         {error && (
-          <div className="p-3.5 rounded-xl bg-coral/20 border-2 border-ink text-ink font-bold text-xs flex items-center gap-2 shadow-[2px_2px_0_var(--ink)]">
-            <AlertCircle className="w-4 h-4 text-coral shrink-0" />
-            <span>{error}</span>
+          <div className="p-3.5 rounded-xl bg-coral/20 border-2 border-ink text-ink font-bold text-xs flex items-center justify-between gap-2 shadow-[2px_2px_0_var(--ink)] flex-wrap">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-coral shrink-0" />
+              <span>{error}</span>
+            </div>
+            {(error.includes("Authentication") || error.includes("تسجيل") || error.includes("Session")) && (
+              <Link
+                href="/login?redirect=/onboarding"
+                className="btn-hard py-1 px-3 bg-lime text-ink font-black text-xs shrink-0"
+              >
+                {isArabic ? "تسجيل الدخول" : "Log In"}
+              </Link>
+            )}
           </div>
         )}
 

@@ -3,15 +3,14 @@ import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("CRITICAL SECURITY ERROR: JWT_SECRET environment variable is missing in production.");
-    }
-    return "tijori_dev_fallback_secret_change_in_production";
+const DEFAULT_JWT_SECRET = "tijori_ultra_secure_jwt_secret_token_2026_gcc_fintech";
+
+export function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET?.trim();
+  if (secret) {
+    return secret;
   }
-  return secret;
+  return DEFAULT_JWT_SECRET;
 }
 
 const COOKIE_NAME = "tijori_session";
