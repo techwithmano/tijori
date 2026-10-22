@@ -519,8 +519,6 @@ function DashboardContent() {
       const data = await res.json();
       if (data.success && data.vault) {
         updateCurrentVault(data.vault);
-        setUnlockUrl(data.unlockUrl || "");
-        setWhatsappUrl(data.whatsappUrl || "");
         setBreakStep("share");
       } else {
         setDecisionModal({
@@ -1709,64 +1707,54 @@ function DashboardContent() {
               </div>
             )}
 
-            {/* STEP 3: Share with Keyholder via WhatsApp */}
+            {/* STEP 3: Confidential Approval Dispatched to Keyholder */}
             {breakStep === "share" && (
-              <div className="space-y-4 sm:space-y-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-coral/15 border border-coral/30 flex items-center justify-center mx-auto text-coral">
+              <div className="space-y-4 sm:space-y-5 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-coral/15 border-2 border-ink flex items-center justify-center mx-auto text-coral shadow-[3px_3px_0_var(--ink)]">
                   <ShieldAlert className="w-7 h-7" />
                 </div>
 
-                <div className="space-y-1">
-                  <h2 className="text-xl sm:text-2xl font-black text-text">
+                <div className="space-y-1.5">
+                  <h2 className="text-xl sm:text-2xl font-black text-ink">
                     {isArabic
-                      ? `بانتظار موافقة ${keyholderFirstName}`
+                      ? `بانتظار قرار ${keyholderFirstName}`
                       : `Waiting on ${keyholderFirstName}`}
                   </h2>
                   <p className="text-xs text-muted max-w-sm mx-auto leading-relaxed">
                     {isArabic
-                      ? `تم إنشاء رابط الفتح ذو الاستخدام الواحد. أرسل الرسالة إلى ${keyholderFirstName} عبر واتساب ليقرر.`
-                      : `Your single-use unlock link is ready. Send it to ${keyholderFirstName} on WhatsApp for their decision.`}
+                      ? `تم إرسال طلب فك الخزينة الرسمي وسرياً إلى بريد رفيقك. سيقوم ${keyholderFirstName} بمراجعة العذر واتخاذ القرار عبر رمزه السري.`
+                      : `An official confidential unlock request has been emailed to ${keyholderFirstName}. They will review your excuse and decide using their secret approval PIN.`}
                   </p>
                 </div>
 
-                <div className="space-y-3">
-                  {/* WhatsApp button */}
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="tactile-btn w-full py-4 px-6 rounded-btn bg-[#25D366] hover:bg-[#20BE5B] text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-md"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    <span>
-                      {isArabic
-                        ? `إرسال عبر واتساب لـ ${keyholderFirstName}`
-                        : `Send WhatsApp to ${keyholderFirstName}`}
-                    </span>
-                  </a>
-
-                  {/* Copy Link Button */}
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(unlockUrl)}
-                    className="w-full py-3 px-4 rounded-btn border border-line bg-surface hover:bg-raised text-xs text-muted hover:text-text font-bold flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>
-                      {copiedLink
-                        ? t("dashboard.linkCopied")
-                        : t("dashboard.copyClearanceLink")}
-                    </span>
-                  </button>
+                {/* Email Delivery Confirmation Badge */}
+                <div className="p-3 rounded-xl bg-mint/15 border border-mint/40 text-mint text-xs font-bold flex items-center justify-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-mint" />
+                  <span>
+                    {isArabic
+                      ? `تم إرسال بريد طلب القرار إلى ${vault?.keyholderEmail || vault?.keyholder?.email || "حامل المفتاح"}`
+                      : `Decision request emailed to ${vault?.keyholderEmail || vault?.keyholder?.email || "Keyholder"}`}
+                  </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowBreakSheet(false)}
-                  className="text-xs text-muted hover:text-text underline pt-1"
-                >
-                  {isArabic ? "الرجوع للخزينة" : "Back to Vault"}
-                </button>
+                {/* Confidentiality Notice */}
+                <div className="p-3 rounded-xl bg-surface border border-ink/20 text-ink text-xs font-medium space-y-1 text-start">
+                  <p className="text-muted leading-relaxed">
+                    {isArabic
+                      ? `🔒 لحفظ انضباطك المالي، رابط الموافقة والرمز السري سريان تماماً وخاصان بحامل المفتاح فقط. لن تتمكن من رؤية هذا الرابط أو الرمز.`
+                      : `🔒 To guarantee financial discipline, the decision link and PIN are strictly confidential and inaccessible to you.`}
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowBreakSheet(false)}
+                    className="btn-hard w-full py-3.5 px-6 rounded-xl bg-lime text-ink font-extrabold text-sm shadow-[3px_3px_0_var(--ink)] cursor-pointer"
+                  >
+                    <span>{isArabic ? "حسناً، الرجوع للخزينة" : "Done, Back to Vault"}</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

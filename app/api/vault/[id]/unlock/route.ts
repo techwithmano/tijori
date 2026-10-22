@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { Vault } from "@/models/Vault";
+import { User } from "@/models/User";
 import { stripe, kwdToUsdCents } from "@/lib/stripe";
+import { sendKeyholderUnlockEmail } from "@/lib/resend";
+import { getRequestOrigin } from "@/lib/utils";
 import crypto from "crypto";
 import {
   calculateFriendRelease,
@@ -39,30 +42,52 @@ export async function POST(
       );
     }
 
-    let unlockUrl = "";
-    let token = "";
     let realityCheck = incomingRoast || "";
-    let whatsappUrl = "";
+    let emailResult: any = null;
+    const targetKeyholderEmail = vault.keyholderEmail || vault.keyholder?.email;
 
     if (action === "REQUEST") {
       vault.status = "UNLOCK_PENDING";
-      token = crypto.randomUUID();
+      const token = crypto.randomUUID();
       vault.unlockToken = token;
       vault.unlockReason = finalReason;
       vault.breakExcuse = finalReason;
       vault.realityCheck = realityCheck;
 
-      const origin = req.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-      unlockUrl = `${origin}/unlock/${token}`;
+      const origin = getRequestOrigin(req);
+      const unlockUrl = `${origin}/unlock/${token}`;
 
       const guardianFirstName = vault.keyholder?.name ? vault.keyholder.name.split(" ")[0] : "Ahmed";
+      const guardianFullName = vault.keyholder?.name || vault.keyholderName || guardianFirstName;
 
-      if (lang === "ar") {
-        const arMsg = `سلام ${guardianFirstName}! طلبت فك تِجوري لهدف (${vault.title}). عذري: "${finalReason}". الرابط بيدك تقرر: ${unlockUrl}`;
-        whatsappUrl = `https://wa.me/?text=${encodeURIComponent(arMsg)}`;
+      // Fetch owner name
+      let ownerName = "Your Friend";
+      if (vault.userId) {
+        const owner = await User.findById(vault.userId).select("name");
+        if (owner?.name) ownerName = owner.name;
+      }
+
+      // Dispatch unlock approval email confidentially to Keyholder
+      if (targetKeyholderEmail) {
+        try {
+          emailResult = await sendKeyholderUnlockEmail({
+            to: targetKeyholderEmail.trim(),
+            keyholderName: guardianFullName,
+            applicantName: ownerName,
+            goalTitle: vault.title,
+            currentBalance: vault.currentBalance,
+            excuse: finalReason,
+            realityCheck,
+            unlockUrl,
+            isArabic: lang === "ar",
+          });
+        } catch (err: any) {
+          console.error("sendKeyholderUnlockEmail error:", err);
+          emailResult = { success: false, error: err.message };
+        }
       } else {
-        const enMsg = `Salam ${guardianFirstName}! I requested to break my Tijori savings vault for "${vault.title}". My reason: "${finalReason}". Decide here: ${unlockUrl}`;
-        whatsappUrl = `https://wa.me/?text=${encodeURIComponent(enMsg)}`;
+        console.warn("No keyholder email found on vault for unlock request:", vault._id);
+        emailResult = { success: false, error: "No keyholder email found on vault." };
       }
 
       vault.transactions.unshift({
@@ -188,14 +213,17 @@ export async function POST(
 
     await vault.save();
 
+    const safeVault: any = vault.toObject ? vault.toObject() : { ...vault };
+    delete safeVault.inviteToken;
+    delete safeVault.unlockToken; // Confidential: creator must never receive or see unlockToken
+
     return NextResponse.json({
       success: true,
       message: `Vault status updated to ${vault.status}`,
-      token: token || null,
-      unlockUrl: unlockUrl || null,
       realityCheck: realityCheck || null,
-      whatsappUrl: whatsappUrl || null,
-      vault,
+      emailResult,
+      keyholderEmail: targetKeyholderEmail || null,
+      vault: safeVault,
     });
   } catch (error: any) {
     console.error("POST /api/vault/[id]/unlock error:", error);

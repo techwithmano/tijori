@@ -151,7 +151,7 @@ export async function sendKeyholderInviteEmail(params: SendKeyholderInviteParams
 
   const verifiedAccountMailbox = process.env.RESEND_ACCOUNT_EMAIL?.trim() || "";
   const cleanTo = (to || "").trim();
-  const fromAddress = process.env.RESEND_FROM_EMAIL?.trim() || "Tijori <onboarding@resend.dev>";
+  const fromAddress = process.env.RESEND_FROM_EMAIL?.trim() || "Tijori <security@abdulrahmanharamain.com>";
 
   try {
     // 1. First attempt: Send to intended recipient using configured from address
@@ -240,6 +240,194 @@ export async function sendKeyholderInviteEmail(params: SendKeyholderInviteParams
     return { success: true, id: data.id, recipient: cleanTo };
   } catch (err: any) {
     console.error("sendKeyholderInviteEmail network error:", err);
+    return { success: false, error: err.message || "Network error sending email via Resend" };
+  }
+}
+
+export interface SendKeyholderUnlockParams {
+  to: string;
+  keyholderName: string;
+  applicantName: string;
+  goalTitle: string;
+  currentBalance: number | string;
+  excuse: string;
+  realityCheck?: string;
+  unlockUrl: string;
+  isArabic?: boolean;
+}
+
+export async function sendKeyholderUnlockEmail(params: SendKeyholderUnlockParams) {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) {
+    console.warn("sendKeyholderUnlockEmail: RESEND_API_KEY is not defined in environment.");
+    return { success: false, error: "RESEND_API_KEY is not configured." };
+  }
+
+  const {
+    to,
+    keyholderName,
+    applicantName,
+    goalTitle,
+    currentBalance,
+    excuse,
+    realityCheck,
+    unlockUrl,
+    isArabic = false,
+  } = params;
+
+  const formattedBalance = `${Number(currentBalance || 0).toFixed(3)} KWD`;
+  const subject = isArabic
+    ? `🚨 طلب فك خزينة عاجل من ${applicantName} (${goalTitle})`
+    : `🚨 Urgent Vault Unlock Request from ${applicantName} (${goalTitle})`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="${isArabic ? "ar" : "en"}" dir="${isArabic ? "rtl" : "ltr"}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 24px 12px; background-color: #FAF8F5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #14102B;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; margin: 0 auto; background-color: #FFFFFF; border: 2px solid #14102B; border-radius: 20px; box-shadow: 4px 4px 0 #14102B; overflow: hidden;">
+    <!-- Header -->
+    <tr>
+      <td style="padding: 24px 28px; background-color: #FF5A6E; border-bottom: 2px solid #14102B;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+          <tr>
+            <td>
+              <span style="display: inline-block; padding: 6px 12px; background-color: #14102B; color: #FFFFFF; font-weight: 900; font-size: 16px; border-radius: 10px; letter-spacing: -0.5px;">
+                🚨 Tijori • تِجوري
+              </span>
+            </td>
+            <td align="${isArabic ? "left" : "right"}">
+              <span style="font-size: 12px; font-weight: 800; color: #FFFFFF; text-transform: uppercase;">
+                ${isArabic ? "طلب فك الخزينة" : "Unlock Request"}
+              </span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Body -->
+    <tr>
+      <td style="padding: 32px 28px;">
+        <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 900; color: #14102B; line-height: 1.25;">
+          ${
+            isArabic
+              ? `سلام يا ${keyholderName}!`
+              : `Salam ${keyholderName}!`
+          }
+        </h1>
+
+        <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #4B4668;">
+          ${
+            isArabic
+              ? `طلب صديقك <strong>${applicantName}</strong> فك خزينته <strong>"${goalTitle}"</strong> وسحب رصيده البالغ <strong>${formattedBalance}</strong> قبل موعدها.`
+              : `Your friend <strong>${applicantName}</strong> has requested to break their locked vault for <strong>"${goalTitle}"</strong> (${formattedBalance}) before reaching their goal.`
+          }
+        </p>
+
+        <!-- Excuse Box -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0; background-color: #FFF5F5; border: 2px solid #14102B; border-radius: 14px; padding: 16px;">
+          <tr>
+            <td style="padding: 6px 12px; font-size: 13px; font-weight: 700; color: #FF5A6E;">
+              ${isArabic ? "عذر الكسر المقدم:" : "Excuse Given:"}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 12px; font-size: 15px; font-weight: 800; color: #14102B; font-style: italic;">
+              &ldquo;${excuse}&rdquo;
+            </td>
+          </tr>
+          ${
+            realityCheck
+              ? `
+          <tr>
+            <td style="padding: 12px 12px 4px 12px; font-size: 12px; font-weight: 700; color: #6B4DFF;">
+              ${isArabic ? "تنبيه الواقع من الذكاء الاصطناعي:" : "AI Reality Check:"}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 12px 8px 12px; font-size: 13px; font-weight: 600; color: #4B4668;">
+              &ldquo;${realityCheck}&rdquo;
+            </td>
+          </tr>
+          `
+              : ""
+          }
+        </table>
+
+        <!-- Security Notice -->
+        <div style="margin: 0 0 28px 0; padding: 14px 16px; background-color: #FAF8F5; border: 1.5px dashed #14102B; border-radius: 12px; font-size: 13px; line-height: 1.5; color: #14102B;">
+          <strong>${isArabic ? "🛡️ القرار بيدك وحدك:" : "🛡️ The Decision is in Your Hands:"}</strong>
+          ${
+            isArabic
+              ? `أنت حامل المفتاح الوحيد! لن يتم فك الخزينة إلا إذا وافقت وأدخلت رمزك السري (PIN) الخاص المكوّن من ٦ أرقام. <strong>${applicantName} لا يمكنه الوصول لهذا الرابط أو رمزك أبداً</strong>.`
+              : `You hold the only key! The vault cannot be unlocked unless you approve and enter your private 6-digit PIN. <strong>${applicantName} has no access to this link or your PIN</strong>.`
+          }
+        </div>
+
+        <!-- CTA Button -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 24px 0;">
+          <tr>
+            <td align="center">
+              <a href="${unlockUrl}" target="_blank" style="display: block; width: 100%; box-sizing: border-box; text-align: center; padding: 16px 24px; background-color: #CFFF3A; color: #14102B; font-size: 16px; font-weight: 900; text-decoration: none; border: 2px solid #14102B; border-radius: 14px; box-shadow: 3px 3px 0 #14102B;">
+                ${isArabic ? "مراجعة الطلب واتخاذ القرار (موافقة أو رفض) 🛡️" : "Review Request & Decide (Approve or Deny) 🛡️"}
+              </a>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Fallback Link -->
+        <p style="margin: 0; font-size: 11px; line-height: 1.5; color: #8F8AA8; text-align: center; word-break: break-all;">
+          ${isArabic ? "أو افتح رابط المراجعة مباشرة:" : "Or open this link directly:"}<br>
+          <a href="${unlockUrl}" style="color: #6B4DFF; font-weight: 700;">${unlockUrl}</a>
+        </p>
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td style="padding: 16px 28px; background-color: #FAF8F5; border-top: 2px solid #14102B; text-align: center; font-size: 11px; font-weight: 600; color: #8F8AA8;">
+        Tijori (تِجوري) • Anti-Impulse Discipline Protocol • Kuwait
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  const cleanTo = (to || "").trim();
+  const fromAddress = process.env.RESEND_FROM_EMAIL?.trim() || "Tijori <security@abdulrahmanharamain.com>";
+
+  try {
+    const res = await fetch(RESEND_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromAddress,
+        to: [cleanTo],
+        subject,
+        html: htmlContent,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      console.warn("sendKeyholderUnlockEmail API warning:", data);
+      return { success: false, error: data.message || "Failed to send unlock email via Resend" };
+    }
+
+    console.log(`Unlock request email dispatched to ${cleanTo} with id: ${data.id}`);
+    return { success: true, id: data.id, recipient: cleanTo };
+  } catch (err: any) {
+    console.error("sendKeyholderUnlockEmail network error:", err);
     return { success: false, error: err.message || "Network error sending email via Resend" };
   }
 }
