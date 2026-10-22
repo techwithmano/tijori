@@ -207,6 +207,7 @@ function DashboardContent() {
   const vault = vaults[selectedVaultIndex] || null;
   const [user, setUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const updateCurrentVault = (updated: IVault) => {
     setVaults((prev) => {
@@ -214,6 +215,75 @@ function DashboardContent() {
       next[selectedVaultIndex] = updated;
       return next;
     });
+  };
+
+  // Demo Fallback Data for Frictionless Evaluation (London Summer Trip)
+  const DEMO_USER: IUser = {
+    id: "demo_user_101",
+    name: isArabic ? "عبدالرحمن" : "Abdulrahman",
+    email: "demo@tijori.app",
+    allowanceDay: 25,
+    cardBrand: "knet",
+    cardLast4: "4092",
+    hasPaymentMethod: true,
+  };
+
+  const DEMO_VAULT: IVault = {
+    _id: "demo_vault_london_2026",
+    title: isArabic ? "سفرة لندن 🇬🇧" : "London Summer Trip 🇬🇧",
+    targetAmount: 500,
+    currentBalance: 185,
+    totalProtected: 185,
+    streakCount: 18,
+    denialsCount: 2,
+    cadence: "monthly",
+    pullAmount: 25,
+    allowanceDay: 25,
+    targetDate: "2026-06-01",
+    status: "LOCKED",
+    keyholder: {
+      name: isArabic ? "أحمد (أخوي)" : "Ahmed",
+      phone: "+965 9988 7766",
+      relationship: "brother",
+      email: "ahmed@example.com",
+    },
+    keyholderName: isArabic ? "أحمد" : "Ahmed",
+    keyholderEmail: "ahmed@example.com",
+    keyholderInviteAccepted: true,
+    transactions: [
+      {
+        _id: "tx_demo_4",
+        amount: 25,
+        type: "SCHEDULED_PULL",
+        status: "COMPLETED",
+        note: isArabic ? "توفير يوم الإعانة (يوم ٢٥)" : "Allowance Tuck (Day 25 auto-pull)",
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
+      },
+      {
+        _id: "tx_demo_3",
+        amount: 50,
+        type: "TOP_UP",
+        status: "COMPLETED",
+        note: isArabic ? "إيداع بالبطاقة (توفير عطلة الأسبوع)" : "Card Deposit (Weekend micro-pull)",
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
+      },
+      {
+        _id: "tx_demo_2",
+        amount: 60,
+        type: "STRIPE_DEPOSIT",
+        status: "COMPLETED",
+        note: isArabic ? "التوفير الأول (تم تفعيل البطاقة)" : "Initial Save (Card Activated)",
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString(),
+      },
+      {
+        _id: "tx_demo_1",
+        amount: 50,
+        type: "SCHEDULED_PULL",
+        status: "COMPLETED",
+        note: isArabic ? "توفير يوم الإعانة (يوم ٢٥)" : "Allowance Tuck (Day 25 auto-pull)",
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 18).toISOString(),
+      },
+    ],
   };
 
   // Top Up Modal State (Task 3)
@@ -243,16 +313,21 @@ function DashboardContent() {
     async function fetchData() {
       try {
         setLoading(true);
+        const isDemoParam =
+          typeof window !== "undefined" &&
+          (window.location.search.includes("demo=true") ||
+            localStorage.getItem("tijori_demo") === "true");
+
         const [meRes, vaultRes] = await Promise.all([
           fetch("/api/auth/me"),
           fetch("/api/vault"),
         ]);
 
-        if (meRes.status === 401) {
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("tijori_user");
-          }
-          router.replace("/login");
+        if (meRes.status === 401 || isDemoParam) {
+          setIsDemoMode(true);
+          setUser(DEMO_USER);
+          setVaults([DEMO_VAULT]);
+          setLoading(false);
           return;
         }
 
@@ -273,11 +348,17 @@ function DashboardContent() {
               setVaults(vaultData.vaults);
             } else if (vaultData.vault) {
               setVaults([vaultData.vault]);
+            } else {
+              setIsDemoMode(true);
+              setVaults([DEMO_VAULT]);
             }
           }
         }
       } catch (err) {
         console.error("Dashboard fetch error:", err);
+        setIsDemoMode(true);
+        setUser(DEMO_USER);
+        setVaults([DEMO_VAULT]);
       } finally {
         setLoading(false);
       }
@@ -425,6 +506,39 @@ function DashboardContent() {
       return;
     }
 
+    if (vault._id.startsWith("demo_")) {
+      const updatedVault: IVault = {
+        ...vault,
+        currentBalance: vault.currentBalance + finalAmount,
+        totalProtected: vault.totalProtected + finalAmount,
+        transactions: [
+          {
+            _id: `tx_demo_${Date.now()}`,
+            amount: finalAmount,
+            type: "TOP_UP",
+            status: "COMPLETED",
+            note: isArabic ? "إيداع سريع تجريبي" : "Quick Save deposit (Demo)",
+            createdAt: new Date().toISOString(),
+          },
+          ...vault.transactions,
+        ],
+      };
+      updateCurrentVault(updatedVault);
+      setTopUpSuccess(isArabic ? "تم الإيداع التجريبي بنجاح!" : "Demo deposit succeeded!");
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ["#CFFF3A", "#6B4DFF", "#2DE0A5", "#14102B"],
+      });
+      setTimeout(() => {
+        setShowTopUpModal(false);
+        setTopUpSuccess(null);
+        setCustomAmount("");
+      }, 1500);
+      return;
+    }
+
     try {
       setTopUpLoading(true);
       setTopUpError(null);
@@ -505,6 +619,28 @@ function DashboardContent() {
   // Step 2 -> Step 3: User clicks "Still sending it" -> create single-use token & open WhatsApp
   const handleConfirmBreakRequest = async () => {
     if (!vault) return;
+    if (vault._id.startsWith("demo_")) {
+      const updatedVault: IVault = {
+        ...vault,
+        status: "UNLOCK_PENDING",
+        unlockReason: reasonText.trim(),
+        realityCheck: roastText,
+        unlockToken: "demo_unlock_token_123",
+      };
+      updateCurrentVault(updatedVault);
+      const host = typeof window !== "undefined" ? window.location.origin : "https://tijori.app";
+      const dummyUrl = `${host}/unlock/demo_unlock_token_123`;
+      setUnlockUrl(dummyUrl);
+      const text = encodeURIComponent(
+        isArabic
+          ? `السلام عليكم، أنا مقفل فلوسي في تجوري ومحتاج موافقتك عشان أفك القفل:\n${dummyUrl}`
+          : `Hey, my savings are locked in Tijori and I need your approval to unlock:\n${dummyUrl}`
+      );
+      setWhatsappUrl(`https://wa.me/?text=${text}`);
+      setBreakStep("share");
+      return;
+    }
+
     try {
       setSubmittingBreak(true);
       const res = await fetch(`/api/vault/${vault._id}/unlock`, {
@@ -551,6 +687,50 @@ function DashboardContent() {
   // Emergency Solo Break Execution
   const executeEmergencyBreak = async () => {
     if (!vault) return;
+    if (vault._id.startsWith("demo_")) {
+      const currentBal = vault.currentBalance;
+      const feeAmount = currentBal * (SOLO_FEE_PCT / 100);
+      const refundAmount = currentBal * (SOLO_RETURN_PCT / 100);
+      const updatedVault: IVault = {
+        ...vault,
+        status: "UNLOCKED",
+        currentBalance: 0,
+        streakCount: 0,
+        transactions: [
+          {
+            _id: `tx_demo_refund_${Date.now()}`,
+            amount: refundAmount,
+            type: "BREAK_REFUND",
+            status: "COMPLETED",
+            note: isArabic ? "كسرت الخزينة (استرجاع ٨٥٪)" : "You broke the vault (85% returned)",
+            createdAt: new Date().toISOString(),
+          },
+          {
+            _id: `tx_demo_fee_${Date.now()}`,
+            amount: feeAmount,
+            type: "DISCIPLINE_FEE",
+            status: "COMPLETED",
+            note: isArabic ? "رسوم طوارئ (١٥٪)" : "Emergency fee (15%)",
+            createdAt: new Date().toISOString(),
+          },
+          ...vault.transactions,
+        ],
+      };
+      updateCurrentVault(updatedVault);
+      setShowBreakSheet(false);
+      setDecisionModal({
+        isOpen: true,
+        type: "success",
+        badge: isArabic ? "تم الكسر بنجاح" : "Emergency Break Complete",
+        title: isArabic ? "تم كسر الخزينة واسترداد الرصيد (تجربة ديمو)" : "Vault Broken & Refund Initiated (Demo)",
+        description: isArabic
+          ? `تمت محاكاة كسر الخزينة واقتطاع ${SOLO_FEE_PCT}٪ رسوم طوارئ. تم استرداد ${refundAmount.toFixed(3)} د.ك إلى البطاقة.`
+          : `Simulated emergency break complete! A ${SOLO_FEE_PCT}% fee was deducted, and ${refundAmount.toFixed(3)} KWD was refunded.`,
+        hideCancel: true,
+        confirmLabel: isArabic ? "إغلاق" : "Close",
+      });
+      return;
+    }
     try {
       setModalConfirming(true);
       setSubmittingBreak(true);
@@ -949,6 +1129,30 @@ function DashboardContent() {
           </div>
         </div>
       </header>
+
+      {/* Live Demo Evaluator Banner */}
+      {isDemoMode && (
+        <div className="bg-lime border-b-2 border-ink px-4 py-2.5 text-ink select-none shadow-[0_2px_0_var(--ink)]">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs sm:text-sm font-bold">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-ink animate-pulse" />
+              <span>
+                {isArabic
+                  ? "وضع العرض التفاعلي الحي (ديمو): أنت تتصفح هدف 'سفرة لندن' ببيانات تجريبية كاملة."
+                  : "Live Demo Mode Active: You are exploring the 'London Summer Trip' vault with interactive sample data."}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/signup"
+                className="px-3 py-1 rounded-full bg-surface text-ink border-2 border-ink text-xs font-black shadow-[2px_2px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
+              >
+                {isArabic ? "إنشاء خزينة حقيقية" : "Create Real Vault"}
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── MAIN DASHBOARD CONTAINER (Phone-First, Desktop 2-Column) ── */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">

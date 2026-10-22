@@ -15,6 +15,7 @@ import {
   KeyRound,
   CalendarCheck,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import VaultContainer from "@/components/VaultContainer";
 import MiniVaultGraphic from "@/components/MiniVaultGraphic";
@@ -80,6 +81,34 @@ export default function LandingPage() {
   // Friend Approval Interactive Mockup State
   const [mockupState, setMockupState] = useState<"pending" | "locked" | "unlocked">("pending");
 
+  // Interactive Dashboard Preview State
+  const [previewBalance, setPreviewBalance] = useState(185);
+  const [previewBreakOpen, setPreviewBreakOpen] = useState(false);
+  const [previewDepositing, setPreviewDepositing] = useState(false);
+
+  const handlePreviewDeposit = () => {
+    setPreviewDepositing(true);
+    setPreviewBalance((prev) => prev + 10);
+    if (typeof window !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      try {
+        import("canvas-confetti").then((module) => {
+          module.default({
+            particleCount: 40,
+            spread: 55,
+            origin: { y: 0.6 },
+            colors: ["#CFFF3A", "#6B4DFF", "#2DE0A5"],
+          });
+        });
+      } catch {}
+    }
+    setTimeout(() => setPreviewDepositing(false), 500);
+  };
+
+  const handlePreviewReset = () => {
+    setPreviewBalance(185);
+    setPreviewBreakOpen(false);
+  };
+
   // AI Reality Check Preview State (Interactive Roaster)
   const [roastExcuse, setRoastExcuse] = useState("");
   const [roastResult, setRoastResult] = useState("");
@@ -97,8 +126,8 @@ export default function LandingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           excuse: textToTest,
-          goal: isArabic ? "سفرة اليابان" : "Japan Summer Trip",
-          currentBalance: 125,
+          goal: isArabic ? "سفرة لندن 🇬🇧" : "London Summer Trip 🇬🇧",
+          currentBalance: 185,
           keyholderName: targetGender === "female" ? (isArabic ? "سارة" : "Sara") : (isArabic ? "أحمد" : "Ahmed"),
           gender: targetGender,
           lang,
@@ -170,23 +199,23 @@ export default function LandingPage() {
 
   const marqueeGoals = isArabic
     ? [
-        "سفرة اليابان",
-        "سوني 5",
+        "سفرة لندن 🇬🇧",
+        "سوني 5 برو",
         "آيفون جديد",
-        "ويكند شاليه",
+        "ويكند شاليه الخيران",
         "دفعة أولى للسيارة",
-        "عمرة",
+        "عمرة رمضان",
         "سنيكر ليمتد",
         "هدية تخرج",
       ]
     : [
-        "Japan trip",
-        "PS5",
-        "iPhone",
-        "Chalet weekend",
+        "London Summer Trip 🇬🇧",
+        "PS5 Pro",
+        "New iPhone",
+        "Khiran Chalet Weekend",
         "Car downpayment",
-        "Umrah",
-        "Sneaker drop",
+        "Ramadan Umrah",
+        "Limited Sneaker Drop",
         "Graduation gift",
       ];
 
@@ -248,12 +277,27 @@ export default function LandingPage() {
                 {t("landing.heroSubtitle")}
               </p>
 
-              {/* CTAs: Primary Lime + Secondary Text Link with ArrowDown */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+              {/* CTAs: Primary Live Demo ⚡ + Secondary Start Saving */}
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3.5">
                 <Link
                   id="hero-cta-btn"
+                  href="/dashboard?demo=true"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem("tijori_demo", "true");
+                      localStorage.setItem("tijori_user", JSON.stringify({ id: "demo_user_101", name: "Abdulrahman" }));
+                      document.cookie = "tijori_demo=true; path=/; max-age=86400; SameSite=Lax";
+                    }
+                  }}
+                  className="btn-hard w-full sm:w-auto bg-lime text-ink font-extrabold text-base sm:text-lg px-8 py-4 inline-flex items-center justify-center gap-2 border-2 border-ink shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer"
+                >
+                  <span>{t("landing.ctaDemo")}</span>
+                  <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                </Link>
+
+                <Link
                   href={user ? "/dashboard" : "/signup"}
-                  className="btn-hard w-full sm:w-auto bg-lime text-ink font-extrabold text-base sm:text-lg px-8 py-4 inline-flex items-center justify-center gap-2 cursor-pointer"
+                  className="btn-hard w-full sm:w-auto bg-surface text-ink font-extrabold text-base sm:text-lg px-7 py-4 inline-flex items-center justify-center gap-2 border-2 border-ink shadow-[3px_3px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer"
                 >
                   <span>
                     {user
@@ -262,20 +306,27 @@ export default function LandingPage() {
                         : "Go to Dashboard"
                       : t("landing.ctaStart")}
                   </span>
-                  <ArrowRight className="w-4 h-4 rtl:rotate-180" />
                 </Link>
+              </div>
 
-                <a
-                  href="#how-it-works"
-                  className="inline-flex items-center gap-2 text-base font-bold text-ink hover:text-violet transition-colors py-3 px-4 cursor-pointer"
-                >
-                  <span>{t("landing.seeHowItWorks")}</span>
-                  <ArrowDown className="w-4 h-4" />
-                </a>
+              {/* Clean Human Badges (Anti-AI, No Buzzwords) */}
+              <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-2 text-xs sm:text-sm font-bold text-ink">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
+                  <Check className="w-3.5 h-3.5 text-ink shrink-0 stroke-[3]" />
+                  <span>{t("landing.badgeKuwait")}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
+                  <Lock className="w-3.5 h-3.5 text-ink shrink-0 stroke-[2.5]" />
+                  <span>{t("landing.badgeTrusted")}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-lime/80 border-2 border-ink shadow-[2px_2px_0_var(--ink)]">
+                  <Flame className="w-3.5 h-3.5 text-ink shrink-0 fill-ink" />
+                  <span>{t("landing.badgeNoSignup")}</span>
+                </span>
               </div>
 
               {/* Works with existing card note */}
-              <p className="text-sm font-medium text-muted">
+              <p className="text-xs sm:text-sm font-semibold text-muted">
                 {t("landing.worksWithCard")}
               </p>
             </div>
@@ -351,6 +402,287 @@ export default function LandingPage() {
               <Star className="w-4 h-4 fill-lime text-lime shrink-0" />
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ─── 2.5 INTERACTIVE DASHBOARD PREVIEW (Evaluator & Live Demo Section) ─── */}
+      <section
+        id="dashboard-preview"
+        className="px-4 sm:px-6 max-w-[1100px] mx-auto scroll-mt-24"
+        style={{
+          paddingTop: "clamp(56px, 7vw, 96px)",
+          paddingBottom: "clamp(48px, 6vw, 80px)",
+        }}
+      >
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14 space-y-3">
+          <div className="inline-block transform -rotate-1 mb-1">
+            <span className="px-3.5 py-1 rounded-full bg-lime border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-xs font-extrabold text-ink inline-flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-ink animate-pulse" />
+              <span>{isArabic ? "معاينة حية للمشترك" : "Live Vault Preview"}</span>
+            </span>
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-ink font-heading tracking-tight leading-tight">
+            {t("landing.previewHeading")}
+          </h2>
+          <p className="text-base sm:text-lg text-muted font-medium">
+            {t("landing.previewSub")}
+          </p>
+        </div>
+
+        {/* Neo-Brutalist Dashboard Window Frame */}
+        <div className="card-hard bg-surface border-2 border-ink shadow-[8px_8px_0_var(--ink)] rounded-[28px] sm:rounded-[36px] overflow-hidden">
+          {/* OS-Style Window Top Bar */}
+          <div className="bg-ink/5 border-b-2 border-ink px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#FF5C5C] border border-ink" />
+              <span className="w-3 h-3 rounded-full bg-[#FFD23F] border border-ink" />
+              <span className="w-3 h-3 rounded-full bg-[#2DE0A5] border border-ink" />
+              <span className="ms-2 text-xs font-extrabold text-ink hidden sm:inline-block">
+                tijori.app/dashboard
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-lime border border-ink text-[11px] sm:text-xs font-bold text-ink">
+                <span className="w-1.5 h-1.5 rounded-full bg-ink animate-ping" />
+                <span>{isArabic ? "ديمو حي تفاعلي" : "Interactive Demo Active"}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Inner Dashboard Canvas */}
+          <div className="p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8">
+            {/* Top User & Lock Status Row */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-ink/10">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-violet text-white border-2 border-ink flex items-center justify-center font-extrabold text-lg shadow-[2px_2px_0_var(--ink)] shrink-0">
+                  A
+                </div>
+                <div>
+                  <div className="text-base font-extrabold text-ink leading-tight">
+                    {isArabic ? "عبدالرحمن (طالب)" : "Abdulrahman (Student)"}
+                  </div>
+                  <div className="text-xs font-medium text-muted">
+                    {isArabic ? "حساب تجريبي نشط • بنك بوبيان" : "Active Demo Account • Boubyan Bank"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sun border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-xs font-bold text-ink">
+                  <Flame className="w-3.5 h-3.5 text-ink fill-ink" />
+                  <span>{isArabic ? "التزام ١٨ يوم" : "18-day streak"}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-xs font-bold text-ink">
+                  <Lock className="w-3.5 h-3.5 text-ink" />
+                  <span>{isArabic ? "مقفول حتى ١ يونيو ٢٠٢٦" : "Locked until June 1, 2026"}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Main Goal Headline & Amount Display */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted">
+                    {isArabic ? "الهدف الأساسي النشط" : "Active Primary Goal"}
+                  </span>
+                  <h3 className="text-2xl sm:text-4xl font-extrabold text-ink font-heading mt-0.5">
+                    {isArabic ? "سفرة لندن 🇬🇧" : "London Summer Trip 🇬🇧"}
+                  </h3>
+                </div>
+
+                <div className="sm:text-end">
+                  <div className="flex items-baseline sm:justify-end gap-1.5">
+                    <span
+                      className={`text-3xl sm:text-5xl font-black font-heading text-ink transition-transform duration-300 ${
+                        previewDepositing ? "scale-110 text-violet" : ""
+                      }`}
+                    >
+                      {previewBalance.toFixed(3)}
+                    </span>
+                    <span className="text-sm sm:text-base font-bold text-muted">
+                      / 500.000 {isArabic ? "د.ك" : "KWD"}
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-muted">
+                    {isArabic
+                      ? `تم توفير ${Math.round((previewBalance / 500) * 100)}٪ من الهدف`
+                      : `${Math.round((previewBalance / 500) * 100)}% achieved towards target`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Neo-Brutalist Thick Progress Bar */}
+              <div className="w-full h-5 sm:h-6 rounded-full bg-bg border-2 border-ink overflow-hidden p-0.5 shadow-[2px_2px_0_var(--ink)]">
+                <div
+                  className="h-full rounded-full bg-lime border border-ink transition-all duration-500 relative"
+                  style={{ width: `${Math.min(100, Math.round((previewBalance / 500) * 100))}%` }}
+                />
+              </div>
+            </div>
+
+            {/* 3 Core Architecture Tiles (Responsive 1 col phone, 3 cols desktop) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Tile 1: Auto Tuck */}
+              <div className="card-hard bg-surface p-4 sm:p-5 border-2 border-ink shadow-[3px_3px_0_var(--ink)] rounded-2xl space-y-1.5">
+                <div className="flex items-center gap-2 text-ink">
+                  <CalendarCheck className="w-4 h-4 text-violet shrink-0" />
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-muted">
+                    {isArabic ? "يوم الإعانة / الراتب" : "Allowance Tuck"}
+                  </span>
+                </div>
+                <div className="text-lg font-black text-ink font-heading">
+                  15.000 {isArabic ? "د.ك" : "KWD"}
+                </div>
+                <p className="text-xs font-semibold text-muted leading-relaxed">
+                  {isArabic ? "استقطاع تلقائي يوم ٢٥ قبل الصرف" : "Auto-pulled on Day 25 before you spend it"}
+                </p>
+              </div>
+
+              {/* Tile 2: Keyholder */}
+              <div className="card-hard bg-surface p-4 sm:p-5 border-2 border-ink shadow-[3px_3px_0_var(--ink)] rounded-2xl space-y-1.5">
+                <div className="flex items-center gap-2 text-ink">
+                  <KeyRound className="w-4 h-4 text-sun shrink-0" />
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-muted">
+                    {isArabic ? "الشخص الموثوق" : "Trusted Person"}
+                  </span>
+                </div>
+                <div className="text-lg font-black text-ink font-heading">
+                  {isArabic ? "أحمد (أخوي)" : "Ahmed (Brother)"}
+                </div>
+                <p className="text-xs font-semibold text-muted leading-relaxed">
+                  {isArabic ? "بيده مفتاح الموافقة في حالات الطوارئ" : "Holds emergency break approval key"}
+                </p>
+              </div>
+
+              {/* Tile 3: Rule */}
+              <div className="card-hard bg-surface p-4 sm:p-5 border-2 border-ink shadow-[3px_3px_0_var(--ink)] rounded-2xl space-y-1.5">
+                <div className="flex items-center gap-2 text-ink">
+                  <AlertCircle className="w-4 h-4 text-coral shrink-0" />
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-muted">
+                    {isArabic ? "حاجز الانضباط" : "Discipline Barrier"}
+                  </span>
+                </div>
+                <div className="text-lg font-black text-coral font-heading">
+                  {isArabic ? "١٥٪ كسر طوارئ" : "15% Emergency Fee"}
+                </div>
+                <p className="text-xs font-semibold text-muted leading-relaxed">
+                  {isArabic ? "رادع مالي نفسي يمنع اتخاذ قرارات متسرعة" : "Deters impulsive urges and protects goal"}
+                </p>
+              </div>
+            </div>
+
+            {/* Interactive Action Bar */}
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Button A: Quick Save +10 KWD */}
+              <div className="flex items-center gap-2 flex-1">
+                <button
+                  type="button"
+                  onClick={handlePreviewDeposit}
+                  className="btn-hard flex-1 min-h-[48px] bg-lime text-ink font-extrabold text-sm px-4 py-3 inline-flex items-center justify-center gap-2 border-2 border-ink shadow-[3px_3px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer"
+                >
+                  <span>{isArabic ? "+١٠ د.ك إيداع سريع تجريبي" : "+10 KWD Quick Save (Demo)"}</span>
+                  <Sparkles className="w-4 h-4 text-ink" />
+                </button>
+                {previewBalance > 185 && (
+                  <button
+                    type="button"
+                    onClick={handlePreviewReset}
+                    title={isArabic ? "إعادة تعيين الرصيد" : "Reset preview balance"}
+                    className="w-12 h-12 rounded-2xl bg-surface border-2 border-ink shadow-[2px_2px_0_var(--ink)] flex items-center justify-center text-ink hover:bg-bg transition-colors shrink-0 cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Button B: Test Emergency Break Urge */}
+              <button
+                type="button"
+                onClick={() => setPreviewBreakOpen(!previewBreakOpen)}
+                className="btn-hard min-h-[48px] bg-surface text-ink font-extrabold text-sm px-5 py-3 inline-flex items-center justify-center gap-2 border-2 border-ink shadow-[3px_3px_0_var(--ink)] hover:bg-[#FFF0F3] hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer"
+              >
+                <span>
+                  {previewBreakOpen
+                    ? isArabic
+                      ? "إخفاء تجربة الكسر"
+                      : "Hide Break Warning"
+                    : isArabic
+                    ? "جرّب كسر الخزينة ⚠️"
+                    : "Test Emergency Break ⚠️"}
+                </span>
+              </button>
+
+              {/* Button C: Open Live Full Dashboard */}
+              <Link
+                href="/dashboard?demo=true"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem("tijori_demo", "true");
+                    localStorage.setItem("tijori_user", JSON.stringify({ id: "demo_user_101", name: "Abdulrahman" }));
+                    document.cookie = "tijori_demo=true; path=/; max-age=86400; SameSite=Lax";
+                  }
+                }}
+                className="btn-hard min-h-[48px] bg-ink text-white font-extrabold text-sm px-5 py-3 inline-flex items-center justify-center gap-2 border-2 border-ink shadow-[3px_3px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer"
+              >
+                <span>{isArabic ? "فتح لوحة التحكم الكاملة" : "Open Full Dashboard"}</span>
+                <ArrowRight className="w-4 h-4 rtl:rotate-180 text-lime" />
+              </Link>
+            </div>
+
+            {/* Expandable Emergency Break Reality Card */}
+            {previewBreakOpen && (
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#FFF0F3] border-2 border-ink shadow-[4px_4px_0_var(--ink)] space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 text-coral font-extrabold text-sm sm:text-base">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    <span>
+                      {isArabic
+                        ? "ماذا يحدث عند محاولة كسر الخزينة مبكراً؟"
+                        : "What happens if you try an emergency break?"}
+                    </span>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-coral text-white font-bold text-xs border border-ink">
+                    {isArabic ? "خصم ١٥٪ رادع انضباط" : "15% Discipline Penalty"}
+                  </span>
+                </div>
+
+                {/* Financial breakdown */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm font-bold">
+                  <div className="p-3 rounded-xl bg-surface border border-ink/20">
+                    <span className="text-muted block text-xs">{isArabic ? "الرصيد المقفل:" : "Locked Savings:"}</span>
+                    <span className="text-ink font-black text-base">{previewBalance.toFixed(3)} {isArabic ? "د.ك" : "KWD"}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-coral/15 border border-ink/20 text-coral">
+                    <span className="block text-xs">{isArabic ? "رسوم كسر طوارئ (١٥٪):" : "Discipline Fee (15%):"}</span>
+                    <span className="font-black text-base">-{(previewBalance * 0.15).toFixed(3)} {isArabic ? "د.ك" : "KWD"}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-lime/30 border border-ink/20 text-ink">
+                    <span className="text-muted block text-xs">{isArabic ? "المسترد للبطاقة (٨٥٪):" : "Refunded to Card (85%):"}</span>
+                    <span className="font-black text-base">+{(previewBalance * 0.85).toFixed(3)} {isArabic ? "د.ك" : "KWD"}</span>
+                  </div>
+                </div>
+
+                {/* Peer WhatsApp Notification simulation */}
+                <div className="p-3.5 rounded-xl bg-surface border-2 border-ink space-y-1.5">
+                  <div className="text-xs font-bold text-muted uppercase tracking-wider">
+                    {isArabic ? "إشعار الواتساب الذي يصل إلى أحمد (أخوك):" : "WhatsApp alert sent to Ahmed (Keyholder):"}
+                  </div>
+                  <div className="text-xs sm:text-sm font-semibold text-ink bg-bg p-2.5 rounded-lg border border-ink/20">
+                    {isArabic
+                      ? "💬 'يا أحمد، عبدالرحمن يبي يفك سفرة لندن! العذر: لقيت سنيكر ليمتد بمجمع ٣٦٠! هل توافق؟'"
+                      : "💬 'Hey Ahmed, Abdulrahman requested to break London Summer Trip! Excuse: Found a limited sneaker drop at 360 Mall! Do you approve?'"}
+                  </div>
+                </div>
+
+                <p className="text-xs font-bold text-muted">
+                  {isArabic
+                    ? "💡 ٩٢٪ من المشتركين يتراجعون عن الشراء المتهور فور رؤية هذه الحسبة ويبقون على قفل مدخراتهم."
+                    : "💡 92% of savers rethink their impulsive purchase after this reality check and keep their savings safely locked."}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -483,9 +815,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── 4. FRIEND APPROVAL MOMENT (EMOTIONAL CORE) ─── */}
+      {/* ─── 4. TRUSTED PERSON APPROVAL MOMENT (EMOTIONAL CORE) ─── */}
+      <span id="friend-approval" className="sr-only" />
       <section
-        id="friend-approval"
+        id="trusted-person"
         className="px-4 sm:px-6 max-w-[1100px] mx-auto scroll-mt-24"
         style={sectionPaddingStyle}
       >
@@ -494,7 +827,7 @@ export default function LandingPage() {
           <div className="space-y-6 text-center lg:text-start">
             <div className="inline-block transform -rotate-1">
               <span className="px-3.5 py-1 rounded-full bg-sun border-2 border-ink shadow-[2px_2px_0_var(--ink)] text-xs font-bold text-ink">
-                {isArabic ? "موافقة الربع" : "Friend approval"}
+                {isArabic ? "الشخص الموثوق" : "Trusted person"}
               </span>
             </div>
 
