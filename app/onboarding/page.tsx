@@ -54,15 +54,33 @@ export default function OnboardingPage() {
   const [copiedInvite, setCopiedInvite] = useState(false);
 
   React.useEffect(() => {
+    let isMounted = true;
     fetch("/api/auth/me")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!isMounted) return null;
+        if (res.status === 401) {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("tijori_user");
+          }
+          router.replace("/login?redirect=/onboarding");
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
+        if (!isMounted || !data) return;
         if (data.success && data.user) {
           setCurrentUser(data.user);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("tijori_user", JSON.stringify(data.user));
+          }
         }
       })
       .catch(() => {});
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   // Step 1: Goal & Target
   const [goalName, setGoalName] = useState("Japan Summer Trip");
@@ -197,7 +215,7 @@ export default function OnboardingPage() {
   };
 
   const handleFinishOnboarding = () => {
-    router.push("/dashboard");
+    router.replace("/dashboard");
     router.refresh();
   };
 
@@ -228,7 +246,13 @@ export default function OnboardingPage() {
                 <span>{t("onboarding.backAction")}</span>
               </button>
             ) : (
-              <span className="text-muted/60 font-semibold">Tijori</span>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1 text-muted hover:text-ink font-bold transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+                <span>{isArabic ? "الرئيسية" : "Home"}</span>
+              </Link>
             )}
           </div>
           <span className="font-extrabold text-ink">

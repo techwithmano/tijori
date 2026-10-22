@@ -52,9 +52,12 @@ export async function getCurrentUser(req?: NextRequest): Promise<SessionUser | n
 
     if (req) {
       token = req.cookies.get(COOKIE_NAME)?.value;
-    } else {
-      const cookieStore = await cookies();
-      token = cookieStore.get(COOKIE_NAME)?.value;
+    }
+    if (!token) {
+      try {
+        const cookieStore = await cookies();
+        token = cookieStore.get(COOKIE_NAME)?.value;
+      } catch {}
     }
 
     if (!token) return null;

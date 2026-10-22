@@ -30,6 +30,40 @@ export default function LandingPage() {
   const { t, lang } = useT();
   const isArabic = lang === "ar";
 
+  const [user, setUser] = useState<{ id?: string; name?: string } | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("tijori_user");
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!isMounted) return;
+        if (data?.success && data?.user) {
+          setUser(data.user);
+          try {
+            localStorage.setItem("tijori_user", JSON.stringify(data.user));
+          } catch {}
+        } else if (data && !data.success) {
+          setUser(null);
+          try {
+            localStorage.removeItem("tijori_user");
+          } catch {}
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Vault Click / Sticker Pulse State
   const [stickersPulsing, setStickersPulsing] = useState(false);
   const [vaultSpinTrigger, setVaultSpinTrigger] = useState(0);
@@ -211,10 +245,16 @@ export default function LandingPage() {
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                 <Link
                   id="hero-cta-btn"
-                  href="/signup"
+                  href={user ? "/dashboard" : "/signup"}
                   className="btn-hard w-full sm:w-auto bg-lime text-ink font-extrabold text-base sm:text-lg px-8 py-4 inline-flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <span>{t("landing.ctaStart")}</span>
+                  <span>
+                    {user
+                      ? isArabic
+                        ? "لوحة التحكم"
+                        : "Go to Dashboard"
+                      : t("landing.ctaStart")}
+                  </span>
                   <ArrowRight className="w-4 h-4 rtl:rotate-180" />
                 </Link>
 
@@ -974,10 +1014,16 @@ export default function LandingPage() {
 
           <div className="pt-4 flex justify-center">
             <Link
-              href="/signup"
+              href={user ? "/dashboard" : "/signup"}
               className="btn-hard bg-lime text-ink font-extrabold text-lg px-8 py-4 inline-flex items-center gap-2 cursor-pointer shadow-[4px_4px_0_var(--ink)]"
             >
-              <span>{t("landing.finalCtaButton")}</span>
+              <span>
+                {user
+                  ? isArabic
+                    ? "لوحة التحكم"
+                    : "Go to Dashboard"
+                  : t("landing.finalCtaButton")}
+              </span>
               <ArrowRight className="w-4 h-4 rtl:rotate-180" />
             </Link>
           </div>

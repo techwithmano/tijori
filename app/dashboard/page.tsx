@@ -247,10 +247,21 @@ function DashboardContent() {
           fetch("/api/vault"),
         ]);
 
+        if (meRes.status === 401) {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("tijori_user");
+          }
+          router.replace("/login");
+          return;
+        }
+
         if (meRes.ok) {
           const meData = await meRes.json();
           if (meData.success && meData.user) {
             setUser(meData.user);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("tijori_user", JSON.stringify(meData.user));
+            }
           }
         }
 
@@ -271,7 +282,7 @@ function DashboardContent() {
       }
     }
     fetchData();
-  }, []);
+  }, [router]);
 
   // Custom Neo-Brutalist Decision Modal State
   const [decisionModal, setDecisionModal] = useState<{
@@ -301,8 +312,11 @@ function DashboardContent() {
       cancelLabel: isArabic ? "البقاء" : "Stay Logged In",
       onConfirm: async () => {
         try {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("tijori_user");
+          }
           await fetch("/api/auth/logout", { method: "POST" });
-          router.push("/login");
+          router.replace("/login");
           router.refresh();
         } catch (err) {
           console.error("Logout error:", err);

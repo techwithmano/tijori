@@ -8,12 +8,58 @@ import { useT } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { t } = useT();
+  const { t, lang } = useT();
+  const isArabic = lang === "ar";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-redirect if user already has an active session
+  const [checkingExistingAuth, setCheckingExistingAuth] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return Boolean(localStorage.getItem("tijori_user"));
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function checkSession() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (!isMounted) return;
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("tijori_user", JSON.stringify(data.user));
+            }
+            try {
+              const vaultRes = await fetch("/api/vault");
+              const vaultData = await vaultRes.json();
+              if (vaultData.success && (vaultData.vault || (vaultData.vaults && vaultData.vaults.length > 0))) {
+                router.replace("/dashboard");
+                return;
+              }
+            } catch {}
+            router.replace("/onboarding");
+            return;
+          }
+        } else {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("tijori_user");
+          }
+        }
+      } catch {}
+      if (isMounted) setCheckingExistingAuth(false);
+    }
+    checkSession();
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,17 +83,20 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (data.success) {
+        if (typeof window !== "undefined" && data.user) {
+          localStorage.setItem("tijori_user", JSON.stringify(data.user));
+        }
         // Check if user already has an active vault
         try {
           const vaultRes = await fetch("/api/vault");
           const vaultData = await vaultRes.json();
-          if (vaultData.success && vaultData.vault) {
-            router.push("/dashboard");
+          if (vaultData.success && (vaultData.vault || (vaultData.vaults && vaultData.vaults.length > 0))) {
+            router.replace("/dashboard");
           } else {
-            router.push("/onboarding");
+            router.replace("/onboarding");
           }
         } catch {
-          router.push("/dashboard");
+          router.replace("/dashboard");
         }
         router.refresh();
       } else {
@@ -59,6 +108,21 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (checkingExistingAuth) {
+    return (
+      <div className="min-h-[85vh] flex items-center justify-center px-4 pb-12 pt-[calc(var(--nav-h)+24px)]">
+        <div className="w-full max-w-md card-hard bg-surface p-8 shadow-[4px_4px_0_var(--ink)] text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-lime border-2 border-ink mx-auto flex items-center justify-center shadow-[2px_2px_0_var(--ink)] animate-bounce">
+            <Lock className="w-6 h-6 text-ink" />
+          </div>
+          <p className="text-sm font-extrabold text-ink">
+            {isArabic ? "جاري التحقق من الجلسة..." : "Checking session..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 pb-12 pt-[calc(var(--nav-h)+24px)]">

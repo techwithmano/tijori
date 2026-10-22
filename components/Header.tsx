@@ -15,22 +15,45 @@ export default function Header() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNavCta, setShowNavCta] = useState(false);
-  const [user, setUser] = useState<{ id: string; name: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; name: string } | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("tijori_user");
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return null;
+  });
 
   // Check auth status for login/dashboard link
   useEffect(() => {
+    let isMounted = true;
     async function checkAuth() {
       try {
         const res = await fetch("/api/auth/me");
+        if (!isMounted) return;
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.user) {
             setUser(data.user);
+            try {
+              localStorage.setItem("tijori_user", JSON.stringify(data.user));
+            } catch {}
+            return;
           }
+        }
+        if (res.status === 401) {
+          setUser(null);
+          try {
+            localStorage.removeItem("tijori_user");
+          } catch {}
         }
       } catch {}
     }
     checkAuth();
+    return () => {
+      isMounted = false;
+    };
   }, [pathname]);
 
   // Observer for hero CTA to hide/show the nav CTA button
