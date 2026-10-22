@@ -25,7 +25,7 @@ interface QuickChip {
 }
 
 const QUICK_CHIPS: QuickChip[] = [
-  { id: "japan", labelKey: "chips.japanTrip", defaultTitle: "Japan Summer Trip", defaultAmount: 600 },
+  { id: "london", labelKey: "chips.londonTrip", defaultTitle: "London Summer Trip 🇬🇧", defaultAmount: 500 },
   { id: "phone", labelKey: "chips.newPhone", defaultTitle: "New iPhone Pro", defaultAmount: 420 },
   { id: "car", labelKey: "chips.car", defaultTitle: "Car Down Payment", defaultAmount: 1500 },
   { id: "emergency", labelKey: "chips.emergencyFund", defaultTitle: "Emergency Buffer", defaultAmount: 500 },
@@ -39,6 +39,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [savedCard, setSavedCard] = useState<{ brand: string; last4: string } | null>(null);
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
 
@@ -49,8 +50,45 @@ export default function OnboardingPage() {
     error?: string;
   } | null>(null);
 
+  // Step 1: Goal & Target (Pre-filled for zero-friction demo)
+  const [goalName, setGoalName] = useState("London Summer Trip 🇬🇧");
+  const [targetAmount, setTargetAmount] = useState<number | string>(500);
+
+  // Step 2: Flexible Pacing (Pre-filled for zero-friction demo)
+  const [pullAmount, setPullAmount] = useState<number | string>(25);
+  const [cadence, setCadence] = useState<"daily" | "weekly" | "biweekly" | "monthly" | "custom">("monthly");
+  const [customCadenceDays, setCustomCadenceDays] = useState<number>(3);
+  const [incrementalType, setIncrementalType] = useState<"none" | "fixed" | "percentage">("none");
+  const [incrementalValue, setIncrementalValue] = useState<number>(0.1);
+  const [allowanceDay, setAllowanceDay] = useState<number>(25);
+
+  // Step 3: Keyholder (Pre-filled for zero-friction demo)
+  const [keyholderName, setKeyholderName] = useState("Ahmed (Brother)");
+  const [keyholderEmail, setKeyholderEmail] = useState("ahmed.demo@tijori.app");
+  const [keyholderRel, setKeyholderRel] = useState("Brother");
+
   React.useEffect(() => {
     let isMounted = true;
+    const isDemo =
+      typeof window !== "undefined" &&
+      (window.location.search.includes("demo=true") ||
+        localStorage.getItem("tijori_demo") === "true");
+
+    if (isDemo) {
+      setIsDemoMode(true);
+      setCurrentUser({ name: isArabic ? "عبدالرحمن" : "Abdulrahman", email: "demo@tijori.app" });
+      setGoalName(isArabic ? "سفرة لندن 🇬🇧" : "London Summer Trip 🇬🇧");
+      setTargetAmount(500);
+      setPullAmount(25);
+      setCadence("monthly");
+      setAllowanceDay(25);
+      setKeyholderName(isArabic ? "أحمد (أخوي)" : "Ahmed (Brother)");
+      setKeyholderEmail("ahmed.demo@tijori.app");
+      setKeyholderRel(isArabic ? "أخ" : "Brother");
+      setSavedCard({ brand: "KNET / Boubyan", last4: "4092" });
+      return;
+    }
+
     fetch("/api/auth/me")
       .then((res) => {
         if (!isMounted) return null;
@@ -76,24 +114,7 @@ export default function OnboardingPage() {
     return () => {
       isMounted = false;
     };
-  }, [router]);
-
-  // Step 1: Goal & Target
-  const [goalName, setGoalName] = useState("Japan Summer Trip");
-  const [targetAmount, setTargetAmount] = useState<number | string>(500);
-
-  // Step 2: Flexible Pacing
-  const [pullAmount, setPullAmount] = useState<number | string>(25);
-  const [cadence, setCadence] = useState<"daily" | "weekly" | "biweekly" | "monthly" | "custom">("weekly");
-  const [customCadenceDays, setCustomCadenceDays] = useState<number>(3);
-  const [incrementalType, setIncrementalType] = useState<"none" | "fixed" | "percentage">("none");
-  const [incrementalValue, setIncrementalValue] = useState<number>(0.1);
-  const [allowanceDay, setAllowanceDay] = useState<number>(25);
-
-  // Step 3: Keyholder (Friend who holds the key)
-  const [keyholderName, setKeyholderName] = useState("Ahmed");
-  const [keyholderEmail, setKeyholderEmail] = useState("");
-  const [keyholderRel, setKeyholderRel] = useState("Best Friend");
+  }, [router, isArabic]);
 
   // Email Validation
   const validateEmail = (mail: string): boolean => {
@@ -134,6 +155,13 @@ export default function OnboardingPage() {
     }
     if (!keyholderEmail.trim() || !validateEmail(keyholderEmail)) {
       setError(t("onboarding.emailValidation"));
+      return;
+    }
+
+    if (isDemoMode) {
+      setCreatedVaultId("demo_vault_london_2026");
+      setEmailDeliveryInfo({ success: true });
+      setStep(4);
       return;
     }
 
@@ -206,6 +234,26 @@ export default function OnboardingPage() {
   };
 
   const handleFinishOnboarding = () => {
+    if (isDemoMode) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("tijori_demo", "true");
+        localStorage.setItem(
+          "tijori_user",
+          JSON.stringify({
+            name: isArabic ? "عبدالرحمن" : "Abdulrahman",
+            email: "demo@tijori.app",
+            allowanceDay: 25,
+            cardBrand: "knet",
+            cardLast4: "4092",
+            hasPaymentMethod: true,
+          })
+        );
+        document.cookie = "tijori_demo=true; path=/; max-age=86400";
+      }
+      router.replace("/dashboard?demo=true");
+      router.refresh();
+      return;
+    }
     router.replace("/dashboard");
     router.refresh();
   };
@@ -214,6 +262,33 @@ export default function OnboardingPage() {
 
   return (
     <div className={`min-h-[85vh] flex flex-col justify-center mx-auto px-4 pb-12 pt-[calc(var(--nav-h)+24px)] transition-all ${step === 4 ? "max-w-3xl" : "max-w-xl"}`}>
+      {/* Demo Walkthrough Banner */}
+      {isDemoMode && (
+        <div className="card-hard bg-lime p-3.5 sm:p-4 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[3px_3px_0_var(--ink)]">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">⚡</span>
+            <div>
+              <p className="text-xs sm:text-sm font-black text-ink leading-tight">
+                {isArabic
+                  ? "العرض التجريبي التفاعلي: جميع الخطوات معبأة مسبقاً بنموذج كويتي حقيقي."
+                  : "Live Demo Walkthrough: All steps pre-filled with real Kuwait student/saver data."}
+              </p>
+              <p className="text-[11px] font-bold text-ink/80 mt-0.5">
+                {isArabic
+                  ? "اضغط «التالي / متابعة» في كل خطوة لتجربة رحلة القفل والانضباط دون أي كتابة!"
+                  : "Just click Next / Continue through each step to experience the full lock journey!"}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard?demo=true"
+            className="btn-hard py-1.5 px-3 bg-surface text-ink font-black text-xs shrink-0 self-start sm:self-center hover:bg-bg shadow-[2px_2px_0_var(--ink)] cursor-pointer"
+          >
+            {isArabic ? "تخطي للوحة التحكم ←" : "Skip to Dashboard →"}
+          </Link>
+        </div>
+      )}
+
       {/* Neobrutalist Progress Bar directly above card (16px gap, 25/50/75/100%) */}
       <div className="w-full h-2.5 bg-surface rounded-full overflow-hidden border-2 border-ink shadow-[2px_2px_0_var(--ink)] mb-4">
         <div
@@ -602,7 +677,35 @@ export default function OnboardingPage() {
               />
             </div>
 
-            {/* Direct Reassurance Note (No URLs, no copy buttons, no confusion) */}
+            {/* Keyholder Demo PIN Callout (Pre-provided for breaking test: 123456) */}
+            <div className="p-4 rounded-2xl bg-violet/10 border-2 border-violet shadow-[2px_2px_0_var(--ink)] flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-violet text-white border-2 border-ink flex items-center justify-center shrink-0 font-black text-sm shadow-[1.5px_1.5px_0_var(--ink)]">
+                🔑
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-xs sm:text-sm font-black text-ink">
+                    {isArabic ? "رمز الموافقة المعتمد للتجربة:" : "Keyholder Demo Approval PIN:"}
+                  </h4>
+                  <span className="px-2.5 py-0.5 rounded-lg bg-surface border-2 border-ink font-mono font-black text-violet text-sm tracking-widest shadow-[1px_1px_0_var(--ink)]">
+                    123456
+                  </span>
+                </div>
+                <p className="text-xs text-muted leading-relaxed font-medium">
+                  {isArabic ? (
+                    <>
+                      في التجربة الفعلية، يستلم <strong className="text-ink font-bold">{keyholderName || "أحمد"}</strong> بريداً سرياً ليحدد رمزه بنفسه دون أن تراه. في هذا العرض التجريبي، تم ضبط رمز الموافقة على <strong className="text-ink font-mono font-bold">123456</strong> لتتمكن من تجربة كسر الخزينة بنجاح.
+                    </>
+                  ) : (
+                    <>
+                      In real use, <strong className="text-ink font-bold">{keyholderName || "Ahmed"}</strong> receives a private email to set his own secret PIN. For this live demo walkthrough, the approval PIN is pre-set to <strong className="text-ink font-mono font-bold">123456</strong> so you can test breaking the vault anytime.
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Direct Reassurance Note */}
             <div className="p-4 rounded-2xl bg-bg border-2 border-ink shadow-[2px_2px_0_var(--ink)] flex items-start gap-3">
               <div className="w-9 h-9 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink shrink-0 font-bold text-sm shadow-[1.5px_1.5px_0_var(--ink)]">
                 ✉️
@@ -669,25 +772,30 @@ export default function OnboardingPage() {
                   <div>
                     <h3 className="font-extrabold text-sm sm:text-base text-ink">
                       {isArabic
-                        ? `تم إرسال دعوة المفتاح السرية لـ ${keyholderName || "صاحبك"}`
-                        : `Confidential Keyholder Invite Sent to ${keyholderName || "Friend"}`}
+                        ? `تم تجهيز دعوة المفتاح لـ ${keyholderName || "صاحبك"}`
+                        : `Keyholder Lock Ready with ${keyholderName || "Friend"}`}
                     </h3>
                     <p className="text-xs text-muted font-medium mt-0.5">
                       {isArabic
-                        ? `سيحدد ${keyholderName || "صاحبك"} رمزه السري المكوّن من ٦ أرقام بنفسه. لحفظ انضباطك المالي، لن تتمكن من رؤية هذا الرابط أو الرمز السري أبداً.`
-                        : `${keyholderName || "Your friend"} will set their confidential 6-digit approval PIN privately. To guarantee discipline, this link and PIN are strictly confidential and inaccessible to you.`}
+                        ? `رمز كسر الخزينة المعتمد للديمو هو 123456. لن يُسمح بكسر الخزينة إلا بموافقة هذا الرمز.`
+                        : `Demo approval PIN is pre-set to 123456. Vault withdrawals will strictly require this PIN.`}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Delivery Status Badge */}
-              <div className="p-2.5 rounded-xl bg-mint/15 border border-mint/40 text-mint text-xs font-bold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-mint" />
-                <span>
-                  {isArabic
-                    ? `تم إرسال بريد الدعوة الرسمي والمشفّر مباشرة إلى ${keyholderEmail}`
-                    : `Confidential invite email dispatched directly to ${keyholderEmail}`}
+              <div className="p-2.5 rounded-xl bg-mint/15 border border-mint/40 text-mint text-xs font-bold flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-mint" />
+                  <span>
+                    {isArabic
+                      ? `دعوة المفتاح مرتبطة بـ ${keyholderEmail}`
+                      : `Keyholder linked to ${keyholderEmail}`}
+                  </span>
+                </div>
+                <span className="px-2 py-0.5 rounded-md bg-surface text-ink border border-ink text-[11px] font-mono font-black shadow-[1px_1px_0_var(--ink)]">
+                  PIN: 123456
                 </span>
               </div>
             </div>
@@ -706,7 +814,7 @@ export default function OnboardingPage() {
                         </h3>
                         <p className="text-xs text-mint flex items-center gap-1.5 mt-0.5 font-bold">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Saved as default payment method</span>
+                          <span>{isArabic ? "بطاقة مفعلة للاستقطاع التلقائي" : "Activated for auto-save"}</span>
                         </p>
                       </div>
                     </div>
@@ -715,7 +823,7 @@ export default function OnboardingPage() {
                       onClick={() => setSavedCard(null)}
                       className="text-xs text-muted hover:text-ink underline font-bold cursor-pointer"
                     >
-                      Change card
+                      {isArabic ? "تغيير" : "Change card"}
                     </button>
                   </div>
                 </div>
@@ -723,9 +831,9 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={handleFinishOnboarding}
-                  className="btn-hard w-full py-3.5 px-6 bg-lime text-ink font-extrabold text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="btn-hard w-full py-4 px-6 bg-lime text-ink font-black text-base shadow-[4px_4px_0_var(--ink)] hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <span>{t("onboarding.finishAction")}</span>
+                  <span>{isArabic ? "افتح خزينة تجوري 🚀" : "Open My Tijori Vault 🚀"}</span>
                   <ArrowRight className="w-4 h-4 rtl:rotate-180" />
                 </button>
               </div>

@@ -53,6 +53,7 @@ export default function KeyholderTokenUnlockPage({
   const unwrappedParams = use(params);
   const token = unwrappedParams.token;
   const { lang } = useT();
+  const isArabic = lang === "ar";
 
   const [vault, setVault] = useState<VaultData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,6 +104,37 @@ export default function KeyholderTokenUnlockPage({
     async function fetchVault() {
       try {
         setLoading(true);
+        if (token.startsWith("demo_")) {
+          setVault({
+            _id: "demo_vault_london_2026",
+            title: isArabic ? "سفرة لندن 🇬🇧" : "London Summer Trip 🇬🇧",
+            targetAmount: 500,
+            currentBalance: 185,
+            pullAmount: 25,
+            cadence: "monthly",
+            streakCount: 18,
+            denialsCount: 2,
+            status: "UNLOCK_PENDING",
+            keyholder: {
+              name: isArabic ? "أحمد (أخوي)" : "Ahmed (Brother)",
+              phone: "+965 9988 7766",
+              relationship: isArabic ? "أخ" : "Brother",
+            },
+            unlockReason: isArabic
+              ? "شراء سنيكرز ترافيس سكوت من مجمع ٣٦٠ — إصدار محدود هذا الأسبوع!"
+              : "Travis Scott sneaker drop at 360 Mall — limited release this weekend!",
+            breakExcuse: isArabic
+              ? "شراء سنيكرز ترافيس سكوت من مجمع ٣٦٠ — إصدار محدود هذا الأسبوع!"
+              : "Travis Scott sneaker drop at 360 Mall — limited release this weekend!",
+            realityCheck: isArabic
+              ? "رغبة شراء لحظية ستكسر سلسلة التزامك المالي البالغة ١٨ يوماً وتخصم ٥٪ رسوم انضباط."
+              : "Impulse buy urge that will reset your 18-day streak and deduct 5% penalty.",
+            unlockToken: token,
+          } as any);
+          setLoading(false);
+          return;
+        }
+
         const res = await fetch(`/api/unlock/${token}`);
         const data = await res.json();
         if (data.success && data.vault) {
@@ -117,13 +149,40 @@ export default function KeyholderTokenUnlockPage({
       }
     }
     fetchVault();
-  }, [token]);
+  }, [token, isArabic]);
 
   const handleDecision = async (action: "APPROVE" | "DENY", pinCode?: string) => {
     if (!vault || processingAction) return;
     try {
       setProcessingAction(action);
       setPinError(null);
+
+      if (token.startsWith("demo_")) {
+        if (action === "APPROVE") {
+          const checkPin = (pinCode || pin).trim();
+          if (checkPin !== "123456") {
+            setPinError(isArabic ? "الرمز غير صحيح. للتجربة استخدم: 123456" : "Invalid PIN. For demo, use: 123456");
+            return;
+          }
+          confetti({
+            particleCount: 100,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ["#CFFF3A", "#6B4DFF", "#2DE0A5", "#FF6B6B"],
+          });
+        } else {
+          confetti({
+            particleCount: 90,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#CFFF3A", "#6B4DFF", "#2DE0A5", "#14102B"],
+          });
+        }
+        setShowPinModal(false);
+        setDecisionRecorded(action);
+        return;
+      }
+
       const res = await fetch(`/api/unlock/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -165,7 +224,6 @@ export default function KeyholderTokenUnlockPage({
     }
   };
 
-  const isArabic = lang === "ar";
   const keyholderFirstName = vault?.keyholder?.name ? vault.keyholder.name.split(" ")[0] : (isArabic ? "يا رفيقي" : "Friend");
   const applicantName = (vault as any)?.applicantName || (isArabic ? "صاحبك" : "Your friend");
 
@@ -422,7 +480,26 @@ export default function KeyholderTokenUnlockPage({
               </div>
             )}
 
-            <div className="space-y-1">
+            <div className="space-y-2">
+              {/* Demo PIN Helper Pill */}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPin("123456");
+                    setPinError(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet/10 hover:bg-violet/20 border border-violet/40 text-violet text-xs font-bold transition-all cursor-pointer shadow-[1px_1px_0_var(--ink)]"
+                >
+                  <span>🔑</span>
+                  <span>
+                    {isArabic
+                      ? "رمز الديمو المعتمد: 123456 (اضغط للتعبئة)"
+                      : "Demo PIN: 123456 (Click to auto-fill)"}
+                  </span>
+                </button>
+              </div>
+
               <input
                 type="password"
                 inputMode="numeric"

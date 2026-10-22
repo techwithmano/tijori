@@ -20,6 +20,35 @@ export async function GET(
       );
     }
 
+    // Support demo mode break requests (e.g. demo_unlock_token_123)
+    if (token.startsWith("demo_")) {
+      return NextResponse.json({
+        success: true,
+        vault: {
+          _id: "demo_vault_london_2026",
+          title: "London Summer Trip 🇬🇧",
+          targetAmount: 500,
+          currentBalance: 185,
+          pullAmount: 25,
+          cadence: "monthly",
+          streakCount: 18,
+          denialsCount: 2,
+          status: "UNLOCK_PENDING",
+          keyholder: {
+            name: "Ahmed (Brother)",
+            phone: "+965 9988 7766",
+            relationship: "Brother",
+          },
+          applicantName: "Abdulrahman",
+          unlockReason: "Travis Scott sneaker drop at 360 Mall — limited release this weekend!",
+          breakExcuse: "Travis Scott sneaker drop at 360 Mall — limited release this weekend!",
+          realityCheck: "This sneaker urge is an impulse buy. Breaking your vault will reset your 18-day streak and deduct 5% penalty.",
+          unlockToken: token,
+          keyholderPin: "123456",
+        },
+      });
+    }
+
     // Find the active vault that matches this single-use unlock token
     const vault = await Vault.findOne({ unlockToken: token });
 
@@ -66,6 +95,41 @@ export async function POST(
         { success: false, error: "Token is required" },
         { status: 400 }
       );
+    }
+
+    // Support demo mode break requests (e.g. demo_unlock_token_123)
+    if (token.startsWith("demo_")) {
+      const body = await req.json();
+      const { action, pin } = body;
+      if (!["APPROVE", "DENY"].includes(action)) {
+        return NextResponse.json(
+          { success: false, error: "Action must be either APPROVE or DENY" },
+          { status: 400 }
+        );
+      }
+      if (action === "APPROVE") {
+        const enteredPin = String(pin || "").trim();
+        if (enteredPin !== "123456") {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Invalid 6-digit authorization PIN. For demo, use 123456.",
+              invalidPin: true,
+            },
+            { status: 400 }
+          );
+        }
+        return NextResponse.json({
+          success: true,
+          action: "APPROVE",
+          message: "Demo vault break authorized successfully with PIN 123456.",
+        });
+      }
+      return NextResponse.json({
+        success: true,
+        action: "DENY",
+        message: "Demo vault kept locked! Discipline preserved.",
+      });
     }
 
     const vault = await Vault.findOne({ unlockToken: token });

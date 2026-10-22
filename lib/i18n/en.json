@@ -205,6 +205,7 @@
     "goalNamePlaceholder": "e.g. Japan Summer Trip",
     "targetAmountLabel": "Target Amount (KWD)",
     "chips": {
+      "londonTrip": "London Summer Trip 🇬🇧",
       "japanTrip": "Japan Summer Trip",
       "newPhone": "New Phone",
       "car": "Car Upgrade",

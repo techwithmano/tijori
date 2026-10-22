@@ -179,7 +179,7 @@ export default function Header() {
               </Link>
             ) : (
               <Link
-                href="/dashboard?demo=true"
+                href="/onboarding?demo=true"
                 onClick={() => {
                   if (typeof window !== "undefined") {
                     localStorage.setItem("tijori_demo", "true");
@@ -271,7 +271,7 @@ export default function Header() {
               </Link>
             ) : (
               <Link
-                href="/dashboard?demo=true"
+                href="/onboarding?demo=true"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   if (typeof window !== "undefined") {
