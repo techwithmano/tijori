@@ -10,8 +10,6 @@ import {
   CheckCircle2,
   AlertCircle,
   TrendingUp,
-  Share2,
-  Copy,
   AlertTriangle,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
@@ -45,13 +43,11 @@ export default function OnboardingPage() {
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
 
   const [createdVaultId, setCreatedVaultId] = useState<string | null>(null);
-  const [createdInviteUrl, setCreatedInviteUrl] = useState<string>("");
   const [emailDeliveryInfo, setEmailDeliveryInfo] = useState<{
     success: boolean;
     sandboxRestriction?: boolean;
     error?: string;
   } | null>(null);
-  const [copiedInvite, setCopiedInvite] = useState(false);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -164,7 +160,6 @@ export default function OnboardingPage() {
         });
         const updateData = await updateRes.json();
         if (updateData.success) {
-          if (updateData.inviteUrl) setCreatedInviteUrl(updateData.inviteUrl);
           if (updateData.emailResult) setEmailDeliveryInfo(updateData.emailResult);
           setStep(4);
           return;
@@ -196,10 +191,6 @@ export default function OnboardingPage() {
       const data = await res.json();
       if (data.success && data.vault) {
         setCreatedVaultId(data.vault._id);
-        const resolvedInviteUrl =
-          data.inviteUrl ||
-          `${window.location.origin}/keyholder/invite/${data.vault.inviteToken || data.inviteToken}`;
-        setCreatedInviteUrl(resolvedInviteUrl);
         if (data.emailResult) {
           setEmailDeliveryInfo(data.emailResult);
         }
@@ -668,108 +659,37 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            {/* Keyholder Invite Status & Instant Share */}
+            {/* Keyholder Confidential Invite Status (Private to Friend only) */}
             <div className="p-4 sm:p-5 rounded-2xl bg-bg border-2 border-ink shadow-[3px_3px_0_var(--ink)] space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-lime border-2 border-ink flex items-center justify-center text-ink shrink-0 font-bold text-lg shadow-[2px_2px_0_var(--ink)]">
-                    🔑
+                    🔐
                   </div>
                   <div>
                     <h3 className="font-extrabold text-sm sm:text-base text-ink">
                       {isArabic
-                        ? `دعوة المفتاح جاهزة لـ ${keyholderName || "صاحبك"}`
-                        : `Keyholder Private Invite for ${keyholderName || "Friend"}`}
+                        ? `تم إرسال دعوة المفتاح السرية لـ ${keyholderName || "صاحبك"}`
+                        : `Confidential Keyholder Invite Sent to ${keyholderName || "Friend"}`}
                     </h3>
                     <p className="text-xs text-muted font-medium mt-0.5">
                       {isArabic
-                        ? `سيحدد ${keyholderName || "صاحبك"} رمزه السري المكوّن من ٦ أرقام لمنع الكسر المبكر.`
-                        : `${keyholderName || "Your friend"} will set their 6-digit approval PIN.`}
+                        ? `سيحدد ${keyholderName || "صاحبك"} رمزه السري المكوّن من ٦ أرقام بنفسه. لحفظ انضباطك المالي، لن تتمكن من رؤية هذا الرابط أو الرمز السري أبداً.`
+                        : `${keyholderName || "Your friend"} will set their confidential 6-digit approval PIN privately. To guarantee discipline, this link and PIN are strictly confidential and inaccessible to you.`}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Delivery Status Badge */}
-              {emailDeliveryInfo?.success ? (
-                <div className="p-2.5 rounded-xl bg-mint/15 border border-mint/40 text-mint text-xs font-bold flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 text-mint" />
-                  <span>
-                    {isArabic
-                      ? `تم إرسال بريد الدعوة إلى ${keyholderEmail}`
-                      : `Invite email dispatched to ${keyholderEmail}`}
-                  </span>
-                </div>
-              ) : emailDeliveryInfo?.sandboxRestriction ? (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-ink text-xs font-medium space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{isArabic ? "تنبيه وضع الاختبار (Sandbox)" : "Sandbox Test Mode Notice"}</span>
-                  </div>
-                  <p className="text-muted leading-relaxed">
-                    {isArabic
-                      ? `نطاق البريد في وضع الاختبار، لذا أُرسلت نسخة للمعاينة إلى بريدك المسجل. يمكنك إرسال الرابط لصاحبك فوراً عبر واتساب أو نسخ الرابط:`
-                      : `Email service is in test mode. A preview was sent to your registered email. Share the link directly with your friend via WhatsApp or copy below:`}
-                  </p>
-                </div>
-              ) : null}
-
-              {/* Action Buttons */}
-              {createdInviteUrl && (
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(createdInviteUrl);
-                      setCopiedInvite(true);
-                      setTimeout(() => setCopiedInvite(false), 2500);
-                    }}
-                    className="btn-hard py-2 px-3.5 bg-surface hover:bg-bg text-ink font-bold text-xs shadow-[2px_2px_0_var(--ink)] flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>
-                      {copiedInvite
-                        ? isArabic
-                          ? "تم النسخ ✓"
-                          : "Copied ✓"
-                        : isArabic
-                        ? "نسخ الرابط"
-                        : "Copy Link"}
-                    </span>
-                  </button>
-
-                  <a
-                    href={`https://wa.me/?text=${encodeURIComponent(
-                      isArabic
-                        ? `سلام يا ${keyholderName}! اخترتك لتكون حامل المفتاح لخزينتي (${goalName}) في تِجوري. اضغط هنا لوضع رقمك السري الخاص (PIN) لحفظ انضباطي المالي:\n${createdInviteUrl}`
-                        : `Salam ${keyholderName}! I chose you as my Keyholder on Tijori for my "${goalName}" vault. Click here to set your secret approval PIN:\n${createdInviteUrl}`
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-hard py-2 px-3.5 bg-[#25D366] text-black font-extrabold text-xs shadow-[2px_2px_0_var(--ink)] flex items-center gap-1.5"
-                  >
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>{isArabic ? "إرسال عبر واتساب" : "Send WhatsApp"}</span>
-                  </a>
-
-                  {keyholderEmail && (
-                    <a
-                      href={`mailto:${keyholderEmail}?subject=${encodeURIComponent(
-                        isArabic
-                          ? `🔐 ${currentUser?.name || "صاحبك"} اختارك لتكون حامل المفتاح في تِجوري`
-                          : `🔐 ${currentUser?.name || "Your friend"} chose you as their Keyholder on Tijori`
-                      )}&body=${encodeURIComponent(
-                        isArabic
-                          ? `سلام يا ${keyholderName}،\n\nاخترتك لتكون حامل المفتاح لخزينتي (${goalName}) في تِجوري بمبلغ ${targetAmount} د.ك لمنع الصرف الاندفاعي.\n\nيرجى فتح الرابط التالي لتحديد رقمك السري الخاص (PIN) المكوّن من ٦ أرقام. لن أتمكن من رؤية هذا الرقم أبداً:\n${createdInviteUrl}\n\nشكراً لك!`
-                          : `Salam ${keyholderName},\n\nI chose you as my Keyholder for my "${goalName}" vault on Tijori to keep me financially disciplined.\n\nPlease open this private link to set your secret 6-digit approval PIN (I will never see this PIN):\n${createdInviteUrl}\n\nThank you!`
-                      )}`}
-                      className="btn-hard py-2 px-3.5 bg-lime text-ink font-bold text-xs shadow-[2px_2px_0_var(--ink)] flex items-center gap-1.5"
-                    >
-                      <span>✉️ {isArabic ? "فتح في الإيميل" : "Open in Mail"}</span>
-                    </a>
-                  )}
-                </div>
-              )}
+              <div className="p-2.5 rounded-xl bg-mint/15 border border-mint/40 text-mint text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-mint" />
+                <span>
+                  {isArabic
+                    ? `تم إرسال بريد الدعوة الرسمي والمشفّر مباشرة إلى ${keyholderEmail}`
+                    : `Confidential invite email dispatched directly to ${keyholderEmail}`}
+                </span>
+              </div>
             </div>
 
             {savedCard ? (

@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       targetAmount: reqTargetAmount,
       inviteUrl: reqInviteUrl,
       inviteToken,
+      vaultId,
       lang = "en",
     } = body;
 
@@ -26,10 +27,13 @@ export async function POST(req: NextRequest) {
     let amount = reqTargetAmount || 500;
     let finalInviteUrl = reqInviteUrl;
 
-    // If inviteToken is provided, look up from DB to enrich context
-    if (inviteToken) {
+    // Look up vault if vaultId or inviteToken is provided
+    if (vaultId || inviteToken) {
       await connectToDatabase();
-      const vault = await Vault.findOne({ inviteToken });
+      const vault = vaultId
+        ? await Vault.findById(vaultId)
+        : await Vault.findOne({ inviteToken });
+
       if (vault) {
         goal = vault.title;
         amount = vault.targetAmount;
@@ -38,6 +42,10 @@ export async function POST(req: NextRequest) {
         if (vault.userId) {
           const owner = await User.findById(vault.userId).select("name");
           if (owner?.name) ownerName = owner.name;
+        }
+        if (!finalInviteUrl && vault.inviteToken) {
+          const origin = getRequestOrigin(req);
+          finalInviteUrl = `${origin}/keyholder/invite/${vault.inviteToken}`;
         }
       }
     }
@@ -49,10 +57,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure valid invite URL
+    // Fallback: Ensure valid invite URL if inviteToken was passed directly without vault lookup
     if (!finalInviteUrl && inviteToken) {
       const origin = getRequestOrigin(req);
       finalInviteUrl = `${origin}/keyholder/invite/${inviteToken}`;
+    }
+
+    if (!finalInviteUrl) {
+      return NextResponse.json(
+        { success: false, error: "Unable to generate keyholder invite URL" },
+        { status: 400 }
+      );
     }
 
     const emailResult = await sendKeyholderInviteEmail({
@@ -72,16 +87,15 @@ export async function POST(req: NextRequest) {
           sandboxRestriction: true,
           deliveredToOwnerSandbox: emailResult.deliveredToOwnerSandbox,
           error: emailResult.error,
-          inviteUrl: finalInviteUrl,
           message:
             lang === "ar"
-              ? "نطاق البريد في وضع الاختبار (Resend Sandbox). تم إرسال نسخة للمعاينة إلى بريدك المسجل، ويمكنك إرسال الرابط لصاحبك مباشرة عبر واتساب أو نسخه."
-              : "Email service is in test sandbox mode. A preview was sent to your registered email. You can share the link with your friend via WhatsApp or copy it below.",
+              ? "نطاق البريد في وضع الاختبار (Resend Sandbox). تم إرسال نسخة للمعاينة إلى بريدك المسجل."
+              : "Email service is in test sandbox mode. A preview was sent to your registered email.",
         });
       }
 
       return NextResponse.json(
-        { success: false, error: emailResult.error || "Failed to send email via Resend", inviteUrl: finalInviteUrl },
+        { success: false, error: emailResult.error || "Failed to send email via Resend" },
         { status: 500 }
       );
     }
@@ -90,7 +104,6 @@ export async function POST(req: NextRequest) {
       success: true,
       message: `Keyholder invitation email sent to ${targetEmail}`,
       id: emailResult.id,
-      inviteUrl: finalInviteUrl,
     });
   } catch (error: any) {
     console.error("POST /api/keyholder/invite/send-email error:", error);

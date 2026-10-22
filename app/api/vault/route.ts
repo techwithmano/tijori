@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
 
     // Derive streak server-side from real ledger transactions: consecutive succeeded scheduled saves since last break
     const vaults = (rawVaults || []).map((v) => {
-      const vObj = v.toObject ? v.toObject() : v;
+      const vObj: any = v.toObject ? v.toObject() : v;
       let streak = 0;
       const sortedTxs = [...(vObj.transactions || [])].sort(
         (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -75,6 +75,8 @@ export async function GET(req: NextRequest) {
         }
       }
       vObj.streakCount = streak;
+      vObj.hasPendingKeyholderInvite = !vObj.keyholderInviteAccepted && Boolean(vObj.inviteToken);
+      delete vObj.inviteToken;
       return vObj;
     });
 
@@ -257,12 +259,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const safeVault: any = newVault.toObject ? newVault.toObject() : { ...newVault };
+    safeVault.hasPendingKeyholderInvite = !safeVault.keyholderInviteAccepted && Boolean(safeVault.inviteToken);
+    delete safeVault.inviteToken;
+
     return NextResponse.json(
       {
         success: true,
-        vault: newVault,
-        inviteToken,
-        inviteUrl,
+        vault: safeVault,
         emailResult,
       },
       { status: 201 }

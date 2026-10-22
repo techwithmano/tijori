@@ -51,6 +51,7 @@ export interface IVault extends Document {
   keyholderPin?: string | null;
   inviteToken?: string | null;
   keyholderInviteAccepted?: boolean;
+  hasPendingKeyholderInvite?: boolean;
   unlockToken?: string | null;
   unlockReason?: string | null;
   unlockMethod?: "friend_approved" | "emergency_self_break" | "FRIEND_APPROVAL" | "EMERGENCY_SOLO" | string | null;

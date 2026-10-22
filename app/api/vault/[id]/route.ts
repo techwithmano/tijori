@@ -22,7 +22,11 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, vault });
+    const safeVault: any = vault.toObject ? vault.toObject() : { ...vault };
+    safeVault.hasPendingKeyholderInvite = !safeVault.keyholderInviteAccepted && Boolean(safeVault.inviteToken);
+    delete safeVault.inviteToken;
+
+    return NextResponse.json({ success: true, vault: safeVault });
   } catch (error: any) {
     console.error("GET /api/vault/[id] error:", error);
     return NextResponse.json(
@@ -170,14 +174,14 @@ export async function PATCH(
     }
 
     await vault.save();
-    const origin = getRequestOrigin(req);
-    const inviteUrl = `${origin}/keyholder/invite/${vault.inviteToken}`;
+
+    const safeVault: any = vault.toObject ? vault.toObject() : { ...vault };
+    safeVault.hasPendingKeyholderInvite = !safeVault.keyholderInviteAccepted && Boolean(safeVault.inviteToken);
+    delete safeVault.inviteToken;
 
     return NextResponse.json({
       success: true,
-      vault,
-      inviteToken: vault.inviteToken,
-      inviteUrl,
+      vault: safeVault,
       emailResult,
     });
   } catch (error: any) {

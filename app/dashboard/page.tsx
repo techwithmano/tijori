@@ -86,6 +86,7 @@ interface IVault {
   keyholderName?: string;
   keyholderEmail?: string;
   inviteToken?: string | null;
+  hasPendingKeyholderInvite?: boolean;
   keyholderInviteAccepted?: boolean;
   unlockToken?: string | null;
   unlockReason?: string | null;
@@ -635,27 +636,7 @@ function DashboardContent() {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const [copiedKeyholderLink, setCopiedKeyholderLink] = useState(false);
   const [resendingKeyholderEmail, setResendingKeyholderEmail] = useState(false);
-
-  const copyKeyholderInviteLink = (token?: string | null) => {
-    if (!token) return;
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/keyholder/invite/${token}`;
-    navigator.clipboard.writeText(url);
-    setCopiedKeyholderLink(true);
-    setTimeout(() => setCopiedKeyholderLink(false), 2500);
-  };
-
-  const getKeyholderWhatsAppUrl = (v: IVault) => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const inviteUrl = `${origin}/keyholder/invite/${v.inviteToken}`;
-    const name = v.keyholder?.name || "صاحبي";
-    const msg = isArabic
-      ? `سلام يا ${name}! اخترتك لتكون حامل المفتاح لخزينتي (${v.title}) في تِجوري بمبلغ ${formatKwd(v.targetAmount, "ar")} لحفظ التزامي المالي. اضغط هنا لوضع رقمك السري الخاص (PIN):\n${inviteUrl}`
-      : `Salam ${name}! I chose you as my Keyholder on Tijori for my "${v.title}" vault (${formatKwd(v.targetAmount, "en")}). Click here to set your secret approval PIN:\n${inviteUrl}`;
-    return `https://wa.me/?text=${encodeURIComponent(msg)}`;
-  };
 
   const handleResendKeyholderEmail = async (v: IVault) => {
     const email = v.keyholderEmail || v.keyholder?.email;
@@ -666,8 +647,8 @@ function DashboardContent() {
         badge: isArabic ? "مطلوب" : "Required",
         title: isArabic ? "بريد غير متوفر" : "No Email Found",
         description: isArabic
-          ? "لم يتم إدخال بريد إلكتروني لحامل المفتاح عند إنشاء الخزينة. يمكنك نسخ الرابط أو إرساله عبر واتساب مباشرة."
-          : "No keyholder email was saved for this vault. You can copy or share their invite link via WhatsApp directly.",
+          ? "لم يتم العثور على بريد إلكتروني لحامل المفتاح في هذه الخزينة."
+          : "No keyholder email was found for this vault.",
         confirmLabel: isArabic ? "حسناً" : "Got it",
         hideCancel: true,
         onConfirm: () => setDecisionModal((prev) => (prev ? { ...prev, isOpen: false } : null)),
@@ -681,12 +662,12 @@ function DashboardContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          vaultId: v._id,
           to: email,
           keyholderName: v.keyholder?.name || "Friend",
           applicantName: user?.name || "Your Friend",
           goalTitle: v.title,
           targetAmount: v.targetAmount,
-          inviteToken: v.inviteToken,
           lang,
         }),
       });
@@ -699,8 +680,8 @@ function DashboardContent() {
           badge: isArabic ? "تم الإرسال" : "Sent",
           title: isArabic ? "تم إرسال بريد الدعوة بنجاح" : "Invite Email Dispatched",
           description: isArabic
-            ? `أُرسلت دعوة بريدية رسمية إلى ${email}. ليحدد صاحبك رمزه السري لحماية خزينتك.`
-            : `An official invite email has been sent to ${email}.`,
+            ? `أُرسلت دعوة بريدية رسمية ومباشرة إلى ${email} ليحدد صاحبك رمزه السري لحماية خزينتك.`
+            : `An official confidential invite email has been sent to ${email}.`,
           confirmLabel: isArabic ? "حسناً" : "Done",
           hideCancel: true,
           onConfirm: () => setDecisionModal((prev) => (prev ? { ...prev, isOpen: false } : null)),
@@ -709,27 +690,14 @@ function DashboardContent() {
         setDecisionModal({
           isOpen: true,
           type: "info",
-          badge: isArabic ? "تنبيه" : "Notice",
-          title: isArabic ? "وضع الاختبار (Sandbox)" : "Sandbox Test Mode Notice",
-          description: isArabic ? (
-            <div className="space-y-2 text-xs leading-relaxed">
-              <p>نطاق البريد الحالي في وضع التجربة، لذا أُرسلت نسخة للمعاينة إلى بريدك المسجل ({user?.email}).</p>
-              <p className="font-bold text-ink">يمكنك إرسال الرابط لصاحبك فوراً عبر واتساب أو نسخه:</p>
-              <p className="p-2 rounded bg-surface border border-ink/20 font-mono select-all break-all">{data.inviteUrl}</p>
-            </div>
-          ) : (
-            <div className="space-y-2 text-xs leading-relaxed">
-              <p>Email service is in test mode. A preview was sent to your registered email ({user?.email}).</p>
-              <p className="font-bold text-ink">Share this link directly with your friend via WhatsApp or copy:</p>
-              <p className="p-2 rounded bg-surface border border-ink/20 font-mono select-all break-all">{data.inviteUrl}</p>
-            </div>
-          ),
-          confirmLabel: isArabic ? "نسخ الرابط" : "Copy Link",
-          cancelLabel: isArabic ? "إغلاق" : "Close",
-          onConfirm: () => {
-            if (data.inviteUrl) navigator.clipboard.writeText(data.inviteUrl);
-            setDecisionModal((prev) => (prev ? { ...prev, isOpen: false } : null));
-          },
+          badge: isArabic ? "تم الإرسال" : "Dispatched",
+          title: isArabic ? "تم إرسال الدعوة" : "Invite Dispatched",
+          description: isArabic
+            ? `تم إرسال بريد الدعوة الخاص إلى ${email}. سيقوم صاحبك بتحديد رمزه السري المكوّن من ٦ أرقام مباشرة.`
+            : `The private invite has been emailed to ${email}. Your friend will set their 6-digit PIN securely.`,
+          confirmLabel: isArabic ? "حسناً" : "Done",
+          hideCancel: true,
+          onConfirm: () => setDecisionModal((prev) => (prev ? { ...prev, isOpen: false } : null)),
         });
       } else {
         setDecisionModal({
@@ -1048,7 +1016,7 @@ function DashboardContent() {
         )}
 
         {/* KEYHOLDER INVITE PENDING BANNER */}
-        {!vault.keyholderInviteAccepted && vault.inviteToken && (
+        {!vault.keyholderInviteAccepted && (vault.hasPendingKeyholderInvite || Boolean(vault.keyholderEmail || vault.keyholder?.email || vault.keyholder?.name)) && (
           <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border-2 border-ink text-ink flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[4px_4px_0_var(--ink)]">
             <div className="flex items-start sm:items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-sun border-2 border-ink flex items-center justify-center text-ink shrink-0 font-bold text-lg shadow-[2px_2px_0_var(--ink)]">
@@ -1065,38 +1033,19 @@ function DashboardContent() {
                 </div>
                 <p className="text-xs text-muted font-medium mt-0.5 leading-relaxed">
                   {isArabic
-                    ? `لم يقم ${vault.keyholder?.name || "صاحبك"} بوضع رمزه السري لحماية الخزينة بعد. شارك معه الرابط الخاص ليثبّت المفتاح:`
-                    : `${vault.keyholder?.name || "Your keyholder"} hasn't set their approval PIN yet. Share their private link to activate protection:`}
+                    ? `لم يقم ${vault.keyholder?.name || "صاحبك"} بتعيين رمزه السري لحماية الخزينة بعد. تم إرسال رابط خاص وسري مباشرة إلى بريده الإلكتروني (${vault.keyholderEmail || vault.keyholder?.email || ""}):`
+                    : `${vault.keyholder?.name || "Your keyholder"} hasn't set their approval PIN yet. A private confidential invite was emailed directly to them (${vault.keyholderEmail || vault.keyholder?.email || ""}):`}
                 </p>
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons: Confidential Resend Only */}
             <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-center">
-              <button
-                type="button"
-                onClick={() => copyKeyholderInviteLink(vault.inviteToken)}
-                className="btn-hard py-2 px-3 bg-surface hover:bg-bg text-ink font-bold text-xs shadow-[2px_2px_0_var(--ink)] flex items-center gap-1.5 cursor-pointer"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span>{copiedKeyholderLink ? (isArabic ? "تم النسخ ✓" : "Copied ✓") : (isArabic ? "نسخ الرابط" : "Copy Link")}</span>
-              </button>
-
-              <a
-                href={getKeyholderWhatsAppUrl(vault)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-hard py-2 px-3 bg-[#25D366] text-black font-extrabold text-xs shadow-[2px_2px_0_var(--ink)] flex items-center gap-1.5"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>{isArabic ? "واتساب" : "WhatsApp"}</span>
-              </a>
-
               <button
                 type="button"
                 disabled={resendingKeyholderEmail}
                 onClick={() => handleResendKeyholderEmail(vault)}
-                className="btn-hard py-2 px-3 bg-lime text-ink font-bold text-xs shadow-[2px_2px_0_var(--ink)] flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="btn-hard py-2 px-3.5 bg-lime text-ink font-bold text-xs shadow-[2px_2px_0_var(--ink)] flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {resendingKeyholderEmail ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
